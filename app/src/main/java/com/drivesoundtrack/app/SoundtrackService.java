@@ -16,6 +16,7 @@ import android.service.media.MediaBrowserService;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public final class SoundtrackService extends MediaBrowserService {
     public static final String DEMO_SPEED = "com.drivesoundtrack.DEMO_SPEED";
     public static final String STATUS = "com.drivesoundtrack.STATUS";
     public static final String STATUS_REQUEST = "com.drivesoundtrack.STATUS_REQUEST";
+    public static final String RECONNECT_SPEED = "com.drivesoundtrack.RECONNECT_SPEED";
     private static final String CHANNEL = "drive_soundtrack_playback";
     private static final String[] NAMES = {"Pulse", "Night", "Coast"};
 
@@ -102,6 +104,11 @@ public final class SoundtrackService extends MediaBrowserService {
             else if (PAUSE.equals(action)) pause();
             else if (PRESET.equals(action)) setPreset(intent.getIntExtra("preset", 0));
             else if (STATUS_REQUEST.equals(action)) broadcastStatus();
+            else if (RECONNECT_SPEED.equals(action)) {
+                speedReader.stop();
+                carAvailable = speedReader.start(this, kmh -> { model.setSpeed(kmh); broadcastStatus(); });
+                broadcastStatus();
+            }
             else if (DEMO_SPEED.equals(action) && !carAvailable) {
                 model.setSpeed(intent.getDoubleExtra("kmh", 0));
                 broadcastStatus();
@@ -120,11 +127,19 @@ public final class SoundtrackService extends MediaBrowserService {
         if (playing) return;
         if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return;
         playing = true;
-        startForeground(1, new Notification.Builder(this, CHANNEL)
-            .setContentTitle("Drive Soundtrack")
-            .setContentText(NAMES[preset] + " 재생 중")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setVisibility(Notification.VISIBILITY_PUBLIC).build());
+        try {
+            startForeground(1, new Notification.Builder(this, CHANNEL)
+                .setContentTitle("Drive Soundtrack")
+                .setContentText(NAMES[preset] + " 재생 중")
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setVisibility(Notification.VISIBILITY_PUBLIC).build());
+        } catch (RuntimeException ex) {
+            Log.w("DriveSoundtrack", "Playback cannot start in the current vehicle state", ex);
+            playing = false;
+            audioManager.abandonAudioFocusRequest(focusRequest);
+            updateSession(); broadcastStatus();
+            return;
+        }
         engine.start(); updateSession(); broadcastStatus();
         handler.postDelayed(statusTicker, 800);
     }

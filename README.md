@@ -6,6 +6,7 @@ Android Automotive용 실시간 전자음악 프로토타입입니다. 차량 �
 
 - Pulse, Night, Coast 프리셋
 - AAOS `PERF_VEHICLE_SPEED` 속도 읽기 및 Pleos Vehicle SDK `DrivingMode` 읽기
+- `CAR_SPEED` 실행 중 권한 요청과 허용 후 차량 속도 구독 재시작. 시스템에서 위치 정보 권한으로 표시될 수 있으나 GPS는 사용하지 않고 속도 값도 저장·전송하지 않음
 - 차량 입력이 없을 때만 사용할 수 있는 속도 시연 슬라이더
 - Android `MediaBrowserService`와 `MediaSession`을 통한 재생, 일시정지, 프리셋 이동
 - 오디오 포커스를 잃으면 재생 정지, 백그라운드 미디어 재생 서비스
@@ -29,7 +30,7 @@ Pleos Vehicle SDK 2.3.2는 공식 Pleos Maven 저장소에서 내려받습니다
 
 ## 현재 검증 범위
 
-`assembleDebug`와 `assembleRelease` 컴파일, release APK 서명 검증, PC에서 동일 사운드 렌더러로 20초 WAV 생성은 성공했습니다. 일반 Android 14 에뮬레이터에서 release APK 설치와 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다. Pleos 전용 에뮬레이터 및 실제 차량에서 차량 신호·주행 중 UX 정책은 아직 검증하지 않았습니다.
+`assembleDebug`와 `assembleRelease` 컴파일, release APK 서명 검증, PC에서 동일 사운드 렌더러로 20초 WAV 생성은 성공했습니다. 일반 Android 14 에뮬레이터에서 release APK 설치와 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 APK 설치, 앱 화면, `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. 실제 속도 값의 변화와 Pleos 주행 모드 변경, 주행 중 UX 정책은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
 
 ## 남은 작업
 

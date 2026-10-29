@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -17,14 +18,19 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 public final class MainActivity extends Activity {
+    private static final String CAR_SPEED_PERMISSION = "android.car.permission.CAR_SPEED";
+    private static final int SPEED_PERMISSION_REQUEST = 42;
     private final String[] names = {"Pulse", "Night", "Coast"};
     private TextView status;
     private Button play;
     private SeekBar speed;
     private TextView demoLabel;
+    private TextView speedPermissionInfo;
+    private Button speedPermissionButton;
     private final Button[] presetButtons = new Button[3];
     private DriveRestrictionsReader restrictionsReader;
     private boolean restricted;
+    private boolean restrictionsKnown;
     private double currentKmh;
     private int preset;
     private boolean playing;
@@ -67,6 +73,15 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(-1, -2);
         gap.topMargin = 32;
         root.addView(status, gap);
+        speedPermissionInfo = text("차량 속도 권한은 위치 정보로 표시됩니다. GPS 위치는 수집하지 않습니다.", 14, Color.rgb(169, 190, 207));
+        speedPermissionInfo.setPadding(8, 12, 8, 4);
+        root.addView(speedPermissionInfo);
+        speedPermissionButton = new Button(this);
+        speedPermissionButton.setText("차량 속도 연결");
+        speedPermissionButton.setAllCaps(false);
+        speedPermissionButton.setOnClickListener(v -> requestPermissions(
+            new String[]{CAR_SPEED_PERMISSION}, SPEED_PERMISSION_REQUEST));
+        root.addView(speedPermissionButton);
         LinearLayout presets = new LinearLayout(this);
         presets.setOrientation(LinearLayout.HORIZONTAL);
         for (int i = 0; i < names.length; i++) {
@@ -110,6 +125,7 @@ public final class MainActivity extends Activity {
         int displayWidth = getResources().getDisplayMetrics().widthPixels;
         int width = Math.min(displayWidth - 40, (int) (1100 * getResources().getDisplayMetrics().density));
         outer.addView(root, new FrameLayout.LayoutParams(width, -2, Gravity.CENTER));
+        renderRestrictions();
         setContentView(outer);
         startService(new Intent(this, SoundtrackService.class));
     }
@@ -123,7 +139,11 @@ public final class MainActivity extends Activity {
         drawable.setCornerRadius(radiusDp * getResources().getDisplayMetrics().density);
         return drawable;
     }
-    private void send(String action) { startService(new Intent(this, SoundtrackService.class).setAction(action)); }
+    private void send(String action) {
+        Intent intent = new Intent(this, SoundtrackService.class).setAction(action);
+        if (SoundtrackService.PLAY.equals(action)) startForegroundService(intent);
+        else startService(intent);
+    }
     private void send(String action, String key, int value) { startService(new Intent(this, SoundtrackService.class).setAction(action).putExtra(key, value)); }
     private void send(String action, String key, double value) { startService(new Intent(this, SoundtrackService.class).setAction(action).putExtra(key, value)); }
     private void renderRestrictions() {
@@ -132,6 +152,11 @@ public final class MainActivity extends Activity {
         int demoVisibility = carAvailable || restricted ? View.GONE : View.VISIBLE;
         speed.setVisibility(demoVisibility);
         demoLabel.setVisibility(demoVisibility);
+        boolean canRequestSpeed = restrictionsKnown && !restricted && !carAvailable
+            && getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
+            && checkSelfPermission(CAR_SPEED_PERMISSION) != PackageManager.PERMISSION_GRANTED;
+        speedPermissionInfo.setVisibility(canRequestSpeed ? View.VISIBLE : View.GONE);
+        speedPermissionButton.setVisibility(canRequestSpeed ? View.VISIBLE : View.GONE);
     }
     @Override protected void onStart() {
         super.onStart();
@@ -139,11 +164,24 @@ public final class MainActivity extends Activity {
         send(SoundtrackService.STATUS_REQUEST);
         try {
             restrictionsReader = new DriveRestrictionsReader();
-            restrictionsReader.start(this, value -> runOnUiThread(() -> { restricted = value; renderRestrictions(); }));
+            restrictionsReader.start(this, value -> runOnUiThread(() -> {
+                restricted = value;
+                restrictionsKnown = true;
+                renderRestrictions();
+            }));
         } catch (LinkageError ignored) { }
+    }
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == SPEED_PERMISSION_REQUEST && grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            send(SoundtrackService.RECONNECT_SPEED);
+        }
+        renderRestrictions();
     }
     @Override protected void onStop() {
         if (restrictionsReader != null) restrictionsReader.stop();
+        restrictionsKnown = false;
         unregisterReceiver(receiver);
         super.onStop();
     }
