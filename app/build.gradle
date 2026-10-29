@@ -1,0 +1,43 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.drivesoundtrack.app'
+    compileSdk 37
+    defaultConfig {
+        applicationId 'com.drivesoundtrack.app'
+        minSdk 28
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+def localSdkProperties = new Properties()
+def localSdkFile = rootProject.file('local.properties')
+if (localSdkFile.exists()) localSdkFile.withInputStream { localSdkProperties.load(it) }
+def sdkRoot = System.getenv('ANDROID_SDK_ROOT') ?: System.getenv('ANDROID_HOME') ?: localSdkProperties.getProperty('sdk.dir')
+if (!sdkRoot) throw new GradleException('Set ANDROID_SDK_ROOT or sdk.dir in local.properties')
+
+def localSigningProperties = new Properties()
+def localSigningFile = rootProject.file('signing.properties')
+if (localSigningFile.exists()) localSigningFile.withInputStream { localSigningProperties.load(it) }
+if (localSigningFile.exists()) {
+    android.signingConfigs {
+        release {
+            storeFile rootProject.file(localSigningProperties.getProperty('storeFile'))
+            storePassword localSigningProperties.getProperty('storePassword')
+            keyAlias localSigningProperties.getProperty('keyAlias')
+            keyPassword localSigningProperties.getProperty('keyPassword')
+        }
+    }
+    android.buildTypes.release.signingConfig = android.signingConfigs.release
+}
+
+dependencies {
+    compileOnly files("${sdkRoot}/platforms/android-37.0/optional/android.car.jar")
+    implementation 'ai.pleos.playground:Vehicle:2.3.2'
+}
