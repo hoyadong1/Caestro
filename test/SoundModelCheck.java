@@ -14,6 +14,10 @@ public final class SoundModelCheck {
         model.setSpeed(-100);
         for (int i = 0; i < 350; i++) model.tick();
         if (model.speed() < 0 || model.speed() > 0.01) throw new AssertionError("speed clamp");
+        model.setSpeed(Double.NaN);
+        model.setSpeed(Double.POSITIVE_INFINITY);
+        model.tick();
+        if (!Double.isFinite(model.bpm()) || !Double.isFinite(model.speed())) throw new AssertionError("non-finite sensor input");
         System.out.println("SoundModel checks passed");
     }
 }

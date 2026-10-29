@@ -28,7 +28,10 @@ public final class CarSpeedReader {
                 }
                 @Override public void onErrorEvent(int propertyId, int areaId) { }
             };
-            manager.registerCallback(callback, VehiclePropertyIds.PERF_VEHICLE_SPEED, CarPropertyManager.SENSOR_RATE_ONCHANGE);
+            if (!manager.registerCallback(callback, VehiclePropertyIds.PERF_VEHICLE_SPEED, CarPropertyManager.SENSOR_RATE_ONCHANGE)) {
+                stop();
+                return false;
+            }
             CarPropertyValue<Float> initial = manager.getProperty(Float.class, VehiclePropertyIds.PERF_VEHICLE_SPEED, 0);
             if (initial != null && initial.getValue() != null) listener.onSpeed(initial.getValue() * 3.6);
             return true;

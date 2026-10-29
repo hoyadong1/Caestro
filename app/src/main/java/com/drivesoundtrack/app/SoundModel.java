@@ -8,6 +8,7 @@ public final class SoundModel {
     private int driveMode;
 
     public synchronized void setSpeed(double kmh) {
+        if (!Double.isFinite(kmh)) return;
         targetKmh = Math.max(0, Math.min(130, kmh));
     }
 

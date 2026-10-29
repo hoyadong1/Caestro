@@ -36,4 +36,3 @@ Pleos Vehicle SDK 2.3.2는 공식 Pleos Maven 저장소에서 내려받습니다
 - Pleos Connect 에뮬레이터에서 속도·주행 모드와 오디오 포커스 통합 시험
 - Pleos 전용 에뮬레이터에서 `CarUxRestrictions` 연동 결과 확인
 - 음악 패턴과 전환 품질 조정, 장시간 재생 안정성 확인
-- Pleos 전용 에뮬레이터에서 차량 속도·주행 모드 입력 및 주행 중 UX 정책 검증
