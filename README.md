@@ -30,10 +30,10 @@ Pleos Vehicle SDK 2.3.2는 공식 Pleos Maven 저장소에서 내려받습니다
 
 ## 현재 검증 범위
 
-`assembleDebug`와 `assembleRelease` 컴파일, release APK 서명 검증, PC에서 동일 사운드 렌더러로 20초 WAV 생성은 성공했습니다. 일반 Android 14 에뮬레이터에서 release APK 설치와 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 APK 설치, 앱 화면, `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. 실제 속도 값의 변화와 Pleos 주행 모드 변경, 주행 중 UX 정책은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
+`assembleDebug`와 `assembleRelease` 컴파일, release APK 서명 검증, PC에서 동일 사운드 렌더러로 20초 WAV 생성은 성공했습니다. 일반 Android 14 에뮬레이터에서 release APK 설치와 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 APK 설치, 앱 화면, `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. Virtual Console에서 속도를 0→36 km/h로 주입하자 앱의 Pulse 표시가 92→106 BPM으로 바뀌었습니다. 속도 36 km/h에서는 프리셋 버튼이 비활성화되고 0 km/h에서는 다시 변경할 수 있었습니다. D 기어·36 km/h에서 Pleos는 앱 활동 화면을 차단했지만 MediaSession은 재생 상태를 유지했습니다. 화면에 속도를 표시하는 검증에는 P 기어에서 36 km/h를 강제로 주입한 테스트 상태를 사용했습니다. 실제 차량, Pleos 주행 모드 변경, 앱의 CarUxRestrictions 콜백과 오디오 포커스 전환은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
 
 ## 남은 작업
 
-- Pleos Connect 에뮬레이터에서 속도·주행 모드와 오디오 포커스 통합 시험
-- Pleos 전용 에뮬레이터에서 `CarUxRestrictions` 연동 결과 확인
+- Pleos Connect 에뮬레이터에서 주행 모드와 오디오 포커스 통합 시험
+- Pleos 전용 에뮬레이터에서 앱의 `CarUxRestrictions` 콜백 결과 확인
 - 음악 패턴과 전환 품질 조정, 장시간 재생 안정성 확인
