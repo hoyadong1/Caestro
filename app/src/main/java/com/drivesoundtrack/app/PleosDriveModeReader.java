@@ -3,6 +3,7 @@ package com.drivesoundtrack.app;
 import android.content.Context;
 import ai.pleos.playground.vehicle.Vehicle;
 import ai.pleos.playground.vehicle.api.DrivingMode;
+import ai.pleos.playground.vehicle.api.model.capability.AccessType;
 import ai.pleos.playground.vehicle.constant.control.DrivingModeType;
 import ai.pleos.playground.vehicle.listener.DrivingModeStateListener;
 import kotlin.Unit;
@@ -21,6 +22,11 @@ public final class PleosDriveModeReader {
             drivingMode = vehicle.getDrivingMode();
             drivingMode.checkDrivingModeStateCapabilities(config -> {
                 if (closed) return Unit.INSTANCE;
+                if (config == null || (config.getAccessType() != AccessType.READ &&
+                    config.getAccessType() != AccessType.READ_WRITE)) {
+                    model.setDriveMode(0);
+                    return Unit.INSTANCE;
+                }
                 listener = new DrivingModeStateListener() {
                     @Override public void onDrivingModeStateUpdated(DrivingModeType mode) { model.setDriveMode(asInt(mode)); }
                     @Override public void onFailed(Exception error) { model.setDriveMode(0); }
