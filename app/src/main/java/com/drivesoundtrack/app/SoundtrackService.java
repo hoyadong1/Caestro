@@ -35,11 +35,13 @@ public final class SoundtrackService extends MediaBrowserService {
     private SynthEngine engine;
     private CarSpeedReader speedReader;
     private PleosDriveModeReader driveModeReader;
+    private DriveRestrictionsReader restrictionsReader;
     private MediaSession session;
     private AudioManager audioManager;
     private AudioFocusRequest focusRequest;
     private boolean playing;
     private boolean carAvailable;
+    private volatile boolean restricted;
     private int preset;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable statusTicker = new Runnable() {
@@ -56,6 +58,8 @@ public final class SoundtrackService extends MediaBrowserService {
         carAvailable = speedReader.start(this, kmh -> { model.setSpeed(kmh); broadcastStatus(); });
         driveModeReader = new PleosDriveModeReader();
         driveModeReader.start(this, model);
+        restrictionsReader = new DriveRestrictionsReader();
+        restrictionsReader.start(this, value -> restricted = value);
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
@@ -118,6 +122,7 @@ public final class SoundtrackService extends MediaBrowserService {
     }
 
     private void setPreset(int choice) {
+        if (restricted || (carAvailable && model.targetSpeed() >= 5)) return;
         preset = Math.max(0, Math.min(2, choice));
         engine.setPreset(preset);
         updateSession(); broadcastStatus();
@@ -175,6 +180,6 @@ public final class SoundtrackService extends MediaBrowserService {
     }
 
     @Override public void onDestroy() {
-        pause(); handler.removeCallbacks(statusTicker); speedReader.stop(); driveModeReader.stop(); session.release(); super.onDestroy();
+        pause(); handler.removeCallbacks(statusTicker); speedReader.stop(); driveModeReader.stop(); restrictionsReader.stop(); session.release(); super.onDestroy();
     }
 }
