@@ -26,7 +26,7 @@ Pleos Vehicle SDK 2.3.2는 공식 Pleos Maven 저장소에서 내려받습니다
 
 ## Release APK
 
-프로젝트 루트의 `signing.properties`에 `storeFile`, `storePassword`, `keyAlias`, `keyPassword`를 지정한 뒤 `gradle :app:assembleRelease`로 빌드합니다. 서명키와 비밀번호는 공개 GitHub 저장소에 올리지 않습니다. 공모전 제출용 APK는 `apk/홍원택_DriveSoundtrack_release.apk` 경로에 둘 수 있습니다.
+공모전 제출용 서명 APK는 [`apk/홍원택_DriveSoundtrack_release.apk`](apk/홍원택_DriveSoundtrack_release.apk)에 있습니다. 다시 빌드하려면 프로젝트 루트의 `signing.properties`에 `storeFile`, `storePassword`, `keyAlias`, `keyPassword`를 지정한 뒤 `gradle :app:assembleRelease`를 실행합니다. 서명키와 비밀번호는 저장소에 올리지 않습니다.
 
 ## 현재 검증 범위
 
