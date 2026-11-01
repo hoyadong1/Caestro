@@ -39,6 +39,6 @@ Kotlin 전환 후 `clean`, `assembleDebug`, `assembleRelease`가 성공했고 re
 ## 남은 작업
 
 - Kotlin release APK에서 차량 속도 신호에 따른 BPM 화면 반응 확인
-- Pleos Connect 에뮬레이터에서 주행 모드와 오디오 포커스 통합 시험
+- Pleos 주행 모드와 오디오 포커스 통합 시험. Pleos Connect v2.1.0 Virtual Console의 48개 신호 제어 항목에는 `Driving Mode`가 없어 이 화면에서 주행 모드를 바꿔 시험할 수 없었습니다.
 - Pleos 전용 에뮬레이터에서 앱의 `CarUxRestrictions` 콜백 결과 확인
 - 음악 패턴과 전환 품질 조정, 장시간 재생 안정성 확인
