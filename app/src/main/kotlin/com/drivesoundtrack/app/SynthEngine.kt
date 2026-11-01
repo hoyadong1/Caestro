@@ -3,50 +3,66 @@ package com.drivesoundtrack.app
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.os.Handler
+import android.os.Looper
 
 /** Procedural, original PCM soundtrack. No commercial recordings or network calls. */
 class SynthEngine(model: SoundModel) {
     private val renderer = SoundRenderer(model)
+    private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var running = false
-    @Volatile private var track: AudioTrack? = null
+    @Volatile private var generation = 0L
     private var worker: Thread? = null
 
     fun setPreset(preset: Int) = renderer.setPreset(preset)
 
-    @Synchronized fun start() {
+    @Synchronized fun start(onFailure: (RuntimeException) -> Unit) {
         if (running) return
-        val minimum = AudioTrack.getMinBufferSize(SoundRenderer.RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
-        val newTrack = AudioTrack.Builder()
-            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-            .setAudioFormat(AudioFormat.Builder().setSampleRate(SoundRenderer.RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-            .setBufferSizeInBytes(maxOf(minimum, 8192)).setTransferMode(AudioTrack.MODE_STREAM).build()
-        track = newTrack
         running = true
-        newTrack.play()
-        worker = Thread(::render, "soundtrack-synth").also { it.start() }
+        val currentGeneration = ++generation
+        worker = Thread({ render(currentGeneration, onFailure) }, "soundtrack-synth").also { it.start() }
     }
 
     @Synchronized fun stop() {
         running = false
+        generation++
         worker?.interrupt()
         worker = null
-        track?.let {
-            try { it.pause(); it.flush() } catch (_: IllegalStateException) { }
-            it.release()
-        }
-        track = null
     }
 
-    private fun render() {
-        val pcm = ShortArray(1024)
-        while (running) {
-            renderer.render(pcm)
-            val current = track ?: break
-            var offset = 0
-            while (offset < pcm.size && running) {
-                val n = try { current.write(pcm, offset, pcm.size - offset) } catch (_: IllegalStateException) { return }
-                if (n <= 0) break
-                offset += n
+    private fun isCurrent(value: Long): Boolean = running && generation == value
+
+    private fun render(value: Long, onFailure: (RuntimeException) -> Unit) {
+        var current: AudioTrack? = null
+        try {
+            // The emulator's audio policy service can block these calls during startup.
+            val minimum = AudioTrack.getMinBufferSize(SoundRenderer.RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+            if (!isCurrent(value)) return
+            current = AudioTrack.Builder()
+                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                .setAudioFormat(AudioFormat.Builder().setSampleRate(SoundRenderer.RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                .setBufferSizeInBytes(maxOf(minimum, 8192)).setTransferMode(AudioTrack.MODE_STREAM).build()
+            if (!isCurrent(value)) return
+            current.play()
+            val pcm = ShortArray(1024)
+            while (isCurrent(value)) {
+                renderer.render(pcm)
+                var offset = 0
+                while (offset < pcm.size && isCurrent(value)) {
+                    val n = current.write(pcm, offset, pcm.size - offset)
+                    if (n <= 0) throw IllegalStateException("AudioTrack write failed: $n")
+                    offset += n
+                }
+            }
+        } catch (ex: RuntimeException) {
+            if (isCurrent(value)) mainHandler.post { if (generation == value) onFailure(ex) }
+        } finally {
+            current?.let {
+                try { it.pause(); it.flush() } catch (_: IllegalStateException) { }
+                try { it.release() } catch (_: RuntimeException) { }
+            }
+            synchronized(this) {
+                if (generation == value) { running = false; worker = null }
             }
         }
     }

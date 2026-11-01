@@ -142,7 +142,10 @@ class SoundtrackService : MediaBrowserService() {
             broadcastStatus()
             return
         }
-        engine.start()
+        engine.start { ex ->
+            Log.w("DriveSoundtrack", "Audio output failed", ex)
+            pause()
+        }
         updateSession()
         broadcastStatus()
         handler.postDelayed(statusTicker, 800)
