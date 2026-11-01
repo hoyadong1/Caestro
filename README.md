@@ -32,12 +32,13 @@ Pleos Vehicle SDK 2.3.2는 공식 Pleos Maven 저장소에서 내려받습니다
 
 ## 현재 검증 범위
 
-Kotlin 전환 후 `clean`, `assembleDebug`, `assembleRelease`가 성공했고 release APK의 서명을 검증했습니다. PC에서 동일 입력으로 20초 WAV를 생성했을 때 기존 Java 버전과 Kotlin 버전의 출력 SHA-256이 일치했습니다. Kotlin APK를 Pleos Connect v2.1.0 에뮬레이터에 설치해 앱 시작과 MediaSession 재생·일시정지 상태를 확인했고, 앱 충돌 로그는 없었습니다. 아래의 차량 속도 입력과 주행 제한 검증은 전환 전 Java 버전에서 수행했으므로 Kotlin APK에서도 재확인이 필요합니다.
+Kotlin 전환 후 `clean`, `assembleDebug`, `assembleRelease`가 성공했고 release APK의 서명을 검증했습니다. PC에서 동일 입력으로 20초 WAV를 생성했을 때 기존 Java 버전과 Kotlin 버전의 출력 SHA-256이 일치했습니다. Kotlin APK를 Pleos Connect v2.1.0 에뮬레이터에 설치해 앱 시작과 MediaSession 재생·일시정지 상태를 확인했고, 앱 충돌 로그는 없었습니다. Pleos Virtual Console에서 D 기어로 가속해 73 km/h를 표시한 뒤 외부 프리셋 변경 명령을 보냈을 때 MediaSession의 Pulse 프리셋은 유지됐습니다. 브레이크로 0 km/h까지 감속하고 P 기어로 바꾼 뒤 같은 명령을 보내자 Night로 변경됐습니다. D 기어·0 km/h에서는 변경이 차단됐으므로, 이 시험만으로 속도 조건과 차량 UX 제한 중 어느 조건이 작동했는지는 구분할 수 없습니다. Kotlin APK의 속도별 BPM 화면 반응은 아직 별도로 확인하지 않았습니다.
 
-일반 Android 14 에뮬레이터에서 release APK 설치와 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 APK 설치, 앱 화면, `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. Virtual Console에서 속도를 0→36 km/h로 주입하자 앱의 Pulse 표시가 92→106 BPM으로 바뀌었습니다. 속도 36 km/h에서는 프리셋 버튼이 비활성화되고 0 km/h에서는 다시 변경할 수 있었습니다. `car_service`로 36 km/h 속도 신호를 유지하며 외부 프리셋 변경 명령을 보냈을 때 MediaSession 프리셋은 Night로 유지됐습니다. D 기어·36 km/h에서 Pleos는 앱 활동 화면을 차단했지만 MediaSession은 재생 상태를 유지했습니다. 화면에 속도를 표시하는 검증에는 P 기어에서 36 km/h를 강제로 주입한 테스트 상태를 사용했습니다. 실제 차량, Pleos 주행 모드 변경, 앱의 CarUxRestrictions 콜백과 오디오 포커스 전환은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
+전환 전 Java APK는 일반 Android 14 에뮬레이터에서 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. Virtual Console에서 속도를 0→36 km/h로 주입하자 앱의 Pulse 표시가 92→106 BPM으로 바뀌었습니다. 속도 36 km/h에서는 프리셋 버튼이 비활성화되고 0 km/h에서는 다시 변경할 수 있었습니다. `car_service`로 36 km/h 속도 신호를 유지하며 외부 프리셋 변경 명령을 보냈을 때 MediaSession 프리셋은 Night로 유지됐습니다. D 기어·36 km/h에서 Pleos는 앱 활동 화면을 차단했지만 MediaSession은 재생 상태를 유지했습니다. 화면에 속도를 표시하는 검증에는 P 기어에서 36 km/h를 강제로 주입한 테스트 상태를 사용했습니다. 실제 차량, Pleos 주행 모드 변경, 앱의 CarUxRestrictions 콜백과 오디오 포커스 전환은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
 
 ## 남은 작업
 
+- Kotlin release APK에서 차량 속도별 BPM 화면 반응 확인
 - Pleos Connect 에뮬레이터에서 주행 모드와 오디오 포커스 통합 시험
 - Pleos 전용 에뮬레이터에서 앱의 `CarUxRestrictions` 콜백 결과 확인
 - 음악 패턴과 전환 품질 조정, 장시간 재생 안정성 확인
