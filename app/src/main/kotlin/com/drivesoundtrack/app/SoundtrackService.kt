@@ -1,0 +1,191 @@
+package com.drivesoundtrack.app
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.MediaMetadata
+import android.media.browse.MediaBrowser
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.service.media.MediaBrowserService
+import android.util.Log
+
+class SoundtrackService : MediaBrowserService() {
+    companion object {
+        const val PLAY = "com.drivesoundtrack.PLAY"
+        const val PAUSE = "com.drivesoundtrack.PAUSE"
+        const val PRESET = "com.drivesoundtrack.PRESET"
+        const val DEMO_SPEED = "com.drivesoundtrack.DEMO_SPEED"
+        const val STATUS = "com.drivesoundtrack.STATUS"
+        const val STATUS_REQUEST = "com.drivesoundtrack.STATUS_REQUEST"
+        const val RECONNECT_SPEED = "com.drivesoundtrack.RECONNECT_SPEED"
+        private const val CHANNEL = "drive_soundtrack_playback"
+        private val NAMES = arrayOf("Pulse", "Night", "Coast")
+    }
+
+    private lateinit var model: SoundModel
+    private lateinit var engine: SynthEngine
+    private lateinit var speedReader: CarSpeedReader
+    private lateinit var driveModeReader: PleosDriveModeReader
+    private lateinit var restrictionsReader: DriveRestrictionsReader
+    private lateinit var session: MediaSession
+    private lateinit var audioManager: AudioManager
+    private lateinit var focusRequest: AudioFocusRequest
+    private var playing = false
+    private var carAvailable = false
+    @Volatile private var restricted = false
+    private var preset = 0
+    private val handler = Handler(Looper.getMainLooper())
+    private val statusTicker = object : Runnable {
+        override fun run() {
+            if (playing) { broadcastStatus(); handler.postDelayed(this, 800) }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        model = SoundModel()
+        engine = SynthEngine(model)
+        speedReader = CarSpeedReader()
+        carAvailable = speedReader.start(this) { kmh -> model.setSpeed(kmh); broadcastStatus() }
+        driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
+        restrictionsReader = DriveRestrictionsReader().also { it.start(this) { value -> restricted = value } }
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setOnAudioFocusChangeListener { change -> if (change <= 0) pause() }.build()
+        session = MediaSession(this, "DriveSoundtrack")
+        session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
+        session.setCallback(object : MediaSession.Callback() {
+            override fun onPlay() = play()
+            override fun onPause() = pause()
+            override fun onStop() = pause()
+            override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
+                mediaId?.toIntOrNull()?.let { setPreset(it); play() }
+            }
+            override fun onSkipToNext() = setPreset((preset + 1) % 3)
+            override fun onSkipToPrevious() = setPreset((preset + 2) % 3)
+        })
+        session.isActive = true
+        sessionToken = session.sessionToken
+        updateSession()
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+            .createNotificationChannel(NotificationChannel(CHANNEL, "Drive Soundtrack", NotificationManager.IMPORTANCE_LOW))
+    }
+
+    override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot = BrowserRoot("presets", null)
+
+    override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaBrowser.MediaItem>>) {
+        val items = mutableListOf<MediaBrowser.MediaItem>()
+        if (parentId == "presets") {
+            for (i in NAMES.indices) {
+                val metadata = MediaMetadata.Builder()
+                    .putString(MediaMetadata.METADATA_KEY_MEDIA_ID, i.toString())
+                    .putString(MediaMetadata.METADATA_KEY_TITLE, NAMES[i])
+                    .putString(MediaMetadata.METADATA_KEY_ARTIST, "Drive Soundtrack").build()
+                items += MediaBrowser.MediaItem(metadata.description, MediaBrowser.MediaItem.FLAG_PLAYABLE)
+            }
+        }
+        result.sendResult(items)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            PLAY -> play()
+            PAUSE -> pause()
+            PRESET -> setPreset(intent.getIntExtra("preset", 0))
+            STATUS_REQUEST -> broadcastStatus()
+            RECONNECT_SPEED -> {
+                speedReader.stop()
+                carAvailable = speedReader.start(this) { kmh -> model.setSpeed(kmh); broadcastStatus() }
+                broadcastStatus()
+            }
+            DEMO_SPEED -> if (!carAvailable) {
+                model.setSpeed(intent.getDoubleExtra("kmh", 0.0))
+                broadcastStatus()
+            }
+        }
+        return Service.START_STICKY
+    }
+
+    private fun setPreset(choice: Int) {
+        if (restricted || (carAvailable && model.targetSpeed() >= 5)) return
+        preset = choice.coerceIn(0, 2)
+        engine.setPreset(preset)
+        updateSession()
+        broadcastStatus()
+    }
+
+    private fun play() {
+        if (playing) return
+        if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
+        playing = true
+        try {
+            startForeground(1, Notification.Builder(this, CHANNEL)
+                .setContentTitle("Drive Soundtrack")
+                .setContentText("${NAMES[preset]} 재생 중")
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setVisibility(Notification.VISIBILITY_PUBLIC).build())
+        } catch (ex: RuntimeException) {
+            Log.w("DriveSoundtrack", "Playback cannot start in the current vehicle state", ex)
+            playing = false
+            audioManager.abandonAudioFocusRequest(focusRequest)
+            updateSession()
+            broadcastStatus()
+            return
+        }
+        engine.start()
+        updateSession()
+        broadcastStatus()
+        handler.postDelayed(statusTicker, 800)
+    }
+
+    private fun pause() {
+        if (!playing) return
+        playing = false
+        handler.removeCallbacks(statusTicker)
+        engine.stop()
+        audioManager.abandonAudioFocusRequest(focusRequest)
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        updateSession()
+        broadcastStatus()
+    }
+
+    private fun updateSession() {
+        session.setMetadata(MediaMetadata.Builder()
+            .putString(MediaMetadata.METADATA_KEY_TITLE, NAMES[preset])
+            .putString(MediaMetadata.METADATA_KEY_ARTIST, "Drive Soundtrack").build())
+        session.setPlaybackState(PlaybackState.Builder()
+            .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or
+                PlaybackState.ACTION_PLAY_FROM_MEDIA_ID or PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS)
+            .setState(if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED, 0, 1.0f).build())
+    }
+
+    private fun broadcastStatus() {
+        val status = Intent(STATUS).setPackage(packageName)
+        status.putExtra("playing", playing)
+        status.putExtra("preset", preset)
+        status.putExtra("carAvailable", carAvailable)
+        status.putExtra("kmh", model.targetSpeed())
+        status.putExtra("bpm", model.bpm())
+        sendBroadcast(status)
+    }
+
+    override fun onDestroy() {
+        pause()
+        handler.removeCallbacks(statusTicker)
+        speedReader.stop()
+        driveModeReader.stop()
+        restrictionsReader.stop()
+        session.release()
+        super.onDestroy()
+    }
+}

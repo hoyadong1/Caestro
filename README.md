@@ -2,6 +2,8 @@
 
 Android Automotive용 실시간 전자음악 프로토타입입니다. 차량 속도가 템포와 음색에, Pleos 주행 모드가 그루브에 반영됩니다. 음악은 앱이 직접 합성하므로 외부 음원과 네트워크가 필요하지 않습니다.
 
+앱 소스는 Kotlin으로 작성했습니다. 화면은 Jetpack Compose가 아닌 Android View를 코드에서 구성합니다.
+
 ## 현재 구현
 
 - Pulse, Night, Coast 프리셋
@@ -16,7 +18,7 @@ Android Automotive용 실시간 전자음악 프로토타입입니다. 차량 �
 
 1. Android SDK API 37과 Android Studio/Gradle 환경을 준비합니다.
 2. `local.properties`에 `sdk.dir`을 지정하거나 `ANDROID_SDK_ROOT`를 설정합니다.
-3. `gradle :app:assembleDebug`로 디버그 APK를 빌드합니다.
+3. Windows에서는 `gradlew.bat :app:assembleDebug`, macOS/Linux에서는 `./gradlew :app:assembleDebug`로 디버그 APK를 빌드합니다.
 
 Pleos Vehicle SDK 2.3.2는 공식 Pleos Maven 저장소에서 내려받습니다. 차량 속도 API는 Android SDK의 `android.car.jar`로 컴파일합니다. 최소 Android API는 28입니다.
 
@@ -26,11 +28,13 @@ Pleos Vehicle SDK 2.3.2는 공식 Pleos Maven 저장소에서 내려받습니다
 
 ## Release APK
 
-공모전 제출용 서명 APK는 [`apk/홍원택_DriveSoundtrack_release.apk`](apk/홍원택_DriveSoundtrack_release.apk)에 있습니다. 다시 빌드하려면 프로젝트 루트의 `signing.properties`에 `storeFile`, `storePassword`, `keyAlias`, `keyPassword`를 지정한 뒤 `gradle :app:assembleRelease`를 실행합니다. 서명키와 비밀번호는 저장소에 올리지 않습니다.
+공모전 제출용 서명 APK는 [`apk/홍원택_DriveSoundtrack_release.apk`](apk/홍원택_DriveSoundtrack_release.apk)에 있습니다. 다시 빌드하려면 프로젝트 루트의 `signing.properties`에 `storeFile`, `storePassword`, `keyAlias`, `keyPassword`를 지정한 뒤 `gradlew.bat :app:assembleRelease` 또는 `./gradlew :app:assembleRelease`를 실행합니다. 서명키와 비밀번호는 저장소에 올리지 않습니다.
 
 ## 현재 검증 범위
 
-`assembleDebug`와 `assembleRelease` 컴파일, release APK 서명 검증, PC에서 동일 사운드 렌더러로 20초 WAV 생성은 성공했습니다. 일반 Android 14 에뮬레이터에서 release APK 설치와 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 APK 설치, 앱 화면, `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. Virtual Console에서 속도를 0→36 km/h로 주입하자 앱의 Pulse 표시가 92→106 BPM으로 바뀌었습니다. 속도 36 km/h에서는 프리셋 버튼이 비활성화되고 0 km/h에서는 다시 변경할 수 있었습니다. 새 release 빌드에서는 `car_service`로 36 km/h 속도 신호를 유지하며 외부 프리셋 변경 명령을 보냈고 MediaSession 프리셋이 Night로 유지되는 것을 확인했습니다. D 기어·36 km/h에서 Pleos는 앱 활동 화면을 차단했지만 MediaSession은 재생 상태를 유지했습니다. 화면에 속도를 표시하는 검증에는 P 기어에서 36 km/h를 강제로 주입한 테스트 상태를 사용했습니다. 실제 차량, Pleos 주행 모드 변경, 앱의 CarUxRestrictions 콜백과 오디오 포커스 전환은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
+Kotlin 전환 후 `clean`, `assembleDebug`, `assembleRelease`가 성공했고 release APK의 서명을 검증했습니다. PC에서 동일 입력으로 20초 WAV를 생성했을 때 기존 Java 버전과 Kotlin 버전의 출력 SHA-256이 일치했습니다. Kotlin APK를 Pleos Connect v2.1.0 에뮬레이터에 설치해 앱 시작과 MediaSession 재생·일시정지 상태를 확인했고, 앱 충돌 로그는 없었습니다. 아래의 차량 속도 입력과 주행 제한 검증은 전환 전 Java 버전에서 수행했으므로 Kotlin APK에서도 재확인이 필요합니다.
+
+일반 Android 14 에뮬레이터에서 release APK 설치와 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 APK 설치, 앱 화면, `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. Virtual Console에서 속도를 0→36 km/h로 주입하자 앱의 Pulse 표시가 92→106 BPM으로 바뀌었습니다. 속도 36 km/h에서는 프리셋 버튼이 비활성화되고 0 km/h에서는 다시 변경할 수 있었습니다. `car_service`로 36 km/h 속도 신호를 유지하며 외부 프리셋 변경 명령을 보냈을 때 MediaSession 프리셋은 Night로 유지됐습니다. D 기어·36 km/h에서 Pleos는 앱 활동 화면을 차단했지만 MediaSession은 재생 상태를 유지했습니다. 화면에 속도를 표시하는 검증에는 P 기어에서 36 km/h를 강제로 주입한 테스트 상태를 사용했습니다. 실제 차량, Pleos 주행 모드 변경, 앱의 CarUxRestrictions 콜백과 오디오 포커스 전환은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
 
 ## 남은 작업
 
