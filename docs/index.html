@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Drive Soundtrack의 Pleos Connect 실행 영상과 실제 앱 출력 오디오">
+  <title>Drive Soundtrack · Pleos 시연</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #09101b; color: #f2f8fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1080px; margin: 0 auto; padding: clamp(24px, 5vw, 64px) 20px 72px; }
+    .eyebrow { margin: 0 0 8px; color: #79e8dc; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(34px, 5vw, 56px); line-height: 1.1; }
+    .intro { max-width: 760px; color: #b5c7d3; font-size: 18px; line-height: 1.6; }
+    .player { margin-top: 32px; border: 1px solid #26394b; border-radius: 18px; overflow: hidden; background: #050a12; box-shadow: 0 24px 64px #0008; }
+    video { display: block; width: 100%; aspect-ratio: 16 / 9; }
+    .details { margin-top: 24px; padding: 20px 24px; border-radius: 14px; background: #142535; color: #cfdee6; line-height: 1.6; }
+    .details strong { color: #79e8dc; }
+    .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    .links a { padding: 12px 18px; border: 1px solid #477e82; border-radius: 10px; color: #a5f3eb; text-decoration: none; font-weight: 600; }
+    .links a:hover, .links a:focus-visible { background: #183b43; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Pleos Connect · App Demo</p>
+    <h1>Drive Soundtrack</h1>
+    <p class="intro">주행 맥락에 맞춰 음악을 실시간 합성하는 차량용 앱. Pleos Connect v2.1.0에서 Kotlin release APK를 실행하며 화면과 실제 앱 출력 소리를 함께 녹화했습니다.</p>
+    <div class="player">
+      <video controls playsinline preload="metadata" poster="poster.png" aria-label="Drive Soundtrack Pleos 시연 영상">
+        <source src="drive-soundtrack-demo.mp4" type="video/mp4">
+        브라우저에서 영상을 재생할 수 없습니다. 아래 저장소에서 파일을 열어 주세요.
+      </video>
+    </div>
+    <p class="details"><strong>43초 시연:</strong> Pulse, Night, Coast 프리셋과 0→65→106 km/h에 따른 BPM 변화를 보여 줍니다. 화면에 표시된 속도는 앱의 시연 슬라이더 입력이며 실제 차량 속도 신호가 아닙니다.</p>
+    <nav class="links" aria-label="프로젝트 링크">
+      <a href="https://github.com/hoyadong1/DriveSoundtrack">GitHub 저장소</a>
+      <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/apk/%ED%99%8D%EC%9B%90%ED%83%9D_DriveSoundtrack_release.apk">Release APK</a>
+    </nav>
+  </main>
+</body>
+</html>

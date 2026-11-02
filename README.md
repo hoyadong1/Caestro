@@ -4,9 +4,9 @@
 
 ## 시연 영상
 
-[![Pleos Connect에서 실행한 Drive Soundtrack 영상 썸네일](demo/Drive_Soundtrack_시연영상_썸네일.png)](demo/Drive_Soundtrack_시연영상.mp4)
+[![Pleos Connect에서 실행한 Drive Soundtrack 영상 썸네일](demo/Drive_Soundtrack_시연영상_썸네일.png)](https://hoyadong1.github.io/DriveSoundtrack/)
 
-[소리가 포함된 Pleos 시연 영상 열기](demo/Drive_Soundtrack_시연영상.mp4) · [서명된 release APK 다운로드](apk/홍원택_DriveSoundtrack_release.apk)
+[GitHub Pages에서 영상 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](demo/Drive_Soundtrack_시연영상.mp4) · [서명된 release APK 다운로드](apk/홍원택_DriveSoundtrack_release.apk)
 
 43초 영상은 **Pleos Connect v2.1.0에서 Kotlin release APK 화면과 실제 앱 출력 오디오를 함께 녹화**했습니다. 화면의 0→65→106 km/h는 시연 슬라이더로 입력한 값이며 실제 차량 속도 신호가 아닙니다. Pulse→Night→Coast 프리셋 변화도 볼 수 있습니다.
 
