@@ -23,12 +23,13 @@ import kotlin.math.roundToInt
 class MainActivity : Activity() {
     companion object {
         private const val SPEED_PERMISSION = "android.car.permission.CAR_SPEED"
+        private const val PEDAL_PERMISSION = CarPedalReader.PERMISSION
         private const val SPEED_REQUEST = 42
         private const val BG = 0xff08111c.toInt()
         private const val PANEL = 0xff142331.toInt()
         private const val MUTED = 0xff9fb4c2.toInt()
     }
-    private lateinit var visualizer: MotionVisualizerView
+    private lateinit var visualizer: InstrumentStageView
     private lateinit var source: TextView
     private lateinit var song: TextView
     private lateinit var genre: TextView
@@ -50,6 +51,9 @@ class MainActivity : Activity() {
     private var preset = 0
     private var playing = false
     private var carAvailable = false
+    private var demoBrake = false
+    private var demoTurn = false
+    private var demoWiper = false
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
@@ -60,6 +64,11 @@ class MainActivity : Activity() {
             val bpm = intent.getDoubleExtra("bpm", Soundscapes.all[preset].baseBpm).roundToInt()
             val energy = intent.getDoubleExtra("energy", 0.0).toFloat()
             val layers = intent.getIntExtra("layers", 1)
+            val accelerator = intent.getDoubleExtra("accelerator", 0.0)
+            val brake = intent.getDoubleExtra("brake", 0.0)
+            val steering = intent.getDoubleExtra("steering", 0.0)
+            val turn = intent.getIntExtra("turn", 0)
+            val wiper = intent.getBooleanExtra("wiper", false)
             val scene = Soundscapes.all[preset]
             source.text = if (carAvailable) "●  VEHICLE SIGNAL" else "●  DEMO INPUT"
             source.setTextColor(if (carAvailable) 0xff73e5ce.toInt() else 0xffffc784.toInt())
@@ -70,15 +79,27 @@ class MainActivity : Activity() {
             layersValue.text = "$layers / 4"
             phase.text = when {
                 !playing -> "READY TO PLAY"
+                brake > 0.35 -> "BRAKE  →  CHORDS SOFTEN"
+                turn != 0 -> "TURN SIGNAL  →  MELODY RESPONSE"
+                kotlin.math.abs(steering) > 0.2 -> "STEERING  →  MELODY CURVE"
+                wiper -> "WIPER  →  TEXTURE"
                 energy < 0.18f -> "OPENING · SPARSE ARRANGEMENT"
                 energy < 0.52f -> "CRUISE · RHYTHM BUILDING"
                 else -> "MOTION · FULLER ARRANGEMENT"
             }
             play.text = if (playing) "Ⅱ   일시정지" else "▶   음악 재생"
             visualizer.accent = scene.accent or (0xff shl 24)
-            visualizer.energy = energy
             visualizer.playing = playing
-            visualizer.bpm = bpm.toFloat()
+            visualizer.accelerator = accelerator
+            visualizer.brake = brake
+            visualizer.steering = steering
+            visualizer.wiper = wiper
+            visualizer.pedalLive = intent.getBooleanExtra("pedalAvailable", false)
+            visualizer.brakeLive = intent.getBooleanExtra("brakeAvailable", false)
+            visualizer.steeringLive = intent.getBooleanExtra("steeringAvailable", false)
+            visualizer.wiperLive = intent.getBooleanExtra("wiperAvailable", false)
+            visualizer.vehicleLive = carAvailable
+            visualizer.invalidate()
             cards.forEachIndexed { i, card ->
                 card.background = panel(if (i == preset) 0xff203740.toInt() else PANEL, 17,
                     if (i == preset) Soundscapes.all[i].accent or (0xff shl 24) else 0xff2b3e4b.toInt())
@@ -118,7 +139,7 @@ class MainActivity : Activity() {
             else LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(22) })
 
         val hero = FrameLayout(this)
-        visualizer = MotionVisualizerView(this)
+        visualizer = InstrumentStageView(this)
         hero.addView(visualizer, FrameLayout.LayoutParams(-1, -1))
         val heroWords = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(26), dp(22), dp(26), 0) }
         heroWords.addView(label("NOW PLAYING  /  ORIGINAL SCORE", 11f, MUTED, true).apply { letterSpacing = 0.12f })
@@ -130,10 +151,11 @@ class MainActivity : Activity() {
         phase = label("READY TO PLAY", 11f, Color.WHITE, true).apply {
             setPadding(dp(12), dp(7), dp(12), dp(7)); background = panel(0xaa10202e.toInt(), 9)
         }
-        hero.addView(phase, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.START).apply {
-            leftMargin = dp(22); bottomMargin = dp(18)
+        hero.addView(phase, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply {
+            rightMargin = dp(16); topMargin = dp(18)
         })
-        now.addView(hero, LinearLayout.LayoutParams(-1, dp(if (landscape) 265 else 235)))
+        val heroHeight = if (landscape) maxOf(dp(365), resources.displayMetrics.heightPixels - dp(300)) else dp(330)
+        now.addView(hero, LinearLayout.LayoutParams(-1, heroHeight))
 
         val metrics = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         metric("SPEED", "0", "km/h").also {
@@ -167,12 +189,42 @@ class MainActivity : Activity() {
             })
         }
         demo.addView(slider)
+        demo.addView(label("시연 가속 페달", 12f, MUTED))
+        demo.addView(SeekBar(this).apply {
+            max = 100
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar?, value: Int, user: Boolean) {
+                    if (user && !carAvailable) sendBand("accelerator", "value", value.toDouble())
+                }
+                override fun onStartTrackingTouch(bar: SeekBar?) = Unit
+                override fun onStopTrackingTouch(bar: SeekBar?) = Unit
+            })
+        })
+        val bandControls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        fun demoButton(title: String, click: () -> Unit) = Button(this).apply {
+            text = title; textSize = 12f; isAllCaps = false; setOnClickListener { click() }
+        }
+        bandControls.addView(demoButton("브레이크") {
+            demoBrake = !demoBrake; sendBand("brake", "active", demoBrake)
+        }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        bandControls.addView(demoButton("좌측 방향") {
+            demoTurn = !demoTurn; sendBand("turn", "value", if (demoTurn) -1 else 0)
+            sendBand("steering", "value", if (demoTurn) -150.0 else 0.0)
+        }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        bandControls.addView(demoButton("와이퍼") {
+            demoWiper = !demoWiper; sendBand("wiper", "active", demoWiper)
+        }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        demo.addView(bandControls)
         now.addView(demo, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14) })
         permissionInfo = label("차량 속도 권한을 허용하면 차량 신호에 맞춰 재생합니다.", 12f, MUTED)
         now.addView(permissionInfo)
         permissionButton = Button(this).apply {
             text = "차량 속도 연결"; isAllCaps = false
-            setOnClickListener { requestPermissions(arrayOf(SPEED_PERMISSION), SPEED_REQUEST) }
+            setOnClickListener {
+                val requested = mutableListOf(SPEED_PERMISSION)
+                if (pedalPermissionSupported()) requested += PEDAL_PERMISSION
+                requestPermissions(requested.toTypedArray(), SPEED_REQUEST)
+            }
         }
         now.addView(permissionButton)
 
@@ -192,14 +244,19 @@ class MainActivity : Activity() {
             card.addView(View(this).apply { setBackgroundColor(scene.accent or (0xff shl 24)) },
                 LinearLayout.LayoutParams(dp(4), dp(39)).apply { rightMargin = dp(14) })
             val words = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            words.addView(label(scene.name, 18f, Color.WHITE, true))
-            words.addView(label(scene.character.uppercase(), 11f, MUTED).apply { letterSpacing = 0.09f })
+            words.addView(label(scene.name, if (landscape) 25f else 18f, Color.WHITE, true))
+            words.addView(label(scene.character.uppercase(), if (landscape) 13f else 11f, MUTED).apply { letterSpacing = 0.09f })
             card.addView(words, LinearLayout.LayoutParams(0, -2, 1f))
-            card.addView(label("${scene.baseBpm.roundToInt()}–${(scene.baseBpm + scene.speedBpm).roundToInt()} BPM", 11f, MUTED))
+            if (landscape) card.addView(SoundscapeGlyphView(this, i, scene.accent or (0xff shl 24)),
+                LinearLayout.LayoutParams(dp(125), -1))
+            else card.addView(label("${scene.baseBpm.roundToInt()} BPM", 11f, MUTED))
             cards += card
-            library.addView(card, LinearLayout.LayoutParams(-1, dp(if (landscape) 64 else 72)).apply { bottomMargin = dp(7) })
+            val cardHeight = if (landscape)
+                maxOf(dp(64), (resources.displayMetrics.heightPixels - dp(170)) / Soundscapes.all.size)
+            else dp(72)
+            library.addView(card, LinearLayout.LayoutParams(-1, cardHeight).apply { bottomMargin = dp(7) })
         }
-        library.addView(label("속도와 주행 상태에 따라 리듬·베이스·멜로디가 점진적으로 전개됩니다.", 12f, MUTED),
+        library.addView(label("전기차의 주행 신호가 각 악기의 연주를 바꿉니다.", 12f, MUTED),
             LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(7) })
         library.addView(label("주행 중에는 선택과 시연 조작이 제한됩니다.", 12f, MUTED),
             LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(5) })
@@ -239,13 +296,32 @@ class MainActivity : Activity() {
     private fun send(action: String, key: String, value: Double) {
         startService(Intent(this, SoundtrackService::class.java).setAction(action).putExtra(key, value))
     }
+    private fun sendBand(instrument: String, key: String, value: Any) {
+        val intent = Intent(this, SoundtrackService::class.java).setAction(SoundtrackService.DEMO_BAND)
+            .putExtra("instrument", instrument)
+        when (value) {
+            is Boolean -> intent.putExtra(key, value)
+            is Int -> intent.putExtra(key, value)
+            is Double -> intent.putExtra(key, value)
+        }
+        startService(intent)
+    }
+    private fun pedalPermissionSupported(): Boolean = try {
+        packageManager.getPermissionInfo(PEDAL_PERMISSION, 0)
+        true
+    } catch (_: PackageManager.NameNotFoundException) { false }
+
     private fun renderRestrictions() {
         val canConfigure = !restricted && (!carAvailable || kmh < 5)
         cards.forEach { it.isEnabled = canConfigure; it.alpha = if (canConfigure) 1f else 0.55f }
+        visualizer.playing = playing && canConfigure
+        play.isEnabled = canConfigure
+        play.alpha = if (canConfigure) 1f else 0.55f
         demo.visibility = if (carAvailable || restricted) View.GONE else View.VISIBLE
         val canRequest = restrictionsKnown && !restricted && !carAvailable &&
             packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE) &&
-            checkSelfPermission(SPEED_PERMISSION) != PackageManager.PERMISSION_GRANTED
+            (checkSelfPermission(SPEED_PERMISSION) != PackageManager.PERMISSION_GRANTED ||
+                (pedalPermissionSupported() && checkSelfPermission(PEDAL_PERMISSION) != PackageManager.PERMISSION_GRANTED))
         permissionInfo.visibility = if (canRequest) View.VISIBLE else View.GONE
         permissionButton.visibility = if (canRequest) View.VISIBLE else View.GONE
     }
@@ -263,7 +339,7 @@ class MainActivity : Activity() {
     }
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == SPEED_REQUEST && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+        if (requestCode == SPEED_REQUEST && grantResults.any { it == PackageManager.PERMISSION_GRANTED })
             send(SoundtrackService.RECONNECT_SPEED)
         renderRestrictions()
     }

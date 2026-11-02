@@ -24,6 +24,7 @@ class SoundtrackService : MediaBrowserService() {
         const val PAUSE = "com.drivesoundtrack.PAUSE"
         const val PRESET = "com.drivesoundtrack.PRESET"
         const val DEMO_SPEED = "com.drivesoundtrack.DEMO_SPEED"
+        const val DEMO_BAND = "com.drivesoundtrack.DEMO_BAND"
         const val STATUS = "com.drivesoundtrack.STATUS"
         const val STATUS_REQUEST = "com.drivesoundtrack.STATUS_REQUEST"
         const val RECONNECT_SPEED = "com.drivesoundtrack.RECONNECT_SPEED"
@@ -35,6 +36,8 @@ class SoundtrackService : MediaBrowserService() {
     private lateinit var engine: SynthEngine
     private lateinit var speedReader: CarSpeedReader
     private lateinit var driveModeReader: PleosDriveModeReader
+    private lateinit var bandReader: PleosBandReader
+    private lateinit var pedalReader: CarPedalReader
     private lateinit var restrictionsReader: DriveRestrictionsReader
     private lateinit var session: MediaSession
     private lateinit var audioManager: AudioManager
@@ -46,7 +49,7 @@ class SoundtrackService : MediaBrowserService() {
     private val handler = Handler(Looper.getMainLooper())
     private val statusTicker = object : Runnable {
         override fun run() {
-            if (playing) { broadcastStatus(); handler.postDelayed(this, 800) }
+            if (playing) { bandReader.pollWiperSwitch(model); broadcastStatus(); handler.postDelayed(this, 800) }
         }
     }
 
@@ -61,6 +64,8 @@ class SoundtrackService : MediaBrowserService() {
         speedReader = CarSpeedReader()
         connectSpeedReader()
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
+        bandReader = PleosBandReader().also { it.start(this, model) { broadcastStatus() } }
+        pedalReader = CarPedalReader().also { it.start(this) { value -> model.setAccelerator(value); broadcastStatus() } }
         restrictionsReader = DriveRestrictionsReader().also { it.start(this) { value -> restricted = value } }
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -110,9 +115,20 @@ class SoundtrackService : MediaBrowserService() {
             RECONNECT_SPEED -> {
                 speedReader.stop()
                 connectSpeedReader()
+                pedalReader.start(this) { value -> model.setAccelerator(value); broadcastStatus() }
             }
             DEMO_SPEED -> if (!carAvailable) {
                 model.setSpeed(intent.getDoubleExtra("kmh", 0.0))
+                broadcastStatus()
+            }
+            DEMO_BAND -> if (!carAvailable) {
+                when (intent.getStringExtra("instrument")) {
+                    "brake" -> model.setBrake(intent.getBooleanExtra("active", false))
+                    "steering" -> model.setSteering(intent.getDoubleExtra("value", 0.0))
+                    "turn" -> model.setTurn(intent.getIntExtra("value", 0))
+                    "wiper" -> model.setWiper(intent.getBooleanExtra("active", false))
+                    "accelerator" -> model.setAccelerator(intent.getDoubleExtra("value", 0.0))
+                }
                 broadcastStatus()
             }
         }
@@ -201,6 +217,16 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("momentum", model.momentum())
         status.putExtra("driveMode", model.driveMode())
         status.putExtra("layers", model.layerCount())
+        status.putExtra("accelerator", model.accelerator())
+        status.putExtra("pedalAvailable", model.pedalAvailable())
+        status.putExtra("brake", model.brake())
+        status.putExtra("brakeAvailable", model.brakeAvailable())
+        status.putExtra("steering", model.steering())
+        status.putExtra("steeringAvailable", model.steeringAvailable())
+        status.putExtra("turn", model.turn())
+        status.putExtra("turnAvailable", model.turnAvailable())
+        status.putExtra("wiper", model.wiper())
+        status.putExtra("wiperAvailable", model.wiperAvailable())
         sendBroadcast(status)
     }
 
@@ -209,6 +235,8 @@ class SoundtrackService : MediaBrowserService() {
         handler.removeCallbacks(statusTicker)
         speedReader.stop()
         driveModeReader.stop()
+        bandReader.stop()
+        pedalReader.stop()
         restrictionsReader.stop()
         session.release()
         super.onDestroy()

@@ -38,6 +38,8 @@ class SoundRenderer(private val model: SoundModel) {
     private val padFrequency = DoubleArray(3) { 110.0 * (it + 1) }
     private var bassFrequency = 55.0
     private var leadFrequency = 220.0
+    private var lastTurn = 0
+    private var pendingTurn = 0
     private var previousNoise = 0.0
     private val delayLeft = DoubleArray(RATE / 4)
     private val delayRight = DoubleArray(RATE / 4)
@@ -51,9 +53,19 @@ class SoundRenderer(private val model: SoundModel) {
         val bpm = model.bpm()
         val energy = model.intensity()
         val momentum = model.momentum()
+        val accelerator = model.accelerator()
+        val brake = model.brake()
+        val steering = model.steering()
+        val turn = model.turn()
+        val wiper = model.wiper()
         val driveMode = model.driveMode()
         val frameTime = 1.0 / RATE
         var output = 0
+
+        if (turn != lastTurn) {
+            if (turn != 0) pendingTurn = turn
+            lastTurn = turn
+        }
 
         repeat(pcm.size / CHANNELS) {
             if (requestedPreset != activePreset && !fadingOut) fadingOut = true
@@ -71,7 +83,7 @@ class SoundRenderer(private val model: SoundModel) {
             beat += bpm / (60.0 * RATE)
             val step = floor(beat * 4.0).toLong()
             if (step != lastStep) {
-                triggerStep(scene, step, energy)
+                triggerStep(scene, step, energy, steering)
                 lastStep = step
             }
 
@@ -87,17 +99,31 @@ class SoundRenderer(private val model: SoundModel) {
             val hat = if (hatAge < 0.2) hatNoise * exp(-hatAge * 78.0) * (0.014 + energy * 0.017) else 0.0
 
             bassPhase += TWO_PI * bassFrequency * frameTime
-            val bassWave = sin(bassPhase) * 0.82 + sin(bassPhase * 2.0) * scene.brightness * 0.23
-            val bass = if (bassAge < 1.4) bassWave * exp(-bassAge * 3.0) * scene.bassGain else 0.0
+            val bassWave = when (activePreset) {
+                1 -> sin(bassPhase) * 0.92 + sin(bassPhase * 3.0) * (0.05 + accelerator * 0.07)
+                2 -> sin(bassPhase) * 0.70 + sin(bassPhase * 2.0) * (0.10 + accelerator * 0.13)
+                3 -> sin(bassPhase) * 0.78 + sin(bassPhase * 2.0) * (0.16 + accelerator * 0.18) + sin(bassPhase * 3.0) * 0.09
+                4 -> sin(bassPhase) * 0.60 + sin(bassPhase * 2.0) * (0.25 + accelerator * 0.20) + sin(bassPhase * 4.0) * 0.10
+                else -> sin(bassPhase) * 0.82 + sin(bassPhase * 2.0) * (0.16 + accelerator * 0.20)
+            }
+            val bass = if (bassAge < 1.4) bassWave * exp(-bassAge * (3.4 + accelerator * 1.3)) *
+                scene.bassGain * (0.82 + accelerator * 0.34) else 0.0
 
             for (voice in padPhase.indices) padPhase[voice] += TWO_PI * padFrequency[voice] * frameTime
-            val padEnvelope = (0.84 + energy * 0.16) * scene.padGain * (1.0 - 0.20 * exp(-kickAge * 12.0))
+            val padEnvelope = (0.84 + energy * 0.16) * scene.padGain * (1.0 - 0.20 * exp(-kickAge * 12.0)) *
+                (1.0 - brake * 0.38)
             val padLeft = (sin(padPhase[0]) * 0.50 + sin(padPhase[1]) * 0.32 + sin(padPhase[2]) * 0.18) * padEnvelope
             val padRight = (sin(padPhase[0] + 0.22) * 0.40 + sin(padPhase[1] + 0.58) * 0.36 +
                 sin(padPhase[2] + 1.05) * 0.24) * padEnvelope
 
             leadPhase += TWO_PI * leadFrequency * frameTime
-            val leadWave = sin(leadPhase) + sin(leadPhase * 2.0) * scene.brightness * 0.28
+            val leadWave = when (activePreset) {
+                1 -> sin(leadPhase) * 0.85 + sin(leadPhase * 2.01) * 0.12
+                2 -> sin(leadPhase) * (0.92 + sin(beat * TWO_PI / 8.0) * 0.06)
+                3 -> sin(leadPhase) * 0.76 + sin(leadPhase * 2.0) * 0.20 + sin(leadPhase * 3.0) * 0.08
+                4 -> sin(leadPhase) * 0.55 + sin(leadPhase * 2.0) * 0.30 + sin(leadPhase * 4.0) * 0.15
+                else -> sin(leadPhase) + sin(leadPhase * 2.0) * scene.brightness * 0.28
+            }
             val lead = if (leadAge < 1.0) leadWave * exp(-leadAge * 5.0) * scene.leadGain *
                 (0.55 + energy * 0.45) else 0.0
             val echoLeft = delayLeft[delayPosition]
@@ -106,10 +132,14 @@ class SoundRenderer(private val model: SoundModel) {
             delayRight[delayPosition] = lead * 0.18 + echoLeft * 0.26
             delayPosition = (delayPosition + 1) % delayLeft.size
 
-            val rhythm = (kick + snare + hat) * (0.70 + energy * 0.30)
+            val rhythm = (kick + snare + hat * (1.0 + if (wiper) 0.35 else 0.0)) *
+                (0.70 + energy * 0.30) * (1.0 - brake * 0.28)
             val surge = if (momentum > 0.18) hatNoise * momentum * 0.008 else 0.0
-            val left = tanh((rhythm + bass + padLeft + lead * 0.55 + echoLeft + surge) * 1.75) * 0.78 * transition
-            val right = tanh((rhythm + bass + padRight + lead * 0.88 + echoRight - surge) * 1.75) * 0.78 * transition
+            val texture = if (wiper && hatAge < 0.12) hatNoise * exp(-hatAge * 36.0) * 0.025 else 0.0
+            val leadLeft = lead * (0.66 - steering * 0.18)
+            val leadRight = lead * (0.66 + steering * 0.18)
+            val left = tanh((rhythm + bass + padLeft + leadLeft + echoLeft + surge + texture) * 1.75) * 0.78 * transition
+            val right = tanh((rhythm + bass + padRight + leadRight + echoRight - surge - texture) * 1.75) * 0.78 * transition
             pcm[output++] = (left * 32767.0).toInt().toShort()
             pcm[output++] = (right * 32767.0).toInt().toShort()
 
@@ -121,7 +151,7 @@ class SoundRenderer(private val model: SoundModel) {
         }
     }
 
-    private fun triggerStep(scene: Soundscape, absoluteStep: Long, energy: Double) {
+    private fun triggerStep(scene: Soundscape, absoluteStep: Long, energy: Double, steering: Double) {
         val position = (absoluteStep % 16).toInt()
         val bar = absoluteStep / 16
         val chord = scene.chords[(bar % scene.chords.size).toInt()]
@@ -147,9 +177,18 @@ class SoundRenderer(private val model: SoundModel) {
         val note = scene.melody[position]
         if (note >= 0 && energy >= 0.24 && (bar % 4 != 3L || position % 4 == 0)) {
             val octave = if ((bar / 4) % 2 == 1L) 12 else 0
-            leadFrequency = scene.rootHz * 4.0 * ratio(chord + scene.scale[note] + octave)
+            val directed = (note + if (steering > 0.28) 1 else if (steering < -0.28) -1 else 0)
+                .coerceIn(scene.scale.indices)
+            leadFrequency = scene.rootHz * 4.0 * ratio(chord + scene.scale[directed] + octave)
             leadAge = 0.0
             leadPhase = 0.0
+        }
+        if (pendingTurn != 0 && (position == 0 || position == 8)) {
+            val degree = if (pendingTurn < 0) 2 else 4
+            leadFrequency = scene.rootHz * 4.0 * ratio(chord + scene.scale[degree])
+            leadAge = 0.0
+            leadPhase = 0.0
+            pendingTurn = 0
         }
         if (bar % 8 == 7L && position == 14 && energy >= 0.48) snareAge = 0.0
     }

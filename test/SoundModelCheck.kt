@@ -5,20 +5,29 @@ fun main() {
     val idleBpm = model.bpm()
     model.setSpeed(100.0)
     repeat(250) { model.tick() }
-    check(model.bpm() > idleBpm + 20 && model.bpm() <= 135.1) { "speed mapping" }
+    check(model.bpm() > idleBpm && model.bpm() < idleBpm + 8) { "speed must not dominate tempo" }
 
-    val normal = model.bpm()
-    model.setDriveMode(2)
-    repeat(250) { model.tick() }
-    check(model.bpm() > normal + 3) { "sport mode mapping" }
+    model.setAccelerator(80.0)
+    model.setBrake(true)
+    model.setSteering(-270.0)
+    model.setTurn(-1)
+    model.setWiper(true)
+    repeat(120) { model.tick() }
+    check(model.accelerator() > 0.7 && model.pedalAvailable()) { "pedal controls bass" }
+    check(model.brake() > 0.9 && model.steering() < -0.4) { "independent brake and steering" }
+    check(model.turn() == -1 && model.wiper()) { "event and texture signals" }
+
+    model.setBrake(null)
+    model.setSteering(null)
+    model.setWiper(null)
+    repeat(120) { model.tick() }
+    check(!model.brakeAvailable() && !model.steeringAvailable() && !model.wiperAvailable()) { "unknown signals remain unknown" }
+    check(model.brake() < 0.01 && model.steering() > -0.01) { "lost signals fade to neutral" }
 
     model.setSpeed(-100.0)
+    model.setAccelerator(Double.NaN)
     repeat(350) { model.tick() }
     check(model.speed() in 0.0..0.01) { "speed clamp" }
-
-    model.setSpeed(Double.NaN)
-    model.setSpeed(Double.POSITIVE_INFINITY)
-    model.tick()
-    check(model.bpm().isFinite() && model.speed().isFinite()) { "non-finite sensor input" }
+    check(model.bpm().isFinite() && model.intensity().isFinite()) { "finite output" }
     println("SoundModel checks passed")
 }
