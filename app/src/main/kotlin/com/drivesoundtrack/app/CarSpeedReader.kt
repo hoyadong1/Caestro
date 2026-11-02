@@ -50,8 +50,7 @@ class CarSpeedReader {
                         callback = speedCallback
                         onConnection(true)
                         try {
-                            properties.getProperty(Float::class.java, VehiclePropertyIds.PERF_VEHICLE_SPEED, 0)?.value
-                                ?.let { onSpeed(it.toDouble() * 3.6) }
+                            onSpeed(properties.getFloatProperty(VehiclePropertyIds.PERF_VEHICLE_SPEED, 0).toDouble() * 3.6)
                         } catch (ex: RuntimeException) {
                             Log.w("DriveSoundtrack", "Initial vehicle speed unavailable; waiting for subscription", ex)
                         }
