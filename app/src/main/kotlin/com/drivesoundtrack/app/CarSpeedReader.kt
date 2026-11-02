@@ -7,56 +7,87 @@ import android.car.hardware.property.CarPropertyManager
 import android.content.Context
 import android.util.Log
 
-/** Reads cluster speed from AAOS; the caller falls back to demo speed when unavailable. */
+/** Reads cluster speed and reconnects when the AAOS car service restarts. */
 class CarSpeedReader {
     private var car: Car? = null
     private var manager: CarPropertyManager? = null
     private var callback: CarPropertyManager.CarPropertyEventCallback? = null
+    private var generation = 0
 
-    fun start(context: Context, listener: (Double) -> Unit): Boolean {
-        try {
-            val connected = Car.createCar(context) ?: return false
-            car = connected
-            val properties = connected.getCarManager(Car.PROPERTY_SERVICE) as? CarPropertyManager ?: return false
-            manager = properties
-            val speedCallback = object : CarPropertyManager.CarPropertyEventCallback {
-                override fun onChangeEvent(value: CarPropertyValue<*>) {
-                    if (value.propertyId == VehiclePropertyIds.PERF_VEHICLE_SPEED) {
-                        (value.value as? Number)?.let { listener(it.toDouble() * 3.6) }
-                    }
-                }
-                override fun onErrorEvent(propertyId: Int, areaId: Int) = Unit
-            }
-            callback = speedCallback
-            if (!properties.registerCallback(speedCallback, VehiclePropertyIds.PERF_VEHICLE_SPEED, CarPropertyManager.SENSOR_RATE_ONCHANGE)) {
-                Log.w("DriveSoundtrack", "Vehicle speed subscription was rejected")
-                stop()
-                return false
-            }
-            try {
-                properties.getProperty(Float::class.java, VehiclePropertyIds.PERF_VEHICLE_SPEED, 0)?.value
-                    ?.let { listener(it.toDouble() * 3.6) }
-            } catch (ex: RuntimeException) {
-                Log.w("DriveSoundtrack", "Initial vehicle speed unavailable; waiting for subscription", ex)
-            }
-            return true
-        } catch (ex: Exception) {
-            Log.w("DriveSoundtrack", "Vehicle speed subscription unavailable", ex)
-        } catch (ex: LinkageError) {
-            Log.w("DriveSoundtrack", "Vehicle speed subscription unavailable", ex)
-        }
+    fun start(context: Context, onConnection: (Boolean) -> Unit, onSpeed: (Double) -> Unit) {
         stop()
-        return false
+        val currentGeneration = generation
+        try {
+            car = Car.createCar(context, null, Car.CAR_WAIT_TIMEOUT_DO_NOT_WAIT,
+                Car.CarServiceLifecycleListener { connected, ready ->
+                    if (currentGeneration != generation) return@CarServiceLifecycleListener
+                    clearSubscription()
+                    if (!ready) {
+                        onConnection(false)
+                        return@CarServiceLifecycleListener
+                    }
+                    try {
+                        val properties = connected.getCarManager(Car.PROPERTY_SERVICE) as? CarPropertyManager
+                        if (properties == null) {
+                            onConnection(false)
+                            return@CarServiceLifecycleListener
+                        }
+                        val speedCallback = object : CarPropertyManager.CarPropertyEventCallback {
+                            override fun onChangeEvent(value: CarPropertyValue<*>) {
+                                if (currentGeneration == generation && value.propertyId == VehiclePropertyIds.PERF_VEHICLE_SPEED) {
+                                    (value.value as? Number)?.let { onSpeed(it.toDouble() * 3.6) }
+                                }
+                            }
+                            override fun onErrorEvent(propertyId: Int, areaId: Int) = Unit
+                        }
+                        if (!properties.registerCallback(speedCallback, VehiclePropertyIds.PERF_VEHICLE_SPEED,
+                                CarPropertyManager.SENSOR_RATE_ONCHANGE)) {
+                            Log.w("DriveSoundtrack", "Vehicle speed subscription was rejected")
+                            onConnection(false)
+                            return@CarServiceLifecycleListener
+                        }
+                        manager = properties
+                        callback = speedCallback
+                        onConnection(true)
+                        try {
+                            properties.getProperty(Float::class.java, VehiclePropertyIds.PERF_VEHICLE_SPEED, 0)?.value
+                                ?.let { onSpeed(it.toDouble() * 3.6) }
+                        } catch (ex: RuntimeException) {
+                            Log.w("DriveSoundtrack", "Initial vehicle speed unavailable; waiting for subscription", ex)
+                        }
+                    } catch (ex: Exception) {
+                        Log.w("DriveSoundtrack", "Vehicle speed subscription unavailable", ex)
+                        clearSubscription()
+                        onConnection(false)
+                    } catch (ex: LinkageError) {
+                        Log.w("DriveSoundtrack", "Vehicle speed subscription unavailable", ex)
+                        clearSubscription()
+                        onConnection(false)
+                    }
+                })
+            if (car == null) onConnection(false)
+        } catch (ex: Exception) {
+            Log.w("DriveSoundtrack", "Car service connection unavailable", ex)
+            onConnection(false)
+        } catch (ex: LinkageError) {
+            Log.w("DriveSoundtrack", "Car service connection unavailable", ex)
+            onConnection(false)
+        }
     }
 
-    fun stop() {
+    private fun clearSubscription() {
         val registeredCallback = callback
         if (registeredCallback != null) manager?.let {
             try { it.unregisterCallback(registeredCallback) } catch (_: Exception) { }
         }
-        car?.let { try { it.disconnect() } catch (_: Exception) { } }
         callback = null
         manager = null
+    }
+
+    fun stop() {
+        generation++
+        clearSubscription()
+        car?.let { try { it.disconnect() } catch (_: Exception) { } }
         car = null
     }
 }

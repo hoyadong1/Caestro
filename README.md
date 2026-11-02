@@ -36,9 +36,12 @@ Kotlin 전환 후 `clean`, `assembleDebug`, `assembleRelease`가 성공했고 re
 
 전환 전 Java APK는 일반 Android 14 에뮬레이터에서 화면 실행, 재생·일시정지 미디어 키, 프리셋 이동, 시연 속도에 따른 BPM 변화를 확인했습니다. Pleos Connect v2.1.0 에뮬레이터에서는 `CAR_SPEED` 권한 요청·허용, 차량 속도 서비스 연결, MediaSession 재생 및 프리셋 이동을 확인했습니다. Virtual Console에서 속도를 0→36 km/h로 주입하자 앱의 Pulse 표시가 92→106 BPM으로 바뀌었습니다. 속도 36 km/h에서는 프리셋 버튼이 비활성화되고 0 km/h에서는 다시 변경할 수 있었습니다. `car_service`로 36 km/h 속도 신호를 유지하며 외부 프리셋 변경 명령을 보냈을 때 MediaSession 프리셋은 Night로 유지됐습니다. D 기어·36 km/h에서 Pleos는 앱 활동 화면을 차단했지만 MediaSession은 재생 상태를 유지했습니다. 화면에 속도를 표시하는 검증에는 P 기어에서 36 km/h를 강제로 주입한 테스트 상태를 사용했습니다. 실제 차량, Pleos 주행 모드 변경, 앱의 CarUxRestrictions 콜백은 아직 검증하지 않았습니다. 앱 화면 녹화와 합성 음원을 결합한 시연 영상도 준비했습니다.
 
+Pleos 차량 서비스가 재시작되면 종전 `Car.createCar(context)` 연결을 사용하던 앱 프로세스가 시스템에 의해 종료되는 문제가 확인됐습니다. 속도와 UX 제한 구독을 `CarServiceLifecycleListener` 기반으로 바꿔 연결 해제 시 구독을 정리하고 복구 시 다시 등록하도록 수정했습니다. 수정 APK는 Pleos 재부팅 후 약 2분 20초 동안 동일 프로세스에서 `PLAYING`을 유지했고 `PAUSED`로 전환됐습니다. 이 시험 중 차량 서비스 재시작은 재현되지 않아 실제 재연결 동작은 추가 검증이 필요합니다.
+
 ## 남은 작업
 
 - Kotlin release APK에서 차량 속도 신호에 따른 BPM 화면 반응 확인
 - Pleos 주행 모드 통합 시험. Pleos Connect v2.1.0 Virtual Console의 48개 신호 제어 항목에는 `Driving Mode`가 없어 이 화면에서 주행 모드를 바꿔 시험할 수 없었습니다.
 - Pleos 전용 에뮬레이터에서 앱의 `CarUxRestrictions` 콜백 결과 확인
 - 음악 패턴과 전환 품질 조정, 장시간 재생 안정성 확인
+- 차량 서비스 재시작 시 속도·UX 제한 구독의 자동 복구 확인

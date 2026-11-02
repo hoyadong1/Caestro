@@ -55,7 +55,7 @@ class SoundtrackService : MediaBrowserService() {
         model = SoundModel()
         engine = SynthEngine(model)
         speedReader = CarSpeedReader()
-        carAvailable = speedReader.start(this) { kmh -> model.setSpeed(kmh); broadcastStatus() }
+        connectSpeedReader()
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
         restrictionsReader = DriveRestrictionsReader().also { it.start(this) { value -> restricted = value } }
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
@@ -105,8 +105,7 @@ class SoundtrackService : MediaBrowserService() {
             STATUS_REQUEST -> broadcastStatus()
             RECONNECT_SPEED -> {
                 speedReader.stop()
-                carAvailable = speedReader.start(this) { kmh -> model.setSpeed(kmh); broadcastStatus() }
-                broadcastStatus()
+                connectSpeedReader()
             }
             DEMO_SPEED -> if (!carAvailable) {
                 model.setSpeed(intent.getDoubleExtra("kmh", 0.0))
@@ -114,6 +113,18 @@ class SoundtrackService : MediaBrowserService() {
             }
         }
         return Service.START_STICKY
+    }
+
+    private fun connectSpeedReader() {
+        carAvailable = false
+        speedReader.start(this,
+            { available ->
+                carAvailable = available
+                if (!available) model.setSpeed(0.0)
+                broadcastStatus()
+            },
+            { kmh -> model.setSpeed(kmh); broadcastStatus() })
+        broadcastStatus()
     }
 
     private fun setPreset(choice: Int) {
