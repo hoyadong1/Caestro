@@ -1,63 +1,56 @@
 import com.drivesoundtrack.app.SoundModel
 import com.drivesoundtrack.app.SoundRenderer
+import com.drivesoundtrack.app.Soundscapes
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.min
 
-/** Renders the Android app's synthesizer without booting an emulator. */
+/** Forty-second listening preview: eight seconds of each original soundscape. */
 fun main(args: Array<String>) {
-    require(args.size in 1..2) { "output WAV path and optional video mode required" }
-    val video = args.size == 2 && args[1] == "video"
+    require(args.size == 1) { "output WAV path required" }
     val model = SoundModel()
     val renderer = SoundRenderer(model)
-    val total = SoundRenderer.RATE * 20
-    val audio = ByteArray(total * 2)
-    val block = ShortArray(1024)
-    var sample = 0
+    val secondsPerScene = 8
+    val totalFrames = SoundRenderer.RATE * secondsPerScene * Soundscapes.all.size
+    val samples = ShortArray(1024 * SoundRenderer.CHANNELS)
+    val speed = doubleArrayOf(0.0, 35.0, 70.0, 105.0, 55.0)
+    var frame = 0
     var peak = 0
 
-    while (sample < total) {
-        val second = sample.toDouble() / SoundRenderer.RATE
-        model.setSpeed(if (video) {
-            when { second < 5 -> 0.0; second < 9 -> 40.0; else -> 90.0 }
-        } else {
-            when { second < 5 -> 0.0; second < 10 -> 40.0; second < 15 -> 90.0; else -> 20.0 }
-        })
-        if (video) renderer.setPreset(when { second < 13 -> 0; second < 16 -> 1; else -> 2 })
-        renderer.render(block)
-        for (raw in block) {
-            if (sample >= total) break
-            var value = raw
-            if (video) {
-                val t = sample.toDouble() / SoundRenderer.RATE
-                val gain = max(0.0, min(1.0, min((t - 2) / 0.08, (19 - t) / 0.08)))
-                value = (value * gain).toInt().toShort()
-            }
-            peak = max(peak, abs(value.toInt()))
-            audio[2 * sample] = value.toByte()
-            audio[2 * sample + 1] = (value.toInt() ushr 8).toByte()
-            sample++
-        }
-    }
-    check(peak in 1000..32766) { "unexpected audio peak: $peak" }
     FileOutputStream(args[0]).use { out ->
+        val dataBytes = totalFrames * SoundRenderer.CHANNELS * 2
         out.write("RIFF".toByteArray(StandardCharsets.US_ASCII))
-        out.writeInt(36 + audio.size)
+        out.writeInt(36 + dataBytes)
         out.write("WAVEfmt ".toByteArray(StandardCharsets.US_ASCII))
         out.writeInt(16)
         out.writeShort(1)
-        out.writeShort(1)
+        out.writeShort(SoundRenderer.CHANNELS)
         out.writeInt(SoundRenderer.RATE)
-        out.writeInt(SoundRenderer.RATE * 2)
-        out.writeShort(2)
+        out.writeInt(SoundRenderer.RATE * SoundRenderer.CHANNELS * 2)
+        out.writeShort(SoundRenderer.CHANNELS * 2)
         out.writeShort(16)
         out.write("data".toByteArray(StandardCharsets.US_ASCII))
-        out.writeInt(audio.size)
-        out.write(audio)
+        out.writeInt(dataBytes)
+
+        while (frame < totalFrames) {
+            val scene = (frame / (SoundRenderer.RATE * secondsPerScene)).coerceAtMost(Soundscapes.all.lastIndex)
+            model.setPreset(scene)
+            model.setSpeed(speed[scene])
+            renderer.setPreset(scene)
+            renderer.render(samples)
+            val framesToWrite = minOf(samples.size / SoundRenderer.CHANNELS, totalFrames - frame)
+            for (i in 0 until framesToWrite * SoundRenderer.CHANNELS) {
+                val value = samples[i]
+                peak = max(peak, abs(value.toInt()))
+                out.write(value.toInt())
+                out.write(value.toInt() ushr 8)
+            }
+            frame += framesToWrite
+        }
     }
-    println("Preview written; peak=$peak")
+    check(peak in 1000..32766) { "unexpected audio peak: $peak" }
+    println("WAV preview written: ${Soundscapes.all.joinToString { it.name }}; peak=$peak")
 }
 
 private fun FileOutputStream.writeShort(value: Int) {

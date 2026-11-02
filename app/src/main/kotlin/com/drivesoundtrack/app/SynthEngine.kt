@@ -36,15 +36,15 @@ class SynthEngine(model: SoundModel) {
         var current: AudioTrack? = null
         try {
             // The emulator's audio policy service can block these calls during startup.
-            val minimum = AudioTrack.getMinBufferSize(SoundRenderer.RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+            val minimum = AudioTrack.getMinBufferSize(SoundRenderer.RATE, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT)
             if (!isCurrent(value)) return
             current = AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                .setAudioFormat(AudioFormat.Builder().setSampleRate(SoundRenderer.RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                .setBufferSizeInBytes(maxOf(minimum, 8192)).setTransferMode(AudioTrack.MODE_STREAM).build()
+                .setAudioFormat(AudioFormat.Builder().setSampleRate(SoundRenderer.RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build())
+                .setBufferSizeInBytes(maxOf(minimum, 16384)).setTransferMode(AudioTrack.MODE_STREAM).build()
             if (!isCurrent(value)) return
             current.play()
-            val pcm = ShortArray(1024)
+            val pcm = ShortArray(1024 * SoundRenderer.CHANNELS)
             while (isCurrent(value)) {
                 renderer.render(pcm)
                 var offset = 0

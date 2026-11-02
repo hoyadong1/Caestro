@@ -28,7 +28,7 @@ class SoundtrackService : MediaBrowserService() {
         const val STATUS_REQUEST = "com.drivesoundtrack.STATUS_REQUEST"
         const val RECONNECT_SPEED = "com.drivesoundtrack.RECONNECT_SPEED"
         private const val CHANNEL = "drive_soundtrack_playback"
-        private val NAMES = arrayOf("Pulse", "Night", "Coast")
+        private val NAMES = Soundscapes.all.map { it.name }
     }
 
     private lateinit var model: SoundModel
@@ -54,6 +54,10 @@ class SoundtrackService : MediaBrowserService() {
         super.onCreate()
         model = SoundModel()
         engine = SynthEngine(model)
+        preset = getSharedPreferences("soundtrack", MODE_PRIVATE).getInt("preset", 0)
+            .coerceIn(Soundscapes.all.indices)
+        model.setPreset(preset)
+        engine.setPreset(preset)
         speedReader = CarSpeedReader()
         connectSpeedReader()
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
@@ -71,8 +75,8 @@ class SoundtrackService : MediaBrowserService() {
             override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
                 mediaId?.toIntOrNull()?.let { setPreset(it); play() }
             }
-            override fun onSkipToNext() = setPreset((preset + 1) % 3)
-            override fun onSkipToPrevious() = setPreset((preset + 2) % 3)
+            override fun onSkipToNext() = setPreset((preset + 1) % NAMES.size)
+            override fun onSkipToPrevious() = setPreset((preset + NAMES.size - 1) % NAMES.size)
         })
         session.isActive = true
         sessionToken = session.sessionToken
@@ -129,8 +133,10 @@ class SoundtrackService : MediaBrowserService() {
 
     private fun setPreset(choice: Int) {
         if (restricted || (carAvailable && model.targetSpeed() >= 5)) return
-        preset = choice.coerceIn(0, 2)
+        preset = choice.coerceIn(Soundscapes.all.indices)
+        model.setPreset(preset)
         engine.setPreset(preset)
+        getSharedPreferences("soundtrack", MODE_PRIVATE).edit().putInt("preset", preset).apply()
         updateSession()
         broadcastStatus()
     }
@@ -176,7 +182,8 @@ class SoundtrackService : MediaBrowserService() {
     private fun updateSession() {
         session.setMetadata(MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, NAMES[preset])
-            .putString(MediaMetadata.METADATA_KEY_ARTIST, "Drive Soundtrack").build())
+            .putString(MediaMetadata.METADATA_KEY_ARTIST, "Drive Soundtrack")
+            .putString(MediaMetadata.METADATA_KEY_ALBUM, Soundscapes.all[preset].character).build())
         session.setPlaybackState(PlaybackState.Builder()
             .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or
                 PlaybackState.ACTION_PLAY_FROM_MEDIA_ID or PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS)
@@ -189,7 +196,11 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("preset", preset)
         status.putExtra("carAvailable", carAvailable)
         status.putExtra("kmh", model.targetSpeed())
-        status.putExtra("bpm", model.bpm())
+        status.putExtra("bpm", if (playing) model.bpm() else model.targetBpm())
+        status.putExtra("energy", model.intensity())
+        status.putExtra("momentum", model.momentum())
+        status.putExtra("driveMode", model.driveMode())
+        status.putExtra("layers", model.layerCount())
         sendBroadcast(status)
     }
 
