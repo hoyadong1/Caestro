@@ -6,11 +6,11 @@
 
 ## 시연 영상
 
-[![Pleos Connect에서 실행한 Drive Soundtrack 영상 썸네일](demo/Drive_Soundtrack_시연영상_썸네일.png)](https://hoyadong1.github.io/DriveSoundtrack/)
+[![Pleos 차량과 0.3.0 악기 화면을 함께 녹화한 새 시연 영상](docs/poster.png)](https://hoyadong1.github.io/DriveSoundtrack/)
 
-[GitHub Pages에서 영상 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](demo/Drive_Soundtrack_시연영상.mp4) · [서명된 release APK 다운로드](apk/홍원택_DriveSoundtrack_release.apk)
+[GitHub Pages에서 영상 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](docs/drive-soundtrack-demo.mp4) · [서명된 release APK 다운로드](apk/홍원택_DriveSoundtrack_release.apk)
 
-이 58초 영상과 MP3는 **이전 0.2.1 버전**의 시연 자료입니다. Pleos Connect v2.1.0의 전체 화면(왼쪽 3D 차량, 오른쪽 앱)과 실제 앱 출력 오디오를 함께 녹화했습니다. 오른쪽 앱의 속도 값은 시연 슬라이더로 입력했으며 왼쪽 차량의 실제 신호와 연동된 값이 아닙니다. 새 악기 화면과 추가 차량 신호는 아래의 0.3.0 검증 화면을 참조하세요. [다섯 모드의 기존 음악 듣기](demo/Drive_Soundtrack_5모드_음악시연.mp3)
+**0.3.0 · 67초 시연.** Pleos Connect v2.1.0 전체 화면에서 왼쪽 3D 차량과 오른쪽 악기 무대를 함께 보여 줍니다. P 기어의 에뮬레이터 Virtual Console에서 속도(35·55·36 km/h), 브레이크(70%), 조향(150°), 좌측 방향지시등을 차례로 주입했습니다. 마지막에는 정차 상태에서 Circuit을 Pulse로 전환합니다. 영상의 음악은 녹화 중 에뮬레이터 오디오 캡처가 무음으로 저장되어, **앱과 동일한 Kotlin `SoundRenderer`로 같은 신호 순서를 다시 합성한 뒤 영상에 입혔습니다.** 실차 주행 영상이나 실시간 오디오 캡처로 해석하면 안 됩니다. [0.3.0 다섯 모드 음악 미리듣기](docs/drive-soundtrack-soundscapes.mp3)
 
 ## 기능
 
@@ -62,4 +62,4 @@ Kotlin 보조 도구로 모델 검사와 악기별 PCM 차이 검사를 통과�
 
 [0.3.0 악기 화면과 Pleos 방향지시등 신호 시험](demo/v03-signal-test2.png) · [0.2.1 속도 신호 시험](demo/Drive_Soundtrack_차량신호_검증.png)
 
-Pleos v2.1 AVD에는 `android.car.permission.READ_CAR_PEDALS` 권한이 없어 **실제 가속 페달값은 검증되지 않았습니다**. 와이퍼 콜백/스위치의 앱 표시와 실제 오디오 청취, Pleos `DrivingMode` 변경, 실제 차량 주행, 차량 서비스 재연결, UX 제한 콜백의 실동작도 아직 검증되지 않았습니다. 새 시연 영상 역시 아직 제작하지 않았으므로 상단 영상은 0.2.1임을 명시합니다.
+Pleos v2.1 AVD에는 `android.car.permission.READ_CAR_PEDALS` 권한이 없어 **실제 가속 페달값은 검증되지 않았습니다**. 와이퍼 콜백/스위치의 앱 표시와 실시간 오디오 캡처, Pleos `DrivingMode` 변경, 실제 차량 주행, 차량 서비스 재연결, UX 제한 콜백의 실동작도 아직 검증되지 않았습니다.

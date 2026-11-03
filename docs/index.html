@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Drive Soundtrack의 Pleos Connect 실행 영상과 실제 앱 출력 오디오">
+  <meta name="description" content="Drive Soundtrack 0.3.0의 Pleos Connect 차량 신호 시연 영상과 합성 음악">
   <title>Drive Soundtrack · Pleos 시연</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #09101b; color: #f2f8fa; }
@@ -26,16 +26,16 @@
   <main>
     <p class="eyebrow">Pleos Connect · App Demo</p>
     <h1>Drive Soundtrack</h1>
-    <p class="intro">주행 맥락에 맞춰 다섯 가지 오리지널 음악을 실시간 편곡하는 차량용 앱. Pleos Connect v2.1.0의 3D 차량 화면과 앱, 실제 출력 소리를 함께 녹화했습니다.</p>
+    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. Pleos Connect v2.1.0의 3D 차량 화면과 Drive Soundtrack 0.3.0의 악기 무대를 함께 보여 줍니다.</p>
     <div class="player">
       <video controls playsinline preload="metadata" poster="poster.png" aria-label="Drive Soundtrack Pleos 시연 영상">
         <source src="drive-soundtrack-demo.mp4" type="video/mp4">
         브라우저에서 영상을 재생할 수 없습니다. 아래 저장소에서 파일을 열어 주세요.
       </video>
     </div>
-    <p class="details"><strong>58초 시연:</strong> Pulse, Night, Coast, Horizon, Circuit의 다른 음악과 속도 입력에 따른 편곡 변화를 보여 줍니다. 오른쪽 앱의 속도는 시연 슬라이더 입력이며 왼쪽 3D 차량의 실제 속도 신호와 연동된 값이 아닙니다.</p>
+    <p class="details"><strong>67초 · 에뮬레이터 시험:</strong> P 기어에서 Virtual Console로 속도, 브레이크, 조향, 방향지시등 값을 주입해 앱 화면의 반응을 녹화했습니다. 마지막에는 정차 후 Circuit에서 Pulse로 바꿉니다. 녹화 중 에뮬레이터 오디오 캡처가 무음으로 저장되어, 음악은 앱과 동일한 Kotlin 합성 엔진으로 같은 신호 순서를 다시 출력해 영상에 입혔습니다. 실제 도로 주행이나 실시간 오디오 캡처는 아닙니다.</p>
     <p class="eyebrow" style="margin-top:32px">Five soundscapes</p>
-    <p class="intro">각 모드를 8초씩 들어볼 수 있습니다. 모든 소리는 앱의 합성 엔진에서 만들었습니다.</p>
+    <p class="intro">0.3.0의 다섯 모드를 8초씩 들어볼 수 있습니다. 모든 소리는 앱의 Kotlin 합성 엔진에서 만들었습니다.</p>
     <audio controls preload="metadata" style="width:100%" aria-label="다섯 사운드스케이프 음악 미리듣기">
       <source src="drive-soundtrack-soundscapes.mp3" type="audio/mpeg">
     </audio>
