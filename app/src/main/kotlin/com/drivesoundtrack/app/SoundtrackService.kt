@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.pm.ApplicationInfo
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -28,6 +29,7 @@ class SoundtrackService : MediaBrowserService() {
         const val STATUS = "com.drivesoundtrack.STATUS"
         const val STATUS_REQUEST = "com.drivesoundtrack.STATUS_REQUEST"
         const val RECONNECT_SPEED = "com.drivesoundtrack.RECONNECT_SPEED"
+        const val ARM_DEBUG_CAPTURE = "com.drivesoundtrack.ARM_DEBUG_CAPTURE"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
     }
@@ -110,6 +112,9 @@ class SoundtrackService : MediaBrowserService() {
         when (intent?.action) {
             PLAY -> play()
             PAUSE -> pause()
+            ARM_DEBUG_CAPTURE -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
+                engine.armCapture(java.io.File(filesDir, "live-demo.wav"))
+            }
             PRESET -> setPreset(intent.getIntExtra("preset", 0))
             STATUS_REQUEST -> broadcastStatus()
             RECONNECT_SPEED -> {

@@ -1,6 +1,6 @@
 # Drive Soundtrack
 
-전기차의 조용한 실내에서 차량 조작이 악기를 연주하는 경험을 제안하는 Android Automotive용 오리지널 음악 앱입니다. 속도는 드럼, 가속 페달 또는 속도 변화는 베이스, 브레이크는 화성, 조향은 선율, 방향지시등은 짧은 응답, 와이퍼는 질감에 반영합니다. 다섯 사운드스케이프를 음원 파일이나 네트워크 없이 실시간 합성합니다. **앱과 보조 도구는 모두 Kotlin**이며, 화면은 Android View로 구현했습니다.
+전기차의 조용한 실내에서 차량 조작이 악기를 연주하는 경험을 제안하는 Android Automotive용 오리지널 음악 앱입니다. 속도는 드럼, 가속 페달 또는 속도 변화는 베이스, 브레이크는 화성, 조향은 선율, 방향지시등은 짧은 응답, 와이퍼는 질감에 반영합니다. 다섯 사운드스케이프를 음원 파일이나 네트워크 없이 실시간 합성합니다. **앱 기능은 모두 Kotlin**이며, 화면은 Android View로 구현했습니다.
 
 [전기차 제품 근거와 검증 범위](EV_PRODUCT_RATIONALE.md) · [악기 중심 기획](PRODUCT_V2_INSTRUMENT_CONCEPT.md) · [시각 콘셉트](demo/instrument-stage-v2-concept.png)
 
@@ -10,7 +10,7 @@
 
 [GitHub Pages에서 영상 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](docs/drive-soundtrack-demo.mp4) · [서명된 release APK 다운로드](apk/홍원택_DriveSoundtrack_release.apk)
 
-**0.3.0 · 67초 시연.** Pleos Connect v2.1.0 전체 화면에서 왼쪽 3D 차량과 오른쪽 악기 무대를 함께 보여 줍니다. P 기어의 에뮬레이터 Virtual Console에서 속도(35·55·36 km/h), 브레이크(70%), 조향(150°), 좌측 방향지시등을 차례로 주입했습니다. 마지막에는 정차 상태에서 Circuit을 Pulse로 전환합니다. 영상의 음악은 녹화 중 에뮬레이터 오디오 캡처가 무음으로 저장되어, **앱과 동일한 Kotlin `SoundRenderer`로 같은 신호 순서를 다시 합성한 뒤 영상에 입혔습니다.** 실차 주행 영상이나 실시간 오디오 캡처로 해석하면 안 됩니다. [0.3.0 다섯 모드 음악 미리듣기](docs/drive-soundtrack-soundscapes.mp3)
+**0.3.0 · 약 62초 시연.** Pleos Connect v2.1.0 전체 화면에서 왼쪽 3D 차량과 오른쪽 악기 무대를 함께 보여 줍니다. P 기어의 에뮬레이터 Virtual Console에서 정차, 속도 35 km/h, 속도 55 km/h와 브레이크 70%, 속도 36 km/h와 조향 150°, 좌측 방향지시등을 각각 짧은 장면으로 녹화해 연결했습니다. 마지막은 정차 상태의 Pulse입니다. 방향지시등 장면에 뜨는 측면 카메라는 Pleos 화면입니다. **음악은 각 화면을 녹화하는 동안 실제 앱이 `AudioTrack.write()`에 전달한 PCM을 디버그 빌드에서 WAV로 기록해 합쳤습니다.** 에뮬레이터의 시스템 오디오 캡처가 무음이어서 앱 재생 경로에서 직접 기록했습니다. 스피커 출력의 루프백 녹음은 아닙니다. [0.3.0 다섯 모드 음악 미리듣기](docs/drive-soundtrack-soundscapes.mp3)
 
 ## 기능
 
@@ -54,7 +54,7 @@ java -cp audio-tools.jar InstrumentAudioCheckKt
 java -cp audio-tools.jar PreviewWavKt preview.wav
 ```
 
-Kotlin 보조 도구로 모델 검사와 악기별 PCM 차이 검사를 통과했습니다. 저장소의 기존 MP3는 0.2.1 WAV를 청취용으로 압축한 파일입니다. 모든 음악은 이 저장소의 합성 코드로 생성하며 게임 음원을 사용하지 않습니다.
+Kotlin 보조 도구로 모델 검사와 악기별 PCM 차이 검사를 통과했습니다. 웹 페이지의 40초 MP3는 0.3.0 `SoundRenderer`가 생성한 다섯 모드 미리듣기입니다. 시연 영상의 오디오는 이 MP3를 사용하지 않고 녹화 당시 앱의 PCM에서 가져왔습니다. 모든 음악은 이 저장소의 합성 코드로 생성하며 게임 음원을 사용하지 않습니다.
 
 ## 검증 범위와 남은 항목
 
@@ -62,4 +62,4 @@ Kotlin 보조 도구로 모델 검사와 악기별 PCM 차이 검사를 통과�
 
 [0.3.0 악기 화면과 Pleos 방향지시등 신호 시험](demo/v03-signal-test2.png) · [0.2.1 속도 신호 시험](demo/Drive_Soundtrack_차량신호_검증.png)
 
-Pleos v2.1 AVD에는 `android.car.permission.READ_CAR_PEDALS` 권한이 없어 **실제 가속 페달값은 검증되지 않았습니다**. 와이퍼 콜백/스위치의 앱 표시와 실시간 오디오 캡처, Pleos `DrivingMode` 변경, 실제 차량 주행, 차량 서비스 재연결, UX 제한 콜백의 실동작도 아직 검증되지 않았습니다.
+Pleos v2.1 AVD에는 `android.car.permission.READ_CAR_PEDALS` 권한이 없어 **실제 가속 페달값은 검증되지 않았습니다**. 와이퍼 콜백/스위치의 앱 표시와 스피커 출력 오디오의 루프백 녹음, Pleos `DrivingMode` 변경, 실제 차량 주행, 차량 서비스 재연결, UX 제한 콜백의 실동작도 아직 검증되지 않았습니다.
