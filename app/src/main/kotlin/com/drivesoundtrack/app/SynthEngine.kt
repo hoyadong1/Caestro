@@ -19,6 +19,7 @@ class SynthEngine(model: SoundModel) {
     @Volatile private var captureFile: File? = null
 
     fun setPreset(preset: Int) = renderer.setPreset(preset)
+    fun setBassSolo(enabled: Boolean) = renderer.setBassSolo(enabled)
     fun armCapture(file: File) { captureFile = file }
 
     @Synchronized fun start(onFailure: (RuntimeException) -> Unit) {

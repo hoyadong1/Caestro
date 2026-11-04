@@ -64,6 +64,7 @@ class MainActivity : Activity() {
             val bpm = intent.getDoubleExtra("bpm", Soundscapes.all[preset].baseBpm).roundToInt()
             val energy = intent.getDoubleExtra("energy", 0.0).toFloat()
             val layers = intent.getIntExtra("layers", 1)
+            val bassSolo = intent.getBooleanExtra("bassSolo", false)
             val accelerator = intent.getDoubleExtra("accelerator", 0.0)
             val brake = intent.getDoubleExtra("brake", 0.0)
             val steering = intent.getDoubleExtra("steering", 0.0)
@@ -85,11 +86,13 @@ class MainActivity : Activity() {
                 if (turn != 0) add(if (turn < 0) "좌회전 → 하행음" else "우회전 → 상행음")
                 if (wiper) add("와이퍼 → 타악")
             }
-            phase.text = if (!playing) "재생 대기" else activeParts.takeLast(2).joinToString("  ·  ")
-                .ifEmpty { "정차 → 기본 리듬" }
+            phase.text = if (bassSolo) "베이스 솔로 · ${kmh.roundToInt()} km/h" else
+                if (!playing) "재생 대기" else activeParts.takeLast(2).joinToString("  ·  ")
+                    .ifEmpty { "정차 → 기본 리듬" }
             play.text = if (playing) "Ⅱ   일시정지" else "▶   음악 재생"
             visualizer.accent = scene.accent or (0xff shl 24)
             visualizer.playing = playing
+            visualizer.bassSolo = bassSolo
             visualizer.accelerator = accelerator
             visualizer.speed = kmh
             visualizer.brake = brake

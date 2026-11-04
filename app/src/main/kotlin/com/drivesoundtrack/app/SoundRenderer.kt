@@ -22,6 +22,7 @@ class SoundRenderer(private val model: SoundModel) {
 
     private val random = Random(1049)
     @Volatile private var requestedPreset = 0
+    @Volatile private var bassSolo = false
     private var activePreset = 0
     private var transition = 1.0
     private var fadingOut = false
@@ -50,6 +51,7 @@ class SoundRenderer(private val model: SoundModel) {
     private var delayPosition = 0
 
     fun setPreset(index: Int) { requestedPreset = index.coerceIn(Soundscapes.all.indices) }
+    fun setBassSolo(enabled: Boolean) { bassSolo = enabled }
 
     fun render(pcm: ShortArray) {
         require(pcm.size % CHANNELS == 0)
@@ -107,11 +109,14 @@ class SoundRenderer(private val model: SoundModel) {
                 1 -> sin(bassPhase) * 0.92 + sin(bassPhase * 3.0) * (0.05 + accelerator * 0.07)
                 2 -> sin(bassPhase) * 0.70 + sin(bassPhase * 2.0) * (0.10 + accelerator * 0.13)
                 3 -> sin(bassPhase) * 0.78 + sin(bassPhase * 2.0) * (0.16 + accelerator * 0.18) + sin(bassPhase * 3.0) * 0.09
-                4 -> sin(bassPhase) * 0.78 + sin(bassPhase * 2.0) * (0.12 + accelerator * 0.16) + sin(bassPhase * 4.0) * 0.03
+                4 -> sin(bassPhase) * 0.78 + sin(bassPhase * 2.0) *
+                    (0.12 + accelerator * 0.16 + speedLevel * 0.18) +
+                    sin(bassPhase * 3.0) * speedLevel * 0.07
                 else -> sin(bassPhase) * 0.82 + sin(bassPhase * 2.0) * (0.16 + accelerator * 0.20)
             }
-            val bass = if (bassAge < 1.4) bassWave * exp(-bassAge * (3.4 + accelerator * 1.3)) *
-                scene.bassGain * (0.72 + accelerator * 0.38 + speedLevel * 0.18) else 0.0
+            val bass = if (bassAge < 1.4) bassWave *
+                exp(-bassAge * (3.4 - speedLevel * 0.8 + accelerator * 1.3)) *
+                scene.bassGain * (0.68 + accelerator * 0.32 + speedLevel * 0.45) else 0.0
 
             for (voice in padPhase.indices) padPhase[voice] += TWO_PI * padFrequency[voice] * frameTime
             val padEnvelope = (0.84 + energy * 0.16) * scene.padGain * (1.0 - 0.20 * exp(-kickAge * 12.0)) *
@@ -151,10 +156,12 @@ class SoundRenderer(private val model: SoundModel) {
             val texture = if (wiper && hatAge < 0.12) hatNoise * exp(-hatAge * 36.0) * 0.025 else 0.0
             val leadLeft = lead * (0.66 - steering * 0.35)
             val leadRight = lead * (0.66 + steering * 0.35)
-            val left = tanh((rhythm + bass + padLeft + leadLeft + echoLeft + surge + coast + texture +
-                turnVoice * (0.60 - turnPan * 0.35)) * 1.75) * 0.78 * transition
-            val right = tanh((rhythm + bass + padRight + leadRight + echoRight - surge - coast - texture +
-                turnVoice * (0.60 + turnPan * 0.35)) * 1.75) * 0.78 * transition
+            val fullLeft = rhythm + bass + padLeft + leadLeft + echoLeft + surge + coast + texture +
+                turnVoice * (0.60 - turnPan * 0.35)
+            val fullRight = rhythm + bass + padRight + leadRight + echoRight - surge - coast - texture +
+                turnVoice * (0.60 + turnPan * 0.35)
+            val left = tanh((if (bassSolo) bass else fullLeft) * 1.75) * 0.78 * transition
+            val right = tanh((if (bassSolo) bass else fullRight) * 1.75) * 0.78 * transition
             pcm[output++] = (left * 32767.0).toInt().toShort()
             pcm[output++] = (right * 32767.0).toInt().toShort()
 

@@ -10,7 +10,9 @@
 
 [GitHub Pages에서 영상 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](docs/drive-soundtrack-demo.mp4) · [서명된 release APK 다운로드](apk/홍원택_DriveSoundtrack_release.apk)
 
-**0.4.0 · Pleos Connect v2.1.0 에뮬레이터 시연.** 왼쪽 3D 차량과 오른쪽 악기 무대를 함께 보여 줍니다. P 기어의 Virtual Console에서 정차 → 가속 → 고속 주행 → 제동 → 좌측 조향 → 좌·우 방향지시등 → 속도·조향·제동·지시등의 복합 상태를 짧은 장면으로 녹화했습니다. 마지막은 Pulse 모드입니다. **음악은 화면을 녹화하는 동안 실제 앱이 `AudioTrack.write()`에 전달한 PCM을 디버그 빌드에서 WAV로 기록해 합쳤습니다.** 에뮬레이터의 시스템 오디오 캡처가 무음이어서 앱 재생 경로에서 직접 기록했습니다. 스피커 출력의 루프백 녹음은 아닙니다. [0.4.0 다섯 모드 음악 미리듣기](docs/drive-soundtrack-soundscapes.mp3)
+**베이스만 집중 비교:** [0·10·20·35·55·80·110·130 km/h 베이스 솔로 영상](https://hoyadong1.github.io/DriveSoundtrack/bass-speed-study.mp4) · [속도별 측정값과 음색 설계](BASS_STUDY.md). 0.4.1 디버그 빌드의 베이스 솔로 출력만 녹음했습니다. 영상 오른쪽은 실제 앱 PCM의 파형과 RMS를 표시합니다.
+
+**0.4.0 · Pleos Connect v2.1.0 에뮬레이터 시연.** 왼쪽 3D 차량과 오른쪽 악기 무대를 함께 보여 줍니다. P 기어의 Virtual Console에서 정차 → 가속 → 고속 주행 → 제동 → 좌측 조향 → 좌·우 방향지시등 → 속도·조향·제동·지시등의 복합 상태를 짧은 장면으로 녹화했습니다. 마지막은 Pulse 모드입니다. **음악은 화면을 녹화하는 동안 실제 앱이 `AudioTrack.write()`에 전달한 PCM을 디버그 빌드에서 WAV로 기록해 합쳤습니다.** 에뮬레이터의 시스템 오디오 캡처가 무음이어서 앱 재생 경로에서 직접 기록했습니다. 스피커 출력의 루프백 녹음은 아닙니다. [0.4.1 다섯 모드 음악 미리듣기](docs/drive-soundtrack-soundscapes.mp3)
 
 ## 기능
 
@@ -55,7 +57,7 @@ java -cp audio-tools.jar InstrumentAudioCheckKt
 java -cp audio-tools.jar PreviewWavKt preview.wav
 ```
 
-Kotlin 보조 도구로 모델 검사와 악기별·방향별 PCM 차이, 연속 조향, 복합 신호 검사를 통과했습니다. 웹 페이지의 40초 MP3는 0.4.0 `SoundRenderer`가 생성한 다섯 모드 미리듣기입니다. 시연 영상의 오디오는 이 MP3를 사용하지 않고 녹화 당시 앱의 PCM에서 가져왔습니다. 모든 음악은 이 저장소의 합성 코드로 생성하며 게임 음원을 사용하지 않습니다.
+Kotlin 보조 도구로 모델 검사와 악기별·방향별 PCM 차이, 연속 조향, 복합 신호 검사를 통과했습니다. `test/BassSpeedCheck.kt`는 Circuit 베이스를 8개 정속 상태에서 따로 검증합니다. 웹 페이지의 40초 MP3는 0.4.1 `SoundRenderer`가 생성한 다섯 모드 미리듣기입니다. 시연 영상의 오디오는 이 MP3를 사용하지 않고 녹화 당시 앱의 PCM에서 가져왔습니다. 모든 음악은 이 저장소의 합성 코드로 생성하며 게임 음원을 사용하지 않습니다.
 
 ## 검증 범위와 남은 항목
 

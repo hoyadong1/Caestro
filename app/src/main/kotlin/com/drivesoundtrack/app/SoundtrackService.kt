@@ -30,6 +30,8 @@ class SoundtrackService : MediaBrowserService() {
         const val STATUS_REQUEST = "com.drivesoundtrack.STATUS_REQUEST"
         const val RECONNECT_SPEED = "com.drivesoundtrack.RECONNECT_SPEED"
         const val ARM_DEBUG_CAPTURE = "com.drivesoundtrack.ARM_DEBUG_CAPTURE"
+        const val DEBUG_BASS_SOLO = "com.drivesoundtrack.DEBUG_BASS_SOLO"
+        const val DEBUG_PRESET = "com.drivesoundtrack.DEBUG_PRESET"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
     }
@@ -48,6 +50,7 @@ class SoundtrackService : MediaBrowserService() {
     private var carAvailable = false
     @Volatile private var restricted = false
     private var preset = 0
+    private var bassSolo = false
     private val handler = Handler(Looper.getMainLooper())
     private val statusTicker = object : Runnable {
         override fun run() {
@@ -115,6 +118,14 @@ class SoundtrackService : MediaBrowserService() {
             ARM_DEBUG_CAPTURE -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
                 engine.armCapture(java.io.File(filesDir, "live-demo.wav"))
             }
+            DEBUG_BASS_SOLO -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
+                bassSolo = intent.getBooleanExtra("enabled", false)
+                engine.setBassSolo(bassSolo)
+                broadcastStatus()
+            }
+            DEBUG_PRESET -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
+                setPreset(intent.getIntExtra("preset", 0), debugOverride = true)
+            }
             PRESET -> setPreset(intent.getIntExtra("preset", 0))
             STATUS_REQUEST -> broadcastStatus()
             RECONNECT_SPEED -> {
@@ -152,8 +163,8 @@ class SoundtrackService : MediaBrowserService() {
         broadcastStatus()
     }
 
-    private fun setPreset(choice: Int) {
-        if (restricted || (carAvailable && model.targetSpeed() >= 5)) return
+    private fun setPreset(choice: Int, debugOverride: Boolean = false) {
+        if (!debugOverride && (restricted || (carAvailable && model.targetSpeed() >= 5))) return
         preset = choice.coerceIn(Soundscapes.all.indices)
         model.setPreset(preset)
         engine.setPreset(preset)
@@ -222,6 +233,7 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("momentum", model.momentum())
         status.putExtra("driveMode", model.driveMode())
         status.putExtra("layers", model.layerCount())
+        status.putExtra("bassSolo", bassSolo)
         status.putExtra("accelerator", model.accelerator())
         status.putExtra("pedalAvailable", model.pedalAvailable())
         status.putExtra("brake", model.brake())

@@ -17,6 +17,7 @@ import kotlin.math.sin
 class InstrumentStageView(context: Context) : View(context) {
     var accent: Int = 0xff66e3d5.toInt()
     var playing = false
+    var bassSolo = false
     var accelerator = 0.0
     var speed = 0.0
     var brake = 0.0
@@ -59,6 +60,15 @@ class InstrumentStageView(context: Context) : View(context) {
         chords(canvas, left, row2, cellW, cellH)
         cell(canvas, right, row2, cellW, cellH, "MELODY / 선율", "조향 → 다음 음·좌우", "방향지시등 → 응답음")
         melody(canvas, right, row2, cellW, cellH)
+        if (bassSolo) {
+            p.style = Paint.Style.FILL; p.color = 0xff09131f.toInt(); p.alpha = 215
+            for ((x, y) in listOf(right to top, left to row2, right to row2)) {
+                canvas.drawRoundRect(x, y, x + cellW, y + cellH, dp(12f), dp(12f), p)
+            }
+            p.alpha = 255; p.color = accent; p.typeface = android.graphics.Typeface.DEFAULT_BOLD
+            p.textSize = dp(12f)
+            canvas.drawText("BASS SOLO", left + dp(12f), top + cellH - dp(12f), p)
+        }
         if (wiper) {
             p.color = 0xffb6d7eb.toInt(); p.textSize = dp(9f); p.typeface = android.graphics.Typeface.DEFAULT_BOLD
             canvas.drawText("TEXTURE  /  WIPER", right + dp(8f), row2 + cellH - dp(7f), p)

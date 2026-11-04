@@ -26,3 +26,5 @@ Drive Soundtrack는 차량의 상태를 하나의 효과음으로 치환하지 �
 이 설계는 차량 소리를 속도·스로틀·부하에 연동해 인지 가능한 피드백을 연구한 [TU/e의 전기차 동적 소니피케이션 연구](https://research.tue.nl/en/publications/personalised-electric-vehicle-acoustics-with-generative-ai-a-dyna/)와 게임 음악의 [수직 레이어링 및 모듈 전환 분석](https://www.mtosmt.org/issues/mto.19.25.3/mto.19.25.3.medina.gray.html)에서 방법을 참고했다. 이 논문들이 앱의 위 수치나 사용자 선호를 검증해 주는 것은 아니다. 수치는 현재 프로토타입의 음악적 선택이며 실제 운전자 평가를 거치지 않았다.
 
 Pleos Connect v2.1.0 에뮬레이터의 `READ_CAR_PEDALS` 권한이 없어 실제 가속 페달 입력은 검증되지 않았다. 이 환경에서는 속도 변화로 추진감을 추정한다. 제동 신호도 압력값이 아닌 on/off다. 속도·조향·방향지시등·브레이크는 Virtual Console의 P 기어 신호 주입으로 검사했으며 실제 도로 주행 검증은 하지 않았다. 앱은 운전 보조 신호를 대체하지 않으며, 주행 중 시각적 선택과 시연 조작을 제한한다.
+
+0.4.1의 베이스 속도별 음색·음량 세부 조정과 8개 속도 실측 결과는 [베이스 비교](BASS_STUDY.md)에 정리했다.
