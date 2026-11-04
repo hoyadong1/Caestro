@@ -7,7 +7,8 @@ from pathlib import Path
 
 ADB = Path.home() / "AppData/Local/Android/Sdk/platform-tools/adb.exe"
 SCENES = (
-    "01-circuit", "02-speed", "03-brake", "04-steering", "05-turn", "06-pulse"
+    "01-circuit", "02-speed", "03-cruise", "04-brake", "05-steering",
+    "06-left", "07-right", "08-combined", "09-pulse"
 )
 
 

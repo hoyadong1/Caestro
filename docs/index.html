@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Drive Soundtrack 0.3.0의 Pleos Connect 차량 신호 시연 영상과 합성 음악">
+  <meta name="description" content="Drive Soundtrack 0.4.0의 Pleos Connect 차량 신호 시연 영상과 합성 음악">
   <title>Drive Soundtrack · Pleos 시연</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #09101b; color: #f2f8fa; }
@@ -26,16 +26,16 @@
   <main>
     <p class="eyebrow">Pleos Connect · App Demo</p>
     <h1>Drive Soundtrack</h1>
-    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. Pleos Connect v2.1.0의 3D 차량 화면과 Drive Soundtrack 0.3.0의 악기 무대를 함께 보여 줍니다.</p>
+    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. Pleos Connect v2.1.0의 3D 차량 화면과 Drive Soundtrack 0.4.0의 악기 무대를 함께 보여 줍니다.</p>
     <div class="player">
       <video controls playsinline preload="metadata" poster="poster.png" aria-label="Drive Soundtrack Pleos 시연 영상">
         <source src="drive-soundtrack-demo.mp4" type="video/mp4">
         브라우저에서 영상을 재생할 수 없습니다. 아래 저장소에서 파일을 열어 주세요.
       </video>
     </div>
-    <p class="details"><strong>0.3.0 · 약 62초 · 에뮬레이터 시험:</strong> P 기어에서 Virtual Console로 정차, 속도, 브레이크, 조향, 방향지시등 신호를 각각 주입해 짧은 장면 여섯 개로 녹화했습니다. 방향지시등 장면의 측면 카메라는 Pleos 화면입니다. 음악은 각 화면을 녹화하는 동안 실제 앱이 AudioTrack에 전달한 PCM을 디버그 빌드에서 기록해 합쳤습니다. 시스템 오디오 캡처가 무음이어서 사용한 방식이며, 스피커 출력의 루프백 녹음은 아닙니다.</p>
+    <p class="details"><strong>0.4.0 · 에뮬레이터 시험:</strong> P 기어의 Virtual Console에서 속도 상승, 제동, 좌우 조향, 좌우 방향지시등과 복합 입력을 순서대로 주입했습니다. 방향지시등 장면의 측면 카메라는 Pleos 화면입니다. 음악은 각 화면을 녹화하는 동안 실제 앱이 AudioTrack에 전달한 PCM을 디버그 빌드에서 기록해 합쳤습니다. 시스템 오디오 캡처가 무음이어서 사용한 방식이며, 스피커 출력의 루프백 녹음은 아닙니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/DRIVING_SCORE_ALGORITHM.md" style="color:#a5f3eb">주행 신호별 음악 매핑</a></p>
     <p class="eyebrow" style="margin-top:32px">Five soundscapes</p>
-    <p class="intro">0.3.0의 다섯 모드를 8초씩 들어볼 수 있습니다. 모든 소리는 앱의 Kotlin 합성 엔진에서 만들었습니다.</p>
+    <p class="intro">0.4.0의 다섯 모드를 8초씩 들어볼 수 있습니다. 모든 소리는 앱의 Kotlin 합성 엔진에서 만들었습니다.</p>
     <audio controls preload="metadata" style="width:100%" aria-label="다섯 사운드스케이프 음악 미리듣기">
       <source src="drive-soundtrack-soundscapes.mp3" type="audio/mpeg">
     </audio>

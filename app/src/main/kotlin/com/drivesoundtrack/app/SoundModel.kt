@@ -17,6 +17,9 @@ class SoundModel {
     private var energy = 0.0
     private var throttleTarget = 0.0
     private var throttle = 0.0
+    private var accelerationTarget = 0.0
+    private var acceleration = 0.0
+    private var rhythmLevel = 0
     private var pedalValue: Double? = null
     private var brakeValue: Boolean? = null
     private var brakeMix = 0.0
@@ -32,8 +35,9 @@ class SoundModel {
         lastSpeedNanos = now
         previousTargetKmh = targetKmh
         targetKmh = kmh.coerceIn(0.0, 130.0)
-        // Speed derivative is a bounded substitute for thrust, never displayed as pedal pressure.
-        if (pedalValue == null) throttleTarget = (max(0.0, targetKmh - previousTargetKmh) / elapsed / 18.0).coerceIn(0.0, 1.0)
+        accelerationTarget = ((targetKmh - previousTargetKmh) / elapsed / 18.0).coerceIn(-1.0, 1.0)
+        // Positive speed derivative is a bounded substitute for thrust, never displayed as pedal pressure.
+        if (pedalValue == null) throttleTarget = max(0.0, accelerationTarget)
     }
 
     @Synchronized fun setAccelerator(percent: Double?) {
@@ -53,13 +57,20 @@ class SoundModel {
         smoothedKmh += delta * 0.035
         momentum += (min(1.0, abs(delta) / 55.0) - momentum) * 0.045
         if (pedalValue == null) throttleTarget *= 0.95
+        accelerationTarget *= 0.95
         throttle += (throttleTarget - throttle) * 0.07
+        acceleration += (accelerationTarget - acceleration) * 0.07
         brakeMix += ((if (brakeValue == true) 1.0 else 0.0) - brakeMix) * 0.08
         steeringMix += (((steeringValue ?: 0.0) / 540.0) - steeringMix) * 0.055
         val driveBoost = when (currentDriveMode) { 2 -> 0.08; 1 -> -0.08; else -> 0.0 }
         val targetEnergy = (0.17 + smoothedKmh / 130.0 * 0.37 + throttle * 0.25 + momentum * 0.13 + driveBoost - brakeMix * 0.13).coerceIn(0.0, 1.0)
         energy += (targetEnergy - energy) * 0.045
         currentBpm += (targetBpm() - currentBpm) * 0.05
+        rhythmLevel = when (rhythmLevel) {
+            0 -> if (smoothedKmh >= 20.0) 1 else 0
+            1 -> if (smoothedKmh >= 52.0) 2 else if (smoothedKmh < 15.0) 0 else 1
+            else -> if (smoothedKmh < 45.0) 1 else 2
+        }
     }
 
     @Synchronized fun targetBpm(): Double {
@@ -74,6 +85,9 @@ class SoundModel {
     @Synchronized fun speed(): Double = smoothedKmh
     @Synchronized fun targetSpeed(): Double = targetKmh
     @Synchronized fun accelerator(): Double = throttle
+    @Synchronized fun acceleration(): Double = acceleration
+    @Synchronized fun speedLevel(): Double = (smoothedKmh / 130.0).coerceIn(0.0, 1.0)
+    @Synchronized fun rhythmLevel(): Int = rhythmLevel
     @Synchronized fun pedalAvailable(): Boolean = pedalValue != null
     @Synchronized fun brake(): Double = brakeMix
     @Synchronized fun brakeAvailable(): Boolean = brakeValue != null
@@ -85,5 +99,5 @@ class SoundModel {
     @Synchronized fun wiperAvailable(): Boolean = wiperValue != null
     @Synchronized fun driveMode(): Int = currentDriveMode
     @Synchronized fun preset(): Int = currentPreset
-    @Synchronized fun layerCount(): Int = 2 + (energy * 2.0).toInt().coerceIn(0, 2) + if (wiperValue == true) 1 else 0
+    @Synchronized fun layerCount(): Int = (2 + rhythmLevel + if (wiperValue == true) 1 else 0).coerceAtMost(4)
 }

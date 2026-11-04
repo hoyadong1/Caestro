@@ -42,10 +42,10 @@ object Soundscapes {
             0x1111, 0x0100, 0x4444, 0x9111,
             intArrayOf(0, -1, -1, 2, -1, -1, 3, -1, 4, -1, -1, 3, -1, 2, -1, -1),
             0.16, 0.13, 0.08, 0.50),
-        Soundscape("Circuit", "minimal techno", 0xF394B9, 108.0, 41.20,
-            intArrayOf(0, 0, 5, -2), intArrayOf(0, 1, 5, 7, 10),
-            0x1111, 0x1010, 0xAAAA, 0x5151,
-            intArrayOf(0, -1, 1, -1, 3, -1, 1, -1, 4, -1, 3, -1, 1, -1, 2, -1),
-            0.06, 0.16, 0.10, 0.92),
+        Soundscape("Circuit", "melodic drive", 0xF394B9, 106.0, 55.0,
+            intArrayOf(0, -2, 3, 5), intArrayOf(0, 3, 5, 7, 10),
+            0x1111, 0x1010, 0x4444, 0x5151,
+            intArrayOf(0, -1, -1, -1, 2, -1, -1, -1, 4, -1, -1, -1, 3, -1, 2, -1),
+            0.13, 0.14, 0.09, 0.56),
     )
 }

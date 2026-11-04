@@ -18,8 +18,10 @@ class InstrumentStageView(context: Context) : View(context) {
     var accent: Int = 0xff66e3d5.toInt()
     var playing = false
     var accelerator = 0.0
+    var speed = 0.0
     var brake = 0.0
     var steering = 0.0
+    var turn = 0
     var wiper = false
     var pedalLive = false
     var brakeLive = false
@@ -48,13 +50,14 @@ class InstrumentStageView(context: Context) : View(context) {
         val row2 = top + cellH + dp(8f)
         if (cellH <= dp(35f)) return
 
-        cell(canvas, left, top, cellW, cellH, "BASS", if (pedalLive) "PEDAL" else "SPEED Δ")
+        cell(canvas, left, top, cellW, cellH, "BASS / 베이스",
+            if (pedalLive) "가속 페달 → 음색·강도" else "속도 증가 추정 → 음색·강도")
         bass(canvas, left, top, cellW, cellH)
-        cell(canvas, right, top, cellW, cellH, "DRUMS", if (vehicleLive) "VEHICLE" else "DEMO")
+        cell(canvas, right, top, cellW, cellH, "DRUMS / 드럼", "속도 → 킥·하이햇 밀도", "와이퍼 → 타악 질감")
         drums(canvas, right, top, cellW, cellH)
-        cell(canvas, left, row2, cellW, cellH, "CHORDS", if (brakeLive) "BRAKE" else "NEUTRAL")
+        cell(canvas, left, row2, cellW, cellH, "CHORDS / 화음", "브레이크 → 화음 감쇠")
         chords(canvas, left, row2, cellW, cellH)
-        cell(canvas, right, row2, cellW, cellH, "MELODY", if (steeringLive) "STEERING" else "NEUTRAL")
+        cell(canvas, right, row2, cellW, cellH, "MELODY / 선율", "조향 → 다음 음·좌우", "방향지시등 → 응답음")
         melody(canvas, right, row2, cellW, cellH)
         if (wiper) {
             p.color = 0xffb6d7eb.toInt(); p.textSize = dp(9f); p.typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -63,15 +66,20 @@ class InstrumentStageView(context: Context) : View(context) {
         if (playing) postInvalidateDelayed(70)
     }
 
-    private fun cell(c: Canvas, x: Float, y: Float, w: Float, h: Float, name: String, signal: String) {
+    private fun cell(c: Canvas, x: Float, y: Float, w: Float, h: Float,
+                     name: String, mapping: String, detail: String? = null) {
         p.style = Paint.Style.FILL; p.color = 0xff142a39.toInt()
         c.drawRoundRect(x, y, x + w, y + h, dp(12f), dp(12f), p)
         p.style = Paint.Style.STROKE; p.strokeWidth = dp(1f); p.color = 0xff345264.toInt()
         c.drawRoundRect(x, y, x + w, y + h, dp(12f), dp(12f), p)
         p.style = Paint.Style.FILL; p.color = Color.WHITE; p.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        p.textSize = dp(12f); c.drawText(name, x + dp(12f), y + dp(20f), p)
-        p.color = 0xff9fb8c5.toInt(); p.textSize = dp(9f)
-        c.drawText(signal, x + dp(12f), y + dp(34f), p)
+        p.textSize = dp(15f); c.drawText(name, x + dp(12f), y + dp(24f), p)
+        p.color = 0xffb9d7dd.toInt(); p.textSize = dp(12f)
+        c.drawText(mapping, x + dp(12f), y + dp(44f), p)
+        if (detail != null) {
+            p.color = 0xff8fb1bf.toInt(); p.textSize = dp(11f)
+            c.drawText(detail, x + dp(12f), y + dp(61f), p)
+        }
     }
 
     private fun bass(c: Canvas, x: Float, y: Float, w: Float, h: Float) {
@@ -105,10 +113,12 @@ class InstrumentStageView(context: Context) : View(context) {
 
     private fun drums(c: Canvas, x: Float, y: Float, w: Float, h: Float) {
         val cy = y + h * 0.65f
+        val speedMix = (speed / 130.0).coerceIn(0.0, 1.0).toFloat()
         for (i in 0..2) {
             val cx = x + w * (0.25f + i * 0.25f)
             p.style = Paint.Style.FILL; p.color = if (i == 1) accent else 0xff5f9cad.toInt()
-            p.alpha = if (playing) 170 + (sin(phase * 2 + i) * 35).toInt() else 145
+            p.alpha = if (playing) (140 + speedMix * 65 + sin(phase * (1.5 + speedMix * 2) + i) * 30)
+                .toInt().coerceIn(0, 255) else 145
             c.drawCircle(cx, cy + if (i == 1) dp(4f) else 0f, min(w, h) * (if (i == 1) 0.20f else 0.135f), p)
             p.alpha = 255; p.style = Paint.Style.STROKE; p.color = 0xffd4f8fa.toInt(); p.strokeWidth = dp(1f)
             c.drawCircle(cx, cy + if (i == 1) dp(4f) else 0f, min(w, h) * (if (i == 1) 0.20f else 0.135f), p)
@@ -144,6 +154,12 @@ class InstrumentStageView(context: Context) : View(context) {
     }
 
     private fun melody(c: Canvas, x: Float, y: Float, w: Float, h: Float) {
+        if (turn != 0) {
+            p.style = Paint.Style.FILL; p.color = accent; p.typeface = android.graphics.Typeface.DEFAULT_BOLD
+            p.textSize = dp(14f)
+            val cue = if (turn < 0) "◀  LEFT · 하행" else "RIGHT · 상행  ▶"
+            c.drawText(cue, x + dp(14f), y + h * 0.39f, p)
+        }
         for (line in 0..2) {
             val path = Path()
             val baseY = y + h * (0.51f + line * 0.12f)

@@ -77,22 +77,24 @@ class MainActivity : Activity() {
             speedValue.text = kmh.roundToInt().toString()
             tempoValue.text = bpm.toString()
             layersValue.text = "$layers / 4"
-            phase.text = when {
-                !playing -> "READY TO PLAY"
-                brake > 0.35 -> "BRAKE  →  CHORDS SOFTEN"
-                turn != 0 -> "TURN SIGNAL  →  MELODY RESPONSE"
-                kotlin.math.abs(steering) > 0.2 -> "STEERING  →  MELODY CURVE"
-                wiper -> "WIPER  →  TEXTURE"
-                energy < 0.18f -> "OPENING · SPARSE ARRANGEMENT"
-                energy < 0.52f -> "CRUISE · RHYTHM BUILDING"
-                else -> "MOTION · FULLER ARRANGEMENT"
+            val activeParts = buildList {
+                if (kmh >= 15) add("속도 → 드럼 층")
+                if (accelerator > 0.15) add("추진 → 베이스")
+                if (brake > 0.35) add("제동 → 화음")
+                if (kotlin.math.abs(steering) > 0.12) add("조향 → 선율")
+                if (turn != 0) add(if (turn < 0) "좌회전 → 하행음" else "우회전 → 상행음")
+                if (wiper) add("와이퍼 → 타악")
             }
+            phase.text = if (!playing) "재생 대기" else activeParts.takeLast(2).joinToString("  ·  ")
+                .ifEmpty { "정차 → 기본 리듬" }
             play.text = if (playing) "Ⅱ   일시정지" else "▶   음악 재생"
             visualizer.accent = scene.accent or (0xff shl 24)
             visualizer.playing = playing
             visualizer.accelerator = accelerator
+            visualizer.speed = kmh
             visualizer.brake = brake
             visualizer.steering = steering
+            visualizer.turn = turn
             visualizer.wiper = wiper
             visualizer.pedalLive = intent.getBooleanExtra("pedalAvailable", false)
             visualizer.brakeLive = intent.getBooleanExtra("brakeAvailable", false)
@@ -148,7 +150,7 @@ class MainActivity : Activity() {
         genre = label("ELECTRO DRIVE", 13f, 0xffb3cbd2.toInt(), true).apply { letterSpacing = 0.1f }
         heroWords.addView(genre)
         hero.addView(heroWords, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
-        phase = label("READY TO PLAY", 11f, Color.WHITE, true).apply {
+        phase = label("재생 대기", 14f, Color.WHITE, true).apply {
             setPadding(dp(12), dp(7), dp(12), dp(7)); background = panel(0xaa10202e.toInt(), 9)
         }
         hero.addView(phase, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply {

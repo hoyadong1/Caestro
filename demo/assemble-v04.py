@@ -8,11 +8,14 @@ from pathlib import Path
 
 SCENES = [
     ("01-circuit", "CIRCUIT  /  STATIONARY"),
-    ("02-speed", "SPEED  /  RHYTHM + BASS"),
-    ("03-brake", "BRAKE  /  CHORDS SOFTEN"),
-    ("04-steering", "STEERING  /  MELODY CURVE"),
-    ("05-turn", "TURN SIGNAL  /  MELODY RESPONSE"),
-    ("06-pulse", "PULSE  /  SECOND SOUNDSCAPE"),
+    ("02-speed", "15 TO 35 KM/H  /  RHYTHM LAYER"),
+    ("03-cruise", "55 TO 70 KM/H  /  DENSER DRUMS"),
+    ("04-brake", "BRAKE + DECELERATION  /  CHORDS"),
+    ("05-steering", "LEFT STEERING  /  CONTINUOUS MELODY"),
+    ("06-left", "LEFT INDICATOR  /  DESCENDING CUE"),
+    ("07-right", "RIGHT INDICATOR  /  ASCENDING CUE"),
+    ("08-combined", "SPEED + TURN + BRAKE  /  COMBINED"),
+    ("09-pulse", "PULSE  /  SECOND SOUNDSCAPE"),
 ]
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 VIDEO_START_SECONDS = 2.5  # screenrecord began two seconds before PLAY
