@@ -36,10 +36,13 @@ fun main() {
     for ((speed, result) in results) {
         println("%3.0f km/h  RMS %.5f  edge %.5f".format(speed, result.first, result.second))
     }
-    check(results.last().second.first > results.first().second.first * 1.25) {
+    check(results.zipWithNext().all { (a, b) -> b.second.first > a.second.first }) {
+        "bass level does not rise smoothly across the tested speeds"
+    }
+    check(results.last().second.first > results.first().second.first * 3.0) {
         "high-speed bass is not meaningfully stronger than stationary bass"
     }
-    check(results.last().second.second > results.first().second.second * 1.25) {
+    check(results.last().second.second > results.first().second.second * 3.0) {
         "high-speed bass is not meaningfully brighter than stationary bass"
     }
 }

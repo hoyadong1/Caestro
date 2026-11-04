@@ -1,6 +1,7 @@
 package com.drivesoundtrack.app
 
 import android.app.Activity
+import android.car.VehicleGear
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -65,13 +66,21 @@ class MainActivity : Activity() {
             val energy = intent.getDoubleExtra("energy", 0.0).toFloat()
             val layers = intent.getIntExtra("layers", 1)
             val bassSolo = intent.getBooleanExtra("bassSolo", false)
+            val selectedGear = intent.getIntExtra("selectedGear", 0)
+            val gearLabel = when (selectedGear) {
+                VehicleGear.GEAR_PARK -> "P"
+                VehicleGear.GEAR_REVERSE -> "R"
+                VehicleGear.GEAR_NEUTRAL -> "N"
+                VehicleGear.GEAR_DRIVE -> "D"
+                else -> "?"
+            }
             val accelerator = intent.getDoubleExtra("accelerator", 0.0)
             val brake = intent.getDoubleExtra("brake", 0.0)
             val steering = intent.getDoubleExtra("steering", 0.0)
             val turn = intent.getIntExtra("turn", 0)
             val wiper = intent.getBooleanExtra("wiper", false)
             val scene = Soundscapes.all[preset]
-            source.text = if (carAvailable) "●  VEHICLE SIGNAL" else "●  DEMO INPUT"
+            source.text = if (carAvailable) "●  VEHICLE SIGNAL  ·  SELECTED $gearLabel" else "●  DEMO INPUT"
             source.setTextColor(if (carAvailable) 0xff73e5ce.toInt() else 0xffffc784.toInt())
             song.text = scene.name.uppercase()
             genre.text = scene.character.uppercase()

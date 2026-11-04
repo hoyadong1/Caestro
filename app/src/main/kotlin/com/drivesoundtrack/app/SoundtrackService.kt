@@ -39,6 +39,7 @@ class SoundtrackService : MediaBrowserService() {
     private lateinit var model: SoundModel
     private lateinit var engine: SynthEngine
     private lateinit var speedReader: CarSpeedReader
+    private lateinit var gearReader: CarGearReader
     private lateinit var driveModeReader: PleosDriveModeReader
     private lateinit var bandReader: PleosBandReader
     private lateinit var pedalReader: CarPedalReader
@@ -50,6 +51,8 @@ class SoundtrackService : MediaBrowserService() {
     private var carAvailable = false
     @Volatile private var restricted = false
     private var preset = 0
+    @Volatile private var selectedGear: Int? = null
+    @Volatile private var currentGear: Int? = null
     private var bassSolo = false
     private val handler = Handler(Looper.getMainLooper())
     private val statusTicker = object : Runnable {
@@ -68,6 +71,14 @@ class SoundtrackService : MediaBrowserService() {
         engine.setPreset(preset)
         speedReader = CarSpeedReader()
         connectSpeedReader()
+        gearReader = CarGearReader().also { reader ->
+            reader.start(this) { selected, current ->
+                selectedGear = selected
+                currentGear = current
+                Log.i("DriveSoundtrack", "Gear selection=$selected current=$current")
+                broadcastStatus()
+            }
+        }
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
         bandReader = PleosBandReader().also { it.start(this, model) { broadcastStatus() } }
         pedalReader = CarPedalReader().also { it.start(this) { value -> model.setAccelerator(value); broadcastStatus() } }
@@ -233,6 +244,8 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("momentum", model.momentum())
         status.putExtra("driveMode", model.driveMode())
         status.putExtra("layers", model.layerCount())
+        status.putExtra("selectedGear", selectedGear ?: 0)
+        status.putExtra("currentGear", currentGear ?: 0)
         status.putExtra("bassSolo", bassSolo)
         status.putExtra("accelerator", model.accelerator())
         status.putExtra("pedalAvailable", model.pedalAvailable())
@@ -251,6 +264,7 @@ class SoundtrackService : MediaBrowserService() {
         pause()
         handler.removeCallbacks(statusTicker)
         speedReader.stop()
+        gearReader.stop()
         driveModeReader.stop()
         bandReader.stop()
         pedalReader.stop()
