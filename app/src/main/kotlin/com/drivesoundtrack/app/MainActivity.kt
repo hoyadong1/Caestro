@@ -67,6 +67,9 @@ class MainActivity : Activity() {
             val layers = intent.getIntExtra("layers", 1)
             val bassSolo = intent.getBooleanExtra("bassSolo", false)
             val selectedGear = intent.getIntExtra("selectedGear", 0)
+            val gearStage = intent.getIntExtra("gearStage", 0)
+            val gearSource = intent.getStringExtra("gearSource") ?: "NONE"
+            val layerMask = intent.getIntExtra("layerMask", 1)
             val gearLabel = when (selectedGear) {
                 VehicleGear.GEAR_PARK -> "P"
                 VehicleGear.GEAR_REVERSE -> "R"
@@ -81,7 +84,12 @@ class MainActivity : Activity() {
             val wiper = intent.getBooleanExtra("wiper", false)
             val scene = Soundscapes.all[preset]
             source.text = if (carAvailable) "●  VEHICLE SIGNAL  ·  SELECTED $gearLabel" else "●  DEMO INPUT"
-            source.setTextColor(if (carAvailable) 0xff73e5ce.toInt() else 0xffffc784.toInt())
+            source.text = when (gearSource) {
+                "ACTUAL" -> "●  차량 신호  ·  D ${gearStage}단 실제"
+                "VIRTUAL" -> "●  ${if (carAvailable) "차량 신호" else "데모 입력"}  ·  가상 ${gearStage}/7단"
+                else -> if (carAvailable) "●  차량 신호  ·  선택 $gearLabel" else "●  데모 입력"
+            }
+            source.setTextColor(if (carAvailable) 0xff66c9ff.toInt() else 0xffffc784.toInt())
             song.text = scene.name.uppercase()
             genre.text = scene.character.uppercase()
             speedValue.text = kmh.roundToInt().toString()
@@ -98,10 +106,14 @@ class MainActivity : Activity() {
             phase.text = if (bassSolo) "베이스 솔로 · ${kmh.roundToInt()} km/h" else
                 if (!playing) "재생 대기" else activeParts.takeLast(2).joinToString("  ·  ")
                     .ifEmpty { "정차 → 기본 리듬" }
+            if (playing && !bassSolo) phase.text = listOf("베이스", "드럼", "화음", "선율")
+                .filterIndexed { index, _ -> layerMask and (1 shl index) != 0 }.joinToString("  +  ")
             play.text = if (playing) "Ⅱ   일시정지" else "▶   음악 재생"
+            play.background = panel(scene.accent or (0xff shl 24), 16)
             visualizer.accent = scene.accent or (0xff shl 24)
             visualizer.playing = playing
             visualizer.bassSolo = bassSolo
+            visualizer.layerMask = layerMask
             visualizer.accelerator = accelerator
             visualizer.speed = kmh
             visualizer.brake = brake
@@ -184,7 +196,7 @@ class MainActivity : Activity() {
         now.addView(metrics, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         play = Button(this).apply {
             text = "▶   음악 재생"; textSize = 19f; isAllCaps = false
-            setTextColor(BG); background = panel(0xff78dfd4.toInt(), 16)
+            setTextColor(BG); background = panel(0xff66c9ff.toInt(), 16)
             setOnClickListener { send(if (playing) SoundtrackService.PAUSE else SoundtrackService.PLAY) }
         }
         now.addView(play, LinearLayout.LayoutParams(-1, dp(67)).apply { topMargin = dp(14) })

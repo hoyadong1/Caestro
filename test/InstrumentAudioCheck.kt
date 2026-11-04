@@ -7,7 +7,7 @@ private fun render(configure: (SoundModel) -> Unit): ShortArray {
     model.setSpeed(36.0)
     configure(model)
     val renderer = SoundRenderer(model)
-    val out = ShortArray(44100 * 2)
+    val out = ShortArray(44100 * 2 * 4)
     val buffer = ShortArray(1024 * 2)
     var position = 0
     while (position < out.size) {
@@ -55,6 +55,9 @@ fun main() {
     val slow = render { it.setSpeed(10.0) }
     val fast = render { it.setSpeed(70.0) }
     check(difference(slow, fast) > 0.005) { "speed progression has no PCM effect" }
+    val lowGear = render { it.setTransmission(true, 1) }
+    val highGear = render { it.setTransmission(true, 7) }
+    check(difference(lowGear, highGear) > 0.001) { "Pulse gear stages have no audible PCM effect" }
 
     val model = SoundModel()
     model.setSteering(150.0)

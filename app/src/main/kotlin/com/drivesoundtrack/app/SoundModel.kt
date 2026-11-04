@@ -20,6 +20,12 @@ class SoundModel {
     private var accelerationTarget = 0.0
     private var acceleration = 0.0
     private var rhythmLevel = 0
+    private var layerMask = 1 // bass, drums, chords, melody
+    private var selectedDrive: Boolean? = null
+    private var actualGearStage: Int? = null
+    private var virtualGearStage = 1
+    private var gearHoldSeconds = 0.0
+    private var demoDrive = false
     private var pedalValue: Double? = null
     private var brakeValue: Boolean? = null
     private var brakeMix = 0.0
@@ -50,6 +56,11 @@ class SoundModel {
     @Synchronized fun setWiper(active: Boolean?) { wiperValue = active }
     @Synchronized fun setDriveMode(mode: Int) { currentDriveMode = mode.coerceIn(0, 2) }
     @Synchronized fun setPreset(index: Int) { currentPreset = index.coerceIn(Soundscapes.all.indices) }
+    @Synchronized fun setTransmission(drive: Boolean?, actualStage: Int?) {
+        selectedDrive = drive
+        actualGearStage = actualStage?.takeIf { it in 1..9 }
+    }
+    @Synchronized fun setDemoDrive(enabled: Boolean) { demoDrive = enabled }
 
     /** Called once per audio buffer, including while speed holds steady. */
     @Synchronized fun tick() {
@@ -71,6 +82,28 @@ class SoundModel {
             1 -> if (smoothedKmh >= 52.0) 2 else if (smoothedKmh < 15.0) 0 else 1
             else -> if (smoothedKmh < 45.0) 1 else 2
         }
+        val drumOn = if (layerMask and 2 != 0) smoothedKmh >= 12.0 else smoothedKmh >= 18.0
+        val chordOn = if (layerMask and 4 != 0) smoothedKmh >= 40.0 else smoothedKmh >= 48.0
+        val melodyOn = if (layerMask and 8 != 0) smoothedKmh >= 72.0 else smoothedKmh >= 82.0
+        layerMask = 1 or (if (drumOn) 2 else 0) or (if (chordOn) 4 else 0) or (if (melodyOn) 8 else 0)
+        updateVirtualGear()
+    }
+
+    private fun updateVirtualGear() {
+        if (selectedDrive == false && !demoDrive) { virtualGearStage = 1; gearHoldSeconds = 0.0; return }
+        gearHoldSeconds += 1024.0 / 44100.0
+        if (gearHoldSeconds < 0.42) return
+        val upshift = doubleArrayOf(14.0, 29.0, 46.0, 66.0, 89.0, 113.0)
+        val downshift = doubleArrayOf(8.0, 21.0, 36.0, 54.0, 75.0, 98.0)
+        val loadDelay = throttle * 9.0
+        when {
+            virtualGearStage < 7 && smoothedKmh >= upshift[virtualGearStage - 1] + loadDelay -> {
+                virtualGearStage++; gearHoldSeconds = 0.0
+            }
+            virtualGearStage > 1 && smoothedKmh < downshift[virtualGearStage - 2] -> {
+                virtualGearStage--; gearHoldSeconds = 0.0
+            }
+        }
     }
 
     @Synchronized fun targetBpm(): Double {
@@ -88,6 +121,13 @@ class SoundModel {
     @Synchronized fun acceleration(): Double = acceleration
     @Synchronized fun speedLevel(): Double = (smoothedKmh / 130.0).coerceIn(0.0, 1.0)
     @Synchronized fun rhythmLevel(): Int = rhythmLevel
+    @Synchronized fun layerMask(): Int = layerMask
+    @Synchronized fun gearStage(): Int = actualGearStage ?: if (selectedDrive == false && !demoDrive) 0 else virtualGearStage
+    @Synchronized fun gearSource(): String = when {
+        actualGearStage != null -> "ACTUAL"
+        selectedDrive == false && !demoDrive -> "NONE"
+        else -> "VIRTUAL"
+    }
     @Synchronized fun pedalAvailable(): Boolean = pedalValue != null
     @Synchronized fun brake(): Double = brakeMix
     @Synchronized fun brakeAvailable(): Boolean = brakeValue != null
@@ -99,5 +139,5 @@ class SoundModel {
     @Synchronized fun wiperAvailable(): Boolean = wiperValue != null
     @Synchronized fun driveMode(): Int = currentDriveMode
     @Synchronized fun preset(): Int = currentPreset
-    @Synchronized fun layerCount(): Int = (2 + rhythmLevel + if (wiperValue == true) 1 else 0).coerceAtMost(4)
+    @Synchronized fun layerCount(): Int = Integer.bitCount(layerMask)
 }

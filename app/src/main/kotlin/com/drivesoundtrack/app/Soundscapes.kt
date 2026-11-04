@@ -22,7 +22,7 @@ data class Soundscape(
 
 object Soundscapes {
     val all = listOf(
-        Soundscape("Pulse", "electro drive", 0x66E3D5, 96.0, 55.0,
+        Soundscape("Pulse", "electro drive", 0x66C9FF, 96.0, 55.0,
             intArrayOf(0, -3, 5, 7), intArrayOf(0, 2, 3, 7, 10),
             0x1111, 0x1010, 0x5555, 0x9191,
             intArrayOf(0, -1, 2, -1, 3, -1, 2, -1, 4, -1, 2, -1, 3, -1, 1, -1),

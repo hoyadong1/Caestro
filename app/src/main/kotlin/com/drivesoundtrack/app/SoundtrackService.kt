@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.car.VehicleGear
 import android.content.pm.ApplicationInfo
 import android.content.Intent
 import android.media.AudioAttributes
@@ -66,8 +67,13 @@ class SoundtrackService : MediaBrowserService() {
         super.onCreate()
         model = SoundModel()
         engine = SynthEngine(model)
-        preset = getSharedPreferences("soundtrack", MODE_PRIVATE).getInt("preset", 0)
-            .coerceIn(Soundscapes.all.indices)
+        val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE)
+        preset = preferences.getInt("preset", 0).coerceIn(Soundscapes.all.indices)
+        if (!preferences.getBoolean("blueDefaultMigrated", false)) {
+            // Earlier demo installs stored Circuit as the selected scene.
+            if (preset == 4) preset = 0
+            preferences.edit().putInt("preset", preset).putBoolean("blueDefaultMigrated", true).apply()
+        }
         model.setPreset(preset)
         engine.setPreset(preset)
         speedReader = CarSpeedReader()
@@ -76,6 +82,23 @@ class SoundtrackService : MediaBrowserService() {
             reader.start(this) { selected, current ->
                 selectedGear = selected
                 currentGear = current
+                val actualStage = when (current) {
+                    VehicleGear.GEAR_FIRST -> 1
+                    VehicleGear.GEAR_SECOND -> 2
+                    VehicleGear.GEAR_THIRD -> 3
+                    VehicleGear.GEAR_FOURTH -> 4
+                    VehicleGear.GEAR_FIFTH -> 5
+                    VehicleGear.GEAR_SIXTH -> 6
+                    VehicleGear.GEAR_SEVENTH -> 7
+                    VehicleGear.GEAR_EIGHTH -> 8
+                    VehicleGear.GEAR_NINTH -> 9
+                    else -> null
+                }
+                model.setTransmission(when (selected) {
+                    VehicleGear.GEAR_DRIVE -> true
+                    VehicleGear.GEAR_PARK, VehicleGear.GEAR_REVERSE, VehicleGear.GEAR_NEUTRAL -> false
+                    else -> null
+                }, if (selected == VehicleGear.GEAR_DRIVE || selected == null) actualStage else null)
                 Log.i("DriveSoundtrack", "Gear selection=$selected current=$current")
                 broadcastStatus()
             }
@@ -136,7 +159,9 @@ class SoundtrackService : MediaBrowserService() {
                 broadcastStatus()
             }
             DEBUG_SPEED_JOURNEY -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
-                engine.setDebugSpeedJourney(intent.getBooleanExtra("enabled", false))
+                val enabled = intent.getBooleanExtra("enabled", false)
+                model.setDemoDrive(enabled || !carAvailable)
+                engine.setDebugSpeedJourney(enabled)
             }
             DEBUG_PRESET -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
                 setPreset(intent.getIntExtra("preset", 0), debugOverride = true)
@@ -171,6 +196,7 @@ class SoundtrackService : MediaBrowserService() {
         speedReader.start(this,
             { available ->
                 carAvailable = available
+                model.setDemoDrive(!available)
                 if (!available) model.setSpeed(0.0)
                 broadcastStatus()
             },
@@ -250,6 +276,9 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("layers", model.layerCount())
         status.putExtra("selectedGear", selectedGear ?: 0)
         status.putExtra("currentGear", currentGear ?: 0)
+        status.putExtra("gearStage", model.gearStage())
+        status.putExtra("gearSource", model.gearSource())
+        status.putExtra("layerMask", model.layerMask())
         status.putExtra("bassSolo", bassSolo)
         status.putExtra("accelerator", model.accelerator())
         status.putExtra("pedalAvailable", model.pedalAvailable())

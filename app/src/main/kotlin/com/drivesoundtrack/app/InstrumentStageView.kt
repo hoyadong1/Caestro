@@ -15,9 +15,10 @@ import kotlin.math.sin
 
 /** Parked/demo album art: vehicle inputs are represented as instruments, not a car. */
 class InstrumentStageView(context: Context) : View(context) {
-    var accent: Int = 0xff66e3d5.toInt()
+    var accent: Int = 0xff66c9ff.toInt()
     var playing = false
     var bassSolo = false
+    var layerMask = 1
     var accelerator = 0.0
     var speed = 0.0
     var brake = 0.0
@@ -56,10 +57,13 @@ class InstrumentStageView(context: Context) : View(context) {
         bass(canvas, left, top, cellW, cellH)
         cell(canvas, right, top, cellW, cellH, "DRUMS / 드럼", "속도 → 킥·하이햇 밀도", "와이퍼 → 타악 질감")
         drums(canvas, right, top, cellW, cellH)
+        if (layerMask and 2 == 0) waiting(canvas, right, top, cellW, cellH, "DRUMS  ·  18 km/h")
         cell(canvas, left, row2, cellW, cellH, "CHORDS / 화음", "브레이크 → 화음 감쇠")
         chords(canvas, left, row2, cellW, cellH)
+        if (layerMask and 4 == 0) waiting(canvas, left, row2, cellW, cellH, "CHORDS  ·  48 km/h")
         cell(canvas, right, row2, cellW, cellH, "MELODY / 선율", "조향 → 다음 음·좌우", "방향지시등 → 응답음")
         melody(canvas, right, row2, cellW, cellH)
+        if (layerMask and 8 == 0) waiting(canvas, right, row2, cellW, cellH, "MELODY  ·  82 km/h")
         if (bassSolo) {
             p.style = Paint.Style.FILL; p.color = 0xff09131f.toInt(); p.alpha = 215
             for ((x, y) in listOf(right to top, left to row2, right to row2)) {
@@ -74,6 +78,14 @@ class InstrumentStageView(context: Context) : View(context) {
             canvas.drawText("TEXTURE  /  WIPER", right + dp(8f), row2 + cellH - dp(7f), p)
         }
         if (playing) postInvalidateDelayed(70)
+    }
+
+    private fun waiting(c: Canvas, x: Float, y: Float, w: Float, h: Float, label: String) {
+        p.style = Paint.Style.FILL; p.color = 0xff09131f.toInt(); p.alpha = 190
+        c.drawRoundRect(x, y, x + w, y + h, dp(12f), dp(12f), p)
+        p.alpha = 255; p.color = 0xff8daab9.toInt(); p.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        p.textSize = dp(11f)
+        c.drawText(label, x + dp(12f), y + h - dp(13f), p)
     }
 
     private fun cell(c: Canvas, x: Float, y: Float, w: Float, h: Float,
