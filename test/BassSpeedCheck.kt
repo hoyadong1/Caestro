@@ -39,10 +39,12 @@ fun main() {
     check(results.zipWithNext().all { (a, b) -> b.second.first > a.second.first }) {
         "bass level does not rise smoothly across the tested speeds"
     }
-    check(results.last().second.first > results.first().second.first * 3.0) {
-        "high-speed bass is not meaningfully stronger than stationary bass"
+    val low = results.first().second
+    val high = results.last().second
+    check(high.first / low.first < 2.2) {
+        "speed response is dominated by loudness instead of register"
     }
-    check(results.last().second.second > results.first().second.second * 3.0) {
-        "high-speed bass is not meaningfully brighter than stationary bass"
+    check((high.second / high.first) > (low.second / low.first) * 1.7) {
+        "high-speed bass does not shift clearly toward a higher register"
     }
 }

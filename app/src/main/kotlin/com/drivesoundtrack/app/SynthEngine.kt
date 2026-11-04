@@ -20,6 +20,7 @@ class SynthEngine(model: SoundModel) {
 
     fun setPreset(preset: Int) = renderer.setPreset(preset)
     fun setBassSolo(enabled: Boolean) = renderer.setBassSolo(enabled)
+    fun setDebugSpeedJourney(enabled: Boolean) = renderer.setDebugSpeedJourney(enabled)
     fun armCapture(file: File) { captureFile = file }
 
     @Synchronized fun start(onFailure: (RuntimeException) -> Unit) {

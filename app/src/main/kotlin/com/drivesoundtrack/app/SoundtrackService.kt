@@ -31,6 +31,7 @@ class SoundtrackService : MediaBrowserService() {
         const val RECONNECT_SPEED = "com.drivesoundtrack.RECONNECT_SPEED"
         const val ARM_DEBUG_CAPTURE = "com.drivesoundtrack.ARM_DEBUG_CAPTURE"
         const val DEBUG_BASS_SOLO = "com.drivesoundtrack.DEBUG_BASS_SOLO"
+        const val DEBUG_SPEED_JOURNEY = "com.drivesoundtrack.DEBUG_SPEED_JOURNEY"
         const val DEBUG_PRESET = "com.drivesoundtrack.DEBUG_PRESET"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
@@ -133,6 +134,9 @@ class SoundtrackService : MediaBrowserService() {
                 bassSolo = intent.getBooleanExtra("enabled", false)
                 engine.setBassSolo(bassSolo)
                 broadcastStatus()
+            }
+            DEBUG_SPEED_JOURNEY -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
+                engine.setDebugSpeedJourney(intent.getBooleanExtra("enabled", false))
             }
             DEBUG_PRESET -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
                 setPreset(intent.getIntExtra("preset", 0), debugOverride = true)

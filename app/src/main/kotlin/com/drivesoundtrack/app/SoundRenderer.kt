@@ -18,11 +18,26 @@ class SoundRenderer(private val model: SoundModel) {
         const val CHANNELS = 2
         private const val TWO_PI = 2.0 * PI
         private const val TRANSITION_SAMPLES = RATE * 0.35
+        /** Debug capture profile. Time is based on emitted PCM, never wall time. */
+        fun speedJourneyKmh(t: Double): Double = when {
+            t < 2.0 -> 0.0
+            t < 6.0 -> (t - 2.0) * 10.0
+            t < 7.0 -> 40.0
+            t < 11.0 -> 40.0 + (t - 7.0) * 10.0
+            t < 12.0 -> 80.0
+            t < 17.0 -> 80.0 + (t - 12.0) * 10.0
+            t < 19.0 -> 130.0
+            t < 23.0 -> 130.0 - (t - 19.0) * 16.25
+            t < 27.0 -> 65.0 - (t - 23.0) * 16.25
+            else -> 0.0
+        }
     }
 
     private val random = Random(1049)
     @Volatile private var requestedPreset = 0
     @Volatile private var bassSolo = false
+    @Volatile private var debugSpeedJourney = false
+    private var journeyFrames = 0L
     private var activePreset = 0
     private var transition = 1.0
     private var fadingOut = false
@@ -55,9 +70,17 @@ class SoundRenderer(private val model: SoundModel) {
 
     fun setPreset(index: Int) { requestedPreset = index.coerceIn(Soundscapes.all.indices) }
     fun setBassSolo(enabled: Boolean) { bassSolo = enabled }
+    fun setDebugSpeedJourney(enabled: Boolean) {
+        debugSpeedJourney = enabled
+        journeyFrames = 0L
+    }
 
     fun render(pcm: ShortArray) {
         require(pcm.size % CHANNELS == 0)
+        if (debugSpeedJourney) {
+            model.setSpeed(speedJourneyKmh(journeyFrames.toDouble() / RATE))
+            journeyFrames += pcm.size / CHANNELS
+        }
         model.tick()
         val bpm = model.bpm()
         val energy = model.intensity()
@@ -73,6 +96,9 @@ class SoundRenderer(private val model: SoundModel) {
         val driveMode = model.driveMode()
         val frameTime = 1.0 / RATE
         val steeringPitch = 2.0.pow(steering * 0.35 / 12.0)
+        // A continuous motor register makes speed audible even between bass notes.
+        // 0 / 65 / 130 km/h correspond to roughly 55 / 110 / 220 Hz.
+        driveBassTargetHz = 55.0 * 2.0.pow(speedLevel * 2.0)
         var output = 0
 
         repeat(pcm.size / CHANNELS) {
@@ -120,15 +146,16 @@ class SoundRenderer(private val model: SoundModel) {
             }
             val bassDecay = if (activePreset == 4) 3.8 - speedLevel * 1.4 + accelerator * 0.7
                 else 3.4 - speedLevel * 0.8 + accelerator * 1.3
-            val bassDrive = if (activePreset == 4) 0.45 + accelerator * 0.45 + speedLevel * 1.0
+            val bassDrive = if (activePreset == 4) 0.60 + accelerator * 0.45 + speedLevel * 0.45
                 else 0.68 + accelerator * 0.32 + speedLevel * 0.45
             val bass = if (bassAge < 1.4) bassWave * exp(-bassAge * bassDecay) *
                 scene.bassGain * bassDrive else 0.0
             driveBassHz += (driveBassTargetHz - driveBassHz) * 0.00008
             driveBassPhase += TWO_PI * driveBassHz * frameTime
             val driveBass = if (activePreset == 4) scene.bassGain *
-                (0.14 + speedLevel * 0.50 + accelerator * 0.10) *
-                (sin(driveBassPhase) * 0.88 + sin(driveBassPhase * 2.0) * speedLevel * 0.12)
+                (0.30 + accelerator * 0.06) *
+                (sin(driveBassPhase) * 0.78 + sin(driveBassPhase * 2.0) * 0.18 +
+                    sin(driveBassPhase * 3.0) * 0.04)
                 else 0.0
             val bassStem = bass + driveBass
 
@@ -195,7 +222,6 @@ class SoundRenderer(private val model: SoundModel) {
         val chord = scene.chords[(bar % scene.chords.size).toInt()]
         if (position == 0) {
             val root = scene.rootHz * 2.0 * ratio(chord)
-            driveBassTargetHz = scene.rootHz * ratio(chord)
             padFrequency[0] = root
             padFrequency[1] = root * ratio(scene.scale[2])
             padFrequency[2] = root * ratio(scene.scale[4])
