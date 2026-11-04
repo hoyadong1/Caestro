@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Drive Soundtrack 0.4.3: 속도에 따라 두 옥타브 이동하는 베이스 시연">
+  <meta name="description" content="Drive Soundtrack 0.4.4: 화성에 맞춰 변하는 속도 베이스 시연">
   <title>Drive Soundtrack · Pleos 시연</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #09101b; color: #f2f8fa; }
@@ -18,25 +18,28 @@
     .details { margin-top: 24px; padding: 20px 24px; border-radius: 14px; background: #142535; color: #cfdee6; line-height: 1.6; }
     .details strong { color: #79e8dc; }
     .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-    .links a { padding: 12px 18px; border: 1px solid #477e82; border-radius: 10px; color: #a5f3eb; text-decoration: none; font-weight: 600; }
-    .links a:hover, .links a:focus-visible { background: #183b43; }
+    .links a, .links button { padding: 12px 18px; border: 1px solid #477e82; border-radius: 10px; color: #a5f3eb; background: transparent; text-decoration: none; font: inherit; font-weight: 600; cursor: pointer; }
+    .links a:hover, .links a:focus-visible, .links button:hover, .links button:focus-visible { background: #183b43; }
   </style>
 </head>
 <body>
   <main>
     <p class="eyebrow">Pleos Connect · App Demo</p>
     <h1>Drive Soundtrack</h1>
-    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. Circuit 베이스의 속도음을 0→130→0 km/h에 따라 두 옥타브 올렸다가 내립니다.</p>
-    <p class="eyebrow" style="margin-top:40px">Speed to pitch · 0.4.3</p>
-    <h2>음높이로 속도를 듣기</h2>
-    <p class="intro">정차·40·80·130 km/h에서 지속음이 각각 약 55·78·123·216 Hz로 측정됐습니다. 영상 오디오는 실제 앱이 출력한 29초 단일 PCM 녹음입니다.</p>
+    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. Circuit 베이스는 0→130→0 km/h에 따라 같은 음의 저음과 옥타브를 자연스럽게 섞습니다.</p>
+    <p class="eyebrow" style="margin-top:40px">Musical speed · 0.4.4</p>
+    <h2>모든 속도에서 화성에 맞는 베이스</h2>
+    <p class="intro">독립적인 상승음을 제거하고, 기존 베이스 음표의 기본음·옥타브 비율을 바꿨습니다. 정차·시내·도로·고속 구간을 각각 들어볼 수 있습니다.</p>
     <div class="player">
-      <video controls playsinline preload="metadata" poster="speed-pitch-poster.png" aria-label="속도에 따라 음높이가 바뀌는 베이스 솔로 시연 영상">
-        <source src="speed-pitch-journey.mp4" type="video/mp4">
+      <video id="musicalSpeedVideo" controls playsinline preload="metadata" poster="musical-speed-poster.png" aria-label="화성에 맞춰 변하는 속도 베이스 솔로 시연 영상">
+        <source src="musical-speed-journey.mp4" type="video/mp4">
         브라우저에서 영상을 재생할 수 없습니다.
       </video>
     </div>
-    <p class="details"><strong>앱 오디오 샘플 시간에 맞춘 시연:</strong> 에뮬레이터 오디오 출력이 호스트 시계보다 느려 이번 속도는 앱 내부 디버그 시나리오에서 생성했습니다. 차량 센서나 Pleos Console 신호로 만든 테이크는 아닙니다. 그래프와 파형은 녹음한 PCM 시간과 일치합니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/SPEED_PITCH_JOURNEY.md" style="color:#a5f3eb">음높이·녹음 검증</a></p>
+    <nav class="links" aria-label="속도 구간 바로 듣기">
+      <button type="button" data-seek="0">정차</button><button type="button" data-seek="6">40 km/h</button><button type="button" data-seek="11">80 km/h</button><button type="button" data-seek="18">130 km/h</button><button type="button" data-seek="24">감속</button>
+    </nav>
+    <p class="details"><strong>실제 앱 PCM 29초 단일 녹음:</strong> 속도는 앱 내부 디버그 시나리오가 오디오 샘플 시간에 맞춰 생성했습니다. 차량 센서 신호로 만든 테이크는 아닙니다. 그래프와 파형은 이 PCM에서 만든 시각화입니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/MUSICAL_SPEED_JOURNEY.md" style="color:#a5f3eb">음색 설계·녹음 검증</a> · <a href="speed-pitch-journey.mp4" style="color:#a5f3eb">이전 상승음과 비교</a></p>
     <p class="eyebrow" style="margin-top:40px">Vehicle signal bass drive · 0.4.2</p>
     <h2>차량 신호로 가속부터 정차까지</h2>
     <p class="intro">이전 버전의 0→88→0 km/h Pleos Console 입력입니다. 한 번 재생을 시작하고 속도를 282번 점진적으로 갱신했습니다.</p>
@@ -67,7 +70,7 @@
     </div>
     <p class="details">Pleos Connect의 P 기어에서 속도를 강제 주입한 에뮬레이터 시험입니다. 오디오는 디버그 앱이 AudioTrack에 전달한 베이스 솔로 PCM이며, 각 속도 변경 후 안정된 구간을 사용했습니다. 오른쪽 파형과 RMS는 같은 PCM의 분석 시각화입니다. 에뮬레이터가 앱 영역을 흰 화면으로 캡처해 그 부분을 파형으로 대체했습니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/BASS_STUDY.md" style="color:#a5f3eb">속도별 수치와 매핑 식</a></p>
     <p class="eyebrow" style="margin-top:32px">Five soundscapes</p>
-    <p class="intro">0.4.3의 다섯 모드를 8초씩 들어볼 수 있습니다. 모든 소리는 앱의 Kotlin 합성 엔진에서 만들었습니다.</p>
+    <p class="intro">0.4.4의 다섯 모드를 8초씩 들어볼 수 있습니다. 모든 소리는 앱의 Kotlin 합성 엔진에서 만들었습니다.</p>
     <audio controls preload="metadata" style="width:100%" aria-label="다섯 사운드스케이프 음악 미리듣기">
       <source src="drive-soundtrack-soundscapes.mp3" type="audio/mpeg">
     </audio>
@@ -76,5 +79,12 @@
       <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/apk/%ED%99%8D%EC%9B%90%ED%83%9D_DriveSoundtrack_release.apk">Release APK</a>
     </nav>
   </main>
+  <script>
+    const musicalSpeedVideo = document.getElementById('musicalSpeedVideo');
+    document.querySelectorAll('[data-seek]').forEach(button => button.addEventListener('click', () => {
+      musicalSpeedVideo.currentTime = Number(button.dataset.seek);
+      musicalSpeedVideo.play();
+    }));
+  </script>
 </body>
 </html>

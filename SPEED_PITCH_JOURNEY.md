@@ -1,6 +1,8 @@
 # 속도를 음높이로 듣는 베이스 주행 · 0.4.3
 
-[새 영상 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/speed-pitch-journey.mp4). 이전 0.4.2 영상의 최고속 88 km/h는 시연 시나리오에서 정한 값이었다. 앱의 속도 입력 상한은 130 km/h이며, 이번 시연은 **0→40→80→130→0 km/h**를 한 번에 거친다.
+이 방식의 독립적인 연속 발진음은 화성과 충돌할 수 있어 [0.4.4 화성 기반 베이스](MUSICAL_SPEED_JOURNEY.md)로 교체했다. 아래는 이전 실험의 기록이다.
+
+[0.4.3 실험 영상 재생](https://hoyadong1.github.io/DriveSoundtrack/speed-pitch-journey.mp4). 이전 0.4.2 영상의 최고속 88 km/h는 시연 시나리오에서 정한 값이었다. 앱의 속도 입력 상한은 130 km/h이며, 이번 시연은 **0→40→80→130→0 km/h**를 한 번에 거친다.
 
 ## 소리의 변화
 

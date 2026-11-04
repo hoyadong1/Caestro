@@ -36,15 +36,11 @@ fun main() {
     for ((speed, result) in results) {
         println("%3.0f km/h  RMS %.5f  edge %.5f".format(speed, result.first, result.second))
     }
-    check(results.zipWithNext().all { (a, b) -> b.second.first > a.second.first }) {
-        "bass level does not rise smoothly across the tested speeds"
-    }
+    val levels = results.map { it.second.first }
+    check(levels.max() / levels.min() < 1.8) { "bass speed zones differ mainly in loudness" }
     val low = results.first().second
+    val road = results.first { it.first == 80.0 }.second
     val high = results.last().second
-    check(high.first / low.first < 2.2) {
-        "speed response is dominated by loudness instead of register"
-    }
-    check((high.second / high.first) > (low.second / low.first) * 1.7) {
-        "high-speed bass does not shift clearly toward a higher register"
-    }
+    check((road.second / road.first) > (low.second / low.first) * 1.4)
+    check((high.second / high.first) > (low.second / low.first) * 1.55)
 }

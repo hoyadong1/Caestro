@@ -52,7 +52,6 @@ class SoundRenderer(private val model: SoundModel) {
     private var bassPhase = 0.0
     private var driveBassPhase = 0.0
     private var driveBassHz = 55.0
-    private var driveBassTargetHz = 55.0
     private var leadPhase = 0.0
     private val padPhase = DoubleArray(3)
     private val padFrequency = DoubleArray(3) { 110.0 * (it + 1) }
@@ -96,9 +95,6 @@ class SoundRenderer(private val model: SoundModel) {
         val driveMode = model.driveMode()
         val frameTime = 1.0 / RATE
         val steeringPitch = 2.0.pow(steering * 0.35 / 12.0)
-        // A continuous motor register makes speed audible even between bass notes.
-        // 0 / 65 / 130 km/h correspond to roughly 55 / 110 / 220 Hz.
-        driveBassTargetHz = 55.0 * 2.0.pow(speedLevel * 2.0)
         var output = 0
 
         repeat(pcm.size / CHANNELS) {
@@ -138,24 +134,22 @@ class SoundRenderer(private val model: SoundModel) {
                 1 -> sin(bassPhase) * 0.92 + sin(bassPhase * 3.0) * (0.05 + accelerator * 0.07)
                 2 -> sin(bassPhase) * 0.70 + sin(bassPhase * 2.0) * (0.10 + accelerator * 0.13)
                 3 -> sin(bassPhase) * 0.78 + sin(bassPhase * 2.0) * (0.16 + accelerator * 0.18) + sin(bassPhase * 3.0) * 0.09
-                4 -> sin(bassPhase) * 0.70 + sin(bassPhase * 2.0) *
-                    (0.10 + accelerator * 0.25 + speedLevel * 0.38) +
-                    sin(bassPhase * 3.0) * (speedLevel * 0.18 + accelerator * 0.07) +
-                    sin(bassPhase * 4.0) * speedLevel * 0.06
+                // Root, octave and double octave are the same musical note.
+                // Move the weight toward the octaves as speed rises; no chromatic pitch sweep.
+                4 -> sin(bassPhase) * (0.76 - speedLevel * 0.53) +
+                    sin(bassPhase * 2.0) * (0.12 + speedLevel * 0.57) +
+                    sin(bassPhase * 4.0) * (0.03 + speedLevel * 0.14)
                 else -> sin(bassPhase) * 0.82 + sin(bassPhase * 2.0) * (0.16 + accelerator * 0.20)
             }
-            val bassDecay = if (activePreset == 4) 3.8 - speedLevel * 1.4 + accelerator * 0.7
+            val bassDecay = if (activePreset == 4) 3.8 - speedLevel * 0.55 + accelerator * 0.7
                 else 3.4 - speedLevel * 0.8 + accelerator * 1.3
-            val bassDrive = if (activePreset == 4) 0.60 + accelerator * 0.45 + speedLevel * 0.45
+            val bassDrive = if (activePreset == 4) 0.75 + accelerator * 0.22 + speedLevel * 0.13
                 else 0.68 + accelerator * 0.32 + speedLevel * 0.45
             val bass = if (bassAge < 1.4) bassWave * exp(-bassAge * bassDecay) *
                 scene.bassGain * bassDrive else 0.0
-            driveBassHz += (driveBassTargetHz - driveBassHz) * 0.00008
             driveBassPhase += TWO_PI * driveBassHz * frameTime
-            val driveBass = if (activePreset == 4) scene.bassGain *
-                (0.30 + accelerator * 0.06) *
-                (sin(driveBassPhase) * 0.78 + sin(driveBassPhase * 2.0) * 0.18 +
-                    sin(driveBassPhase * 3.0) * 0.04)
+            val driveBass = if (activePreset == 4) scene.bassGain * 0.22 *
+                (sin(driveBassPhase) * 0.94 + sin(driveBassPhase * 2.0) * 0.06)
                 else 0.0
             val bassStem = bass + driveBass
 
@@ -222,6 +216,7 @@ class SoundRenderer(private val model: SoundModel) {
         val chord = scene.chords[(bar % scene.chords.size).toInt()]
         if (position == 0) {
             val root = scene.rootHz * 2.0 * ratio(chord)
+            driveBassHz = scene.rootHz * ratio(chord)
             padFrequency[0] = root
             padFrequency[1] = root * ratio(scene.scale[2])
             padFrequency[2] = root * ratio(scene.scale[4])
