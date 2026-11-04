@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Drive Soundtrack 0.5.0: 속도별 악기 합류와 가상 변속을 앱 PCM으로 듣기">
+  <meta name="description" content="Drive Soundtrack 0.6.0: 속도별 여섯 악기 합류와 분할 화면">
   <title>Drive Soundtrack · Pleos 시연</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #09101b; color: #f2f8fa; }
@@ -20,20 +20,35 @@
     .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
     .links a, .links button { padding: 12px 18px; border: 1px solid #477e82; border-radius: 10px; color: #a5f3eb; background: transparent; text-decoration: none; font: inherit; font-weight: 600; cursor: pointer; }
     .links a:hover, .links a:focus-visible, .links button:hover, .links button:focus-visible { background: #183b43; }
+    .stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+    .stages img { width: 100%; border: 1px solid #26394b; border-radius: 12px; }
+    .stages span { display: block; margin-top: 7px; color: #a9cde1; font-size: 14px; }
   </style>
 </head>
 <body>
   <main>
     <p class="eyebrow">Pleos Connect · App Demo</p>
     <h1>Drive Soundtrack</h1>
-    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. 0.5.0은 파란 Pulse를 기본으로 속도에 따라 악기가 합류하고, 실제 또는 가상 기어 단수가 베이스 음색을 바꿉니다.</p>
+    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. 0.6.0은 파란 Pulse를 기본으로 속도에 따라 여섯 악기가 합류하고, 화면도 한 칸에서 여섯 칸으로 나뉩니다.</p>
+    <p class="eyebrow" style="margin-top:40px">Six instruments · 0.6.0</p>
+    <h2>베이스 하나에서 여섯 악기까지</h2>
+    <p class="intro">18 km/h 드럼, 38 km/h 화음, 58 km/h 아르페지오, 82 km/h 선율, 105 km/h 고역 질감이 차례로 들어옵니다. 감속하면 반대 순서로 빠집니다.</p>
+    <audio controls preload="metadata" style="width:100%" aria-label="0.6.0 여섯 악기 속도별 합주">
+      <source src="six-layer-journey.mp3" type="audio/mpeg">
+    </audio>
+    <div class="stages" aria-label="악기 분할 화면 단계">
+      <a href="six-layer-idle.png"><img src="six-layer-idle.png" alt="정차, 베이스 한 화면"><span>정차 · 1/6</span></a>
+      <a href="six-layer-three.png"><img src="six-layer-three.png" alt="45 km/h, 베이스 드럼 화음 세 화면"><span>45 km/h · 3/6</span></a>
+      <a href="six-layer-six.png"><img src="six-layer-six.png" alt="120 km/h, 여섯 악기 분할 화면"><span>120 km/h · 6/6</span></a>
+    </div>
+    <p class="details"><strong>앱 PCM 29초 단일 녹음:</strong> 앱이 AudioTrack에 보낸 소리를 직접 기록했습니다. 속도 곡선과 화면 사진은 정차한 Pleos 에뮬레이터에서 앱 내부 디버그 입력으로 만들었습니다. 실제 도로 주행이나 차량 기어 신호 시험은 아닙니다.</p>
     <p class="eyebrow" style="margin-top:40px">Pulse layered drive · 0.5.0</p>
     <h2>속도에 따라 악기가 합류하는 실제 앱 소리</h2>
     <p class="intro">정차에서는 베이스, 18 km/h부터 드럼, 48 km/h부터 화음, 82 km/h부터 선율이 들어옵니다. 감속 때는 반대 순서로 빠집니다.</p>
     <audio controls preload="metadata" style="width:100%" aria-label="Pulse 속도별 악기와 가상 7단 시연">
       <source src="pulse-layer-journey.mp3" type="audio/mpeg">
     </audio>
-    <p class="details"><strong>0.5.0 앱 PCM 29초 단일 녹음:</strong> Pleos 에뮬레이터에서 앱이 AudioTrack에 전달한 PCM을 기록했습니다. 0→40→80→130→0 km/h는 차량 센서가 아닌 앱 내부 디버그 시나리오입니다. DCT의 실제 변속 기록이 아니라 가상 7단 매핑을 들려줍니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/DRIVING_SCORE_ALGORITHM.md" style="color:#a5f3eb">속도·단수 매핑</a></p>
+    <p class="details"><strong>0.5.0 앱 PCM 29초 단일 녹음:</strong> Pleos 에뮬레이터에서 앱이 AudioTrack에 전달한 PCM을 기록했습니다. 0→40→80→130→0 km/h는 차량 센서가 아닌 앱 내부 디버그 시나리오입니다. DCT의 실제 변속 기록이 아니라 당시의 가상 7단 매핑을 들려줍니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/fb46d7a/DRIVING_SCORE_ALGORITHM.md" style="color:#a5f3eb">0.5.0 속도·단수 매핑</a></p>
     <p class="eyebrow" style="margin-top:40px">Musical speed · 0.4.4</p>
     <h2>모든 속도에서 화성에 맞는 베이스</h2>
     <p class="intro">독립적인 상승음을 제거하고, 기존 베이스 음표의 기본음·옥타브 비율을 바꿨습니다. 정차·시내·도로·고속 구간을 각각 들어볼 수 있습니다.</p>

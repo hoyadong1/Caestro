@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.Shader
 import android.view.View
 import kotlin.math.PI
@@ -32,6 +33,9 @@ class InstrumentStageView(context: Context) : View(context) {
     var vehicleLive = false
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val tileRects = Array(6) { RectF() }
+    private val tileAlpha = FloatArray(6)
+    private var tilesInitialized = false
     private var phase = 0.0
     private fun dp(v: Float) = v * resources.displayMetrics.density
 
@@ -44,48 +48,74 @@ class InstrumentStageView(context: Context) : View(context) {
         p.shader = null
         if (playing) phase += 0.075
 
-        val top = dp(if (h > dp(420f)) 115f else 93f)
-        val cellW = (w - dp(42f)) / 2f
-        val cellH = (h - top - dp(26f)) / 2f
-        val left = dp(14f)
-        val right = left + cellW + dp(14f)
-        val row2 = top + cellH + dp(8f)
-        if (cellH <= dp(35f)) return
-
-        cell(canvas, left, top, cellW, cellH, "BASS / 베이스",
-            if (pedalLive) "가속 페달 → 음색·강도" else "속도 증가 추정 → 음색·강도")
-        bass(canvas, left, top, cellW, cellH)
-        cell(canvas, right, top, cellW, cellH, "DRUMS / 드럼", "속도 → 킥·하이햇 밀도", "와이퍼 → 타악 질감")
-        drums(canvas, right, top, cellW, cellH)
-        if (layerMask and 2 == 0) waiting(canvas, right, top, cellW, cellH, "DRUMS  ·  18 km/h")
-        cell(canvas, left, row2, cellW, cellH, "CHORDS / 화음", "브레이크 → 화음 감쇠")
-        chords(canvas, left, row2, cellW, cellH)
-        if (layerMask and 4 == 0) waiting(canvas, left, row2, cellW, cellH, "CHORDS  ·  48 km/h")
-        cell(canvas, right, row2, cellW, cellH, "MELODY / 선율", "조향 → 다음 음·좌우", "방향지시등 → 응답음")
-        melody(canvas, right, row2, cellW, cellH)
-        if (layerMask and 8 == 0) waiting(canvas, right, row2, cellW, cellH, "MELODY  ·  82 km/h")
-        if (bassSolo) {
-            p.style = Paint.Style.FILL; p.color = 0xff09131f.toInt(); p.alpha = 215
-            for ((x, y) in listOf(right to top, left to row2, right to row2)) {
-                canvas.drawRoundRect(x, y, x + cellW, y + cellH, dp(12f), dp(12f), p)
+        val stage = RectF(dp(14f), dp(if (h > dp(420f)) 115f else 93f), w - dp(14f), h - dp(14f))
+        if (stage.height() <= dp(80f)) return
+        val count = if (bassSolo) 1 else Integer.bitCount(layerMask).coerceIn(1, 6)
+        val targets = layoutFor(count, stage)
+        if (!tilesInitialized) {
+            tileRects[0].set(stage)
+            tileAlpha[0] = 1f
+            for (i in 1..5) tileRects[i].set(stage.centerX(), stage.centerY(), stage.centerX(), stage.centerY())
+            tilesInitialized = true
+        }
+        var animating = false
+        for (i in 0..5) {
+            val target = if (i < count) targets[i] else RectF(stage.centerX(), stage.centerY(), stage.centerX(), stage.centerY())
+            val current = tileRects[i]
+            val fraction = if (playing) 0.23f else 1f
+            current.set(
+                current.left + (target.left - current.left) * fraction,
+                current.top + (target.top - current.top) * fraction,
+                current.right + (target.right - current.right) * fraction,
+                current.bottom + (target.bottom - current.bottom) * fraction,
+            )
+            val alphaTarget = if (i < count) 1f else 0f
+            tileAlpha[i] += (alphaTarget - tileAlpha[i]) * fraction
+            if (kotlin.math.abs(target.left - current.left) > 1f ||
+                kotlin.math.abs(target.top - current.top) > 1f ||
+                kotlin.math.abs(alphaTarget - tileAlpha[i]) > 0.02f) animating = true
+            if (tileAlpha[i] > 0.03f && current.width() > dp(15f) && current.height() > dp(15f)) {
+                val save = canvas.save()
+                canvas.clipRect(current)
+                drawTile(canvas, i, current)
+                canvas.restoreToCount(save)
             }
-            p.alpha = 255; p.color = accent; p.typeface = android.graphics.Typeface.DEFAULT_BOLD
-            p.textSize = dp(12f)
-            canvas.drawText("BASS SOLO", left + dp(12f), top + cellH - dp(12f), p)
         }
-        if (wiper) {
-            p.color = 0xffb6d7eb.toInt(); p.textSize = dp(9f); p.typeface = android.graphics.Typeface.DEFAULT_BOLD
-            canvas.drawText("TEXTURE  /  WIPER", right + dp(8f), row2 + cellH - dp(7f), p)
-        }
-        if (playing) postInvalidateDelayed(70)
+        if (playing || animating) postInvalidateDelayed(70)
     }
 
-    private fun waiting(c: Canvas, x: Float, y: Float, w: Float, h: Float, label: String) {
-        p.style = Paint.Style.FILL; p.color = 0xff09131f.toInt(); p.alpha = 190
-        c.drawRoundRect(x, y, x + w, y + h, dp(12f), dp(12f), p)
-        p.alpha = 255; p.color = 0xff8daab9.toInt(); p.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        p.textSize = dp(11f)
-        c.drawText(label, x + dp(12f), y + h - dp(13f), p)
+    private fun layoutFor(count: Int, bounds: RectF): List<RectF> {
+        val gap = dp(8f)
+        val x = bounds.left; val y = bounds.top; val w = bounds.width(); val h = bounds.height()
+        fun tile(left: Float, top: Float, width: Float, height: Float) =
+            RectF(left, top, left + width, top + height)
+        return when (count) {
+            1 -> listOf(tile(x, y, w, h))
+            2 -> { val cw = (w - gap) / 2; listOf(tile(x, y, cw, h), tile(x + cw + gap, y, cw, h)) }
+            3 -> { val cw = (w - gap) / 2; val rh = (h - gap) / 2
+                listOf(tile(x, y, cw, h), tile(x + cw + gap, y, cw, rh), tile(x + cw + gap, y + rh + gap, cw, rh)) }
+            4 -> { val cw = (w - gap) / 2; val rh = (h - gap) / 2
+                listOf(tile(x, y, cw, rh), tile(x + cw + gap, y, cw, rh),
+                    tile(x, y + rh + gap, cw, rh), tile(x + cw + gap, y + rh + gap, cw, rh)) }
+            5 -> { val cw = (w - 2 * gap) / 3; val rh = (h - gap) / 2
+                listOf(tile(x, y, cw, h), tile(x + cw + gap, y, cw, rh),
+                    tile(x + 2 * (cw + gap), y, cw, rh), tile(x + cw + gap, y + rh + gap, cw, rh),
+                    tile(x + 2 * (cw + gap), y + rh + gap, cw, rh)) }
+            else -> { val cw = (w - 2 * gap) / 3; val rh = (h - gap) / 2
+                (0..5).map { i -> tile(x + (i % 3) * (cw + gap), y + (i / 3) * (rh + gap), cw, rh) } }
+        }
+    }
+
+    private fun drawTile(c: Canvas, index: Int, area: RectF) {
+        val x = area.left; val y = area.top; val w = area.width(); val h = area.height()
+        when (index) {
+            0 -> { cell(c, x, y, w, h, if (bassSolo) "BASS SOLO / 베이스" else "BASS / 베이스", "속도 → 저음 음색"); bass(c, x, y, w, h) }
+            1 -> { cell(c, x, y, w, h, "DRUMS / 드럼", "18 km/h · 박동"); drums(c, x, y, w, h) }
+            2 -> { cell(c, x, y, w, h, "CHORDS / 화음", "38 km/h · 화성"); chords(c, x, y, w, h) }
+            3 -> { cell(c, x, y, w, h, "ARP / 아르페지오", "58 km/h · 분산 음"); arpeggio(c, x, y, w, h) }
+            4 -> { cell(c, x, y, w, h, "MELODY / 선율", "82 km/h · 조향"); melody(c, x, y, w, h) }
+            else -> { cell(c, x, y, w, h, "SHIMMER / 고역", "105 km/h · 반짝임"); shimmer(c, x, y, w, h) }
+        }
     }
 
     private fun cell(c: Canvas, x: Float, y: Float, w: Float, h: Float,
@@ -195,5 +225,41 @@ class InstrumentStageView(context: Context) : View(context) {
             c.drawPath(path, p)
         }
         p.style = Paint.Style.FILL
+    }
+
+    private fun arpeggio(c: Canvas, x: Float, y: Float, w: Float, h: Float) {
+        val points = intArrayOf(2, 4, 3, 6, 4, 7, 5, 8)
+        val path = Path()
+        for (i in points.indices) {
+            val px = x + w * (0.10f + i * 0.115f)
+            val py = y + h * (0.82f - points[i] * 0.045f)
+            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+        }
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f); p.color = accent
+        c.drawPath(path, p)
+        p.style = Paint.Style.FILL
+        for (i in points.indices) {
+            val px = x + w * (0.10f + i * 0.115f)
+            val py = y + h * (0.82f - points[i] * 0.045f)
+            p.color = if (playing && (phase.toInt() / 3) % points.size == i) Color.WHITE else accent
+            c.drawCircle(px, py, dp(3.5f), p)
+        }
+    }
+
+    private fun shimmer(c: Canvas, x: Float, y: Float, w: Float, h: Float) {
+        val cx = x + w * 0.5f; val cy = y + h * 0.64f
+        p.style = Paint.Style.STROKE; p.color = accent; p.strokeWidth = dp(1.5f)
+        for (ring in 1..3) {
+            p.alpha = 210 - ring * 45
+            val r = min(w, h) * (0.10f + ring * 0.075f)
+            c.drawCircle(cx, cy, r, p)
+        }
+        p.alpha = 255; p.style = Paint.Style.FILL; p.color = Color.WHITE
+        for (i in 0..7) {
+            val angle = i * PI / 4.0 + phase * 0.18
+            val radius = min(w, h) * 0.30f
+            c.drawCircle(cx + (kotlin.math.cos(angle) * radius).toFloat(),
+                cy + (sin(angle) * radius).toFloat(), dp(if (i % 2 == 0) 2.2f else 1.4f), p)
+        }
     }
 }

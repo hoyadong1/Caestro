@@ -11,7 +11,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.tanh
 
-/** Five original, phrase-based soundscapes with vehicle-controlled layers. Stereo 16-bit PCM. */
+/** Five phrase-based soundscapes with six speed-controlled instruments. Stereo 16-bit PCM. */
 class SoundRenderer(private val model: SoundModel) {
     companion object {
         const val RATE = 44100
@@ -43,26 +43,24 @@ class SoundRenderer(private val model: SoundModel) {
     private var fadingOut = false
     private var beat = 0.0
     private var lastStep = -1L
-    private var drumsTarget = 0.0
-    private var chordsTarget = 0.0
-    private var melodyTarget = 0.0
-    private var drumsMix = 0.0
-    private var chordsMix = 0.0
-    private var melodyMix = 0.0
-    private var heardGearStage = 0
-    private var shiftAge = 10.0
-    private var shiftHz = 220.0
-    private var shiftPhase = 0.0
+    private val layerTargets = DoubleArray(6)
+    private val layerMixes = DoubleArray(6)
     private var kickAge = 10.0
     private var snareAge = 10.0
     private var hatAge = 10.0
     private var bassAge = 10.0
     private var leadAge = 10.0
+    private var arpAge = 10.0
+    private var shimmerAge = 10.0
     private var kickPhase = 0.0
     private var bassPhase = 0.0
     private var driveBassPhase = 0.0
     private var driveBassHz = 55.0
     private var leadPhase = 0.0
+    private var arpPhase = 0.0
+    private var shimmerPhase = 0.0
+    private var arpFrequency = 440.0
+    private var shimmerFrequency = 880.0
     private val padPhase = DoubleArray(3)
     private val padFrequency = DoubleArray(3) { 110.0 * (it + 1) }
     private var bassFrequency = 55.0
@@ -99,8 +97,6 @@ class SoundRenderer(private val model: SoundModel) {
         val speedLevel = model.speedLevel()
         val rhythmLevel = model.rhythmLevel()
         val layerMask = model.layerMask()
-        val gearStage = model.gearStage()
-        val gearColor = ((gearStage - 1).coerceIn(0, 6) / 6.0)
         val brake = model.brake()
         val steering = model.steering()
         val turn = model.turn()
@@ -127,17 +123,15 @@ class SoundRenderer(private val model: SoundModel) {
             val step = floor(beat * 4.0).toLong()
             if (step != lastStep) {
                 if (step % 16L == 0L) {
-                    drumsTarget = if (layerMask and 2 != 0) 1.0 else 0.0
-                    chordsTarget = if (layerMask and 4 != 0) 1.0 else 0.0
-                    melodyTarget = if (layerMask and 8 != 0) 1.0 else 0.0
+                    for (layer in 1..5) layerTargets[layer] = if (layerMask and (1 shl layer) != 0) 1.0 else 0.0
+                    model.setAudibleLayerMask(layerMask)
                 }
-                triggerStep(scene, step, energy, steering, rhythmLevel, turn, gearStage)
+                triggerStep(scene, step, energy, steering, rhythmLevel, turn)
                 lastStep = step
             }
-            val layerStep = 1.0 / (RATE * 1.4)
-            drumsMix += (drumsTarget - drumsMix).coerceIn(-layerStep, layerStep)
-            chordsMix += (chordsTarget - chordsMix).coerceIn(-layerStep, layerStep)
-            melodyMix += (melodyTarget - melodyMix).coerceIn(-layerStep, layerStep)
+            val layerStep = 1.0 / (RATE * 1.15)
+            for (layer in 1..5) layerMixes[layer] +=
+                (layerTargets[layer] - layerMixes[layer]).coerceIn(-layerStep, layerStep)
 
             val kick = if (kickAge < 0.8) {
                 val frequency = 49.0 + 95.0 * exp(-kickAge * 24.0)
@@ -161,11 +155,10 @@ class SoundRenderer(private val model: SoundModel) {
                 4 -> sin(bassPhase) * (0.76 - speedLevel * 0.53) +
                     sin(bassPhase * 2.0) * (0.12 + speedLevel * 0.57) +
                     sin(bassPhase * 4.0) * (0.03 + speedLevel * 0.14)
-                // Pulse keeps the same harmonic root across all seven virtual/actual stages.
-                // Each stage shifts the balance of existing harmonics, not the song key.
-                else -> sin(bassPhase) * (0.90 - gearColor * 0.20) +
-                    sin(bassPhase * 2.0) * (0.08 + gearColor * 0.35 + accelerator * 0.10) +
-                    sin(bassPhase * 3.0) * gearColor * 0.05
+                // Speed changes the existing note's harmonic color continuously.
+                else -> sin(bassPhase) * (0.90 - speedLevel * 0.20) +
+                    sin(bassPhase * 2.0) * (0.08 + speedLevel * 0.35 + accelerator * 0.10) +
+                    sin(bassPhase * 3.0) * speedLevel * 0.05
             }
             val bassDecay = if (activePreset == 4) 3.8 - speedLevel * 0.55 + accelerator * 0.7
                 else 3.4 - speedLevel * 0.8 + accelerator * 1.3
@@ -197,6 +190,12 @@ class SoundRenderer(private val model: SoundModel) {
             val lead = if (leadAge < 1.0) (leadWave + sin(leadPhase * 2.0) * abs(steering) * 0.08) *
                 exp(-leadAge * 5.0) * scene.leadGain *
                 (0.55 + energy * 0.45) else 0.0
+            arpPhase += TWO_PI * arpFrequency * frameTime
+            val arp = if (arpAge < 0.55) (sin(arpPhase) * 0.82 + sin(arpPhase * 2.0) * 0.18) *
+                exp(-arpAge * 7.0) * 0.065 else 0.0
+            shimmerPhase += TWO_PI * shimmerFrequency * frameTime
+            val shimmer = if (shimmerAge < 1.1) (sin(shimmerPhase) * 0.72 +
+                sin(shimmerPhase * 1.995) * 0.28) * exp(-shimmerAge * 3.2) * 0.040 else 0.0
             val turnVoice = if (turnAge < 0.52) {
                 val second = turnAge >= 0.18
                 val noteAge = if (second) turnAge - 0.18 else turnAge
@@ -204,14 +203,10 @@ class SoundRenderer(private val model: SoundModel) {
                 sin(turnPhase) * (1.0 - exp(-noteAge * 150.0)) * exp(-noteAge * 11.0) *
                     (if (second) 0.10 else 0.14)
             } else 0.0
-            val shiftVoice = if (shiftAge < 0.30) {
-                shiftPhase += TWO_PI * shiftHz * frameTime
-                sin(shiftPhase) * (1.0 - exp(-shiftAge * 90.0)) * exp(-shiftAge * 15.0) * 0.035
-            } else 0.0
             val echoLeft = delayLeft[delayPosition]
             val echoRight = delayRight[delayPosition]
-            delayLeft[delayPosition] = lead * melodyMix * 0.28 + echoRight * 0.26
-            delayRight[delayPosition] = lead * melodyMix * 0.18 + echoLeft * 0.26
+            delayLeft[delayPosition] = lead * layerMixes[4] * 0.28 + echoRight * 0.26
+            delayRight[delayPosition] = lead * layerMixes[4] * 0.18 + echoLeft * 0.26
             delayPosition = (delayPosition + 1) % delayLeft.size
 
             val rhythm = (kick + snare + hat * (1.0 + if (wiper) 0.35 else 0.0)) *
@@ -219,14 +214,16 @@ class SoundRenderer(private val model: SoundModel) {
             val surge = if (momentum > 0.18) hatNoise * momentum * 0.008 else 0.0
             val coast = if (acceleration < -0.05) hatNoise * -acceleration * 0.006 else 0.0
             val texture = if (wiper && hatAge < 0.12) hatNoise * exp(-hatAge * 36.0) * 0.025 else 0.0
-            val steeringResponse = max(melodyMix, abs(steering) * 0.52)
+            val steeringResponse = max(layerMixes[4], abs(steering) * 0.52)
             val leadLeft = lead * (0.66 - steering * 0.35) * steeringResponse
             val leadRight = lead * (0.66 + steering * 0.35) * steeringResponse
-            val fullLeft = rhythm * drumsMix + bassStem + padLeft * chordsMix +
-                leadLeft + echoLeft + surge + coast + texture + shiftVoice +
+            val fullLeft = rhythm * layerMixes[1] + bassStem + padLeft * layerMixes[2] +
+                arp * layerMixes[3] * 0.78 + leadLeft + echoLeft +
+                shimmer * layerMixes[5] * 0.70 + surge + coast + texture +
                 turnVoice * (0.60 - turnPan * 0.35)
-            val fullRight = rhythm * drumsMix + bassStem + padRight * chordsMix +
-                leadRight + echoRight - surge - coast - texture + shiftVoice +
+            val fullRight = rhythm * layerMixes[1] + bassStem + padRight * layerMixes[2] +
+                arp * layerMixes[3] + leadRight + echoRight +
+                shimmer * layerMixes[5] - surge - coast - texture +
                 turnVoice * (0.60 + turnPan * 0.35)
             val left = tanh((if (bassSolo) bassStem else fullLeft) * 1.75) * 0.78 * transition
             val right = tanh((if (bassSolo) bassStem else fullRight) * 1.75) * 0.78 * transition
@@ -239,23 +236,16 @@ class SoundRenderer(private val model: SoundModel) {
             bassAge += frameTime
             leadAge += frameTime
             turnAge += frameTime
-            shiftAge += frameTime
+            arpAge += frameTime
+            shimmerAge += frameTime
         }
     }
 
     private fun triggerStep(scene: Soundscape, absoluteStep: Long, energy: Double,
-                            steering: Double, rhythmLevel: Int, turn: Int, gearStage: Int) {
+                            steering: Double, rhythmLevel: Int, turn: Int) {
         val position = (absoluteStep % 16).toInt()
         val bar = absoluteStep / 16
         val chord = scene.chords[(bar % scene.chords.size).toInt()]
-        if (position % 4 == 0 && gearStage != heardGearStage) {
-            if (heardGearStage > 0 && gearStage > 0) {
-                shiftAge = 0.0
-                shiftPhase = 0.0
-                shiftHz = scene.rootHz * 4.0 * ratio(chord + if (gearStage > heardGearStage) 7 else 0)
-            }
-            heardGearStage = gearStage
-        }
         if (position == 0) {
             val root = scene.rootHz * 2.0 * ratio(chord)
             driveBassHz = scene.rootHz * ratio(chord)
@@ -277,6 +267,17 @@ class SoundRenderer(private val model: SoundModel) {
             bassFrequency = scene.rootHz * ratio(chord + scene.scale[degree])
             bassAge = 0.0
             bassPhase = 0.0
+        }
+        if (position == 2 || position == 6 || position == 10 || position == 14) {
+            val degree = scene.scale[(position / 4 + (bar % 2).toInt()) % scene.scale.size]
+            arpFrequency = scene.rootHz * 4.0 * ratio(chord + degree)
+            arpAge = 0.0
+            arpPhase = 0.0
+        }
+        if (position == 0 || position == 8) {
+            shimmerFrequency = scene.rootHz * 8.0 * ratio(chord + scene.scale[if (position == 0) 2 else 4])
+            shimmerAge = 0.0
+            shimmerPhase = 0.0
         }
         val note = scene.melody[position]
         if (note >= 0 && energy >= (if (activePreset == 4) 0.16 else 0.24) &&

@@ -1,7 +1,6 @@
 package com.drivesoundtrack.app
 
 import android.app.Activity
-import android.car.VehicleGear
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -66,35 +65,20 @@ class MainActivity : Activity() {
             val energy = intent.getDoubleExtra("energy", 0.0).toFloat()
             val layers = intent.getIntExtra("layers", 1)
             val bassSolo = intent.getBooleanExtra("bassSolo", false)
-            val selectedGear = intent.getIntExtra("selectedGear", 0)
-            val gearStage = intent.getIntExtra("gearStage", 0)
-            val gearSource = intent.getStringExtra("gearSource") ?: "NONE"
             val layerMask = intent.getIntExtra("layerMask", 1)
-            val gearLabel = when (selectedGear) {
-                VehicleGear.GEAR_PARK -> "P"
-                VehicleGear.GEAR_REVERSE -> "R"
-                VehicleGear.GEAR_NEUTRAL -> "N"
-                VehicleGear.GEAR_DRIVE -> "D"
-                else -> "?"
-            }
             val accelerator = intent.getDoubleExtra("accelerator", 0.0)
             val brake = intent.getDoubleExtra("brake", 0.0)
             val steering = intent.getDoubleExtra("steering", 0.0)
             val turn = intent.getIntExtra("turn", 0)
             val wiper = intent.getBooleanExtra("wiper", false)
             val scene = Soundscapes.all[preset]
-            source.text = if (carAvailable) "●  VEHICLE SIGNAL  ·  SELECTED $gearLabel" else "●  DEMO INPUT"
-            source.text = when (gearSource) {
-                "ACTUAL" -> "●  차량 신호  ·  D ${gearStage}단 실제"
-                "VIRTUAL" -> "●  ${if (carAvailable) "차량 신호" else "데모 입력"}  ·  가상 ${gearStage}/7단"
-                else -> if (carAvailable) "●  차량 신호  ·  선택 $gearLabel" else "●  데모 입력"
-            }
+            source.text = if (carAvailable) "●  차량 속도 신호" else "●  데모 속도 입력"
             source.setTextColor(if (carAvailable) 0xff66c9ff.toInt() else 0xffffc784.toInt())
             song.text = scene.name.uppercase()
             genre.text = scene.character.uppercase()
             speedValue.text = kmh.roundToInt().toString()
             tempoValue.text = bpm.toString()
-            layersValue.text = "$layers / 4"
+            layersValue.text = "$layers / 6"
             val activeParts = buildList {
                 if (kmh >= 15) add("속도 → 드럼 층")
                 if (accelerator > 0.15) add("추진 → 베이스")
@@ -106,7 +90,7 @@ class MainActivity : Activity() {
             phase.text = if (bassSolo) "베이스 솔로 · ${kmh.roundToInt()} km/h" else
                 if (!playing) "재생 대기" else activeParts.takeLast(2).joinToString("  ·  ")
                     .ifEmpty { "정차 → 기본 리듬" }
-            if (playing && !bassSolo) phase.text = listOf("베이스", "드럼", "화음", "선율")
+            if (playing && !bassSolo) phase.text = listOf("베이스", "드럼", "화음", "아르페지오", "선율", "반짝임")
                 .filterIndexed { index, _ -> layerMask and (1 shl index) != 0 }.joinToString("  +  ")
             play.text = if (playing) "Ⅱ   일시정지" else "▶   음악 재생"
             play.background = panel(scene.accent or (0xff shl 24), 16)

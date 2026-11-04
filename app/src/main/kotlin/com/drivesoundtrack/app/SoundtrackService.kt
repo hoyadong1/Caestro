@@ -4,7 +4,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.car.VehicleGear
 import android.content.pm.ApplicationInfo
 import android.content.Intent
 import android.media.AudioAttributes
@@ -33,6 +32,7 @@ class SoundtrackService : MediaBrowserService() {
         const val ARM_DEBUG_CAPTURE = "com.drivesoundtrack.ARM_DEBUG_CAPTURE"
         const val DEBUG_BASS_SOLO = "com.drivesoundtrack.DEBUG_BASS_SOLO"
         const val DEBUG_SPEED_JOURNEY = "com.drivesoundtrack.DEBUG_SPEED_JOURNEY"
+        const val DEBUG_SPEED_HOLD = "com.drivesoundtrack.DEBUG_SPEED_HOLD"
         const val DEBUG_PRESET = "com.drivesoundtrack.DEBUG_PRESET"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
@@ -41,7 +41,6 @@ class SoundtrackService : MediaBrowserService() {
     private lateinit var model: SoundModel
     private lateinit var engine: SynthEngine
     private lateinit var speedReader: CarSpeedReader
-    private lateinit var gearReader: CarGearReader
     private lateinit var driveModeReader: PleosDriveModeReader
     private lateinit var bandReader: PleosBandReader
     private lateinit var pedalReader: CarPedalReader
@@ -53,9 +52,8 @@ class SoundtrackService : MediaBrowserService() {
     private var carAvailable = false
     @Volatile private var restricted = false
     private var preset = 0
-    @Volatile private var selectedGear: Int? = null
-    @Volatile private var currentGear: Int? = null
     private var bassSolo = false
+    private var debugJourneyEnabled = false
     private val handler = Handler(Looper.getMainLooper())
     private val statusTicker = object : Runnable {
         override fun run() {
@@ -78,31 +76,6 @@ class SoundtrackService : MediaBrowserService() {
         engine.setPreset(preset)
         speedReader = CarSpeedReader()
         connectSpeedReader()
-        gearReader = CarGearReader().also { reader ->
-            reader.start(this) { selected, current ->
-                selectedGear = selected
-                currentGear = current
-                val actualStage = when (current) {
-                    VehicleGear.GEAR_FIRST -> 1
-                    VehicleGear.GEAR_SECOND -> 2
-                    VehicleGear.GEAR_THIRD -> 3
-                    VehicleGear.GEAR_FOURTH -> 4
-                    VehicleGear.GEAR_FIFTH -> 5
-                    VehicleGear.GEAR_SIXTH -> 6
-                    VehicleGear.GEAR_SEVENTH -> 7
-                    VehicleGear.GEAR_EIGHTH -> 8
-                    VehicleGear.GEAR_NINTH -> 9
-                    else -> null
-                }
-                model.setTransmission(when (selected) {
-                    VehicleGear.GEAR_DRIVE -> true
-                    VehicleGear.GEAR_PARK, VehicleGear.GEAR_REVERSE, VehicleGear.GEAR_NEUTRAL -> false
-                    else -> null
-                }, if (selected == VehicleGear.GEAR_DRIVE || selected == null) actualStage else null)
-                Log.i("DriveSoundtrack", "Gear selection=$selected current=$current")
-                broadcastStatus()
-            }
-        }
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
         bandReader = PleosBandReader().also { it.start(this, model) { broadcastStatus() } }
         pedalReader = CarPedalReader().also { it.start(this) { value -> model.setAccelerator(value); broadcastStatus() } }
@@ -160,8 +133,14 @@ class SoundtrackService : MediaBrowserService() {
             }
             DEBUG_SPEED_JOURNEY -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
                 val enabled = intent.getBooleanExtra("enabled", false)
-                model.setDemoDrive(enabled || !carAvailable)
+                debugJourneyEnabled = enabled
                 engine.setDebugSpeedJourney(enabled)
+            }
+            DEBUG_SPEED_HOLD -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
+                debugJourneyEnabled = true
+                engine.setDebugSpeedJourney(false)
+                model.setSpeed(intent.getDoubleExtra("kmh", 0.0))
+                broadcastStatus()
             }
             DEBUG_PRESET -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
                 setPreset(intent.getIntExtra("preset", 0), debugOverride = true)
@@ -196,11 +175,10 @@ class SoundtrackService : MediaBrowserService() {
         speedReader.start(this,
             { available ->
                 carAvailable = available
-                model.setDemoDrive(!available)
-                if (!available) model.setSpeed(0.0)
+                if (!available && !debugJourneyEnabled) model.setSpeed(0.0)
                 broadcastStatus()
             },
-            { kmh -> model.setSpeed(kmh); broadcastStatus() })
+            { kmh -> if (!debugJourneyEnabled) { model.setSpeed(kmh); broadcastStatus() } })
         broadcastStatus()
     }
 
@@ -267,18 +245,15 @@ class SoundtrackService : MediaBrowserService() {
         val status = Intent(STATUS).setPackage(packageName)
         status.putExtra("playing", playing)
         status.putExtra("preset", preset)
-        status.putExtra("carAvailable", carAvailable)
+        status.putExtra("carAvailable", carAvailable && !debugJourneyEnabled)
         status.putExtra("kmh", model.targetSpeed())
         status.putExtra("bpm", if (playing) model.bpm() else model.targetBpm())
         status.putExtra("energy", model.intensity())
         status.putExtra("momentum", model.momentum())
         status.putExtra("driveMode", model.driveMode())
-        status.putExtra("layers", model.layerCount())
-        status.putExtra("selectedGear", selectedGear ?: 0)
-        status.putExtra("currentGear", currentGear ?: 0)
-        status.putExtra("gearStage", model.gearStage())
-        status.putExtra("gearSource", model.gearSource())
-        status.putExtra("layerMask", model.layerMask())
+        val displayedLayers = if (playing) model.audibleLayerMask() else 1
+        status.putExtra("layers", Integer.bitCount(displayedLayers))
+        status.putExtra("layerMask", displayedLayers)
         status.putExtra("bassSolo", bassSolo)
         status.putExtra("accelerator", model.accelerator())
         status.putExtra("pedalAvailable", model.pedalAvailable())
@@ -297,7 +272,6 @@ class SoundtrackService : MediaBrowserService() {
         pause()
         handler.removeCallbacks(statusTicker)
         speedReader.stop()
-        gearReader.stop()
         driveModeReader.stop()
         bandReader.stop()
         pedalReader.stop()

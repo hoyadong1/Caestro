@@ -55,9 +55,6 @@ fun main() {
     val slow = render { it.setSpeed(10.0) }
     val fast = render { it.setSpeed(70.0) }
     check(difference(slow, fast) > 0.005) { "speed progression has no PCM effect" }
-    val lowGear = render { it.setTransmission(true, 1) }
-    val highGear = render { it.setTransmission(true, 7) }
-    check(difference(lowGear, highGear) > 0.001) { "Pulse gear stages have no audible PCM effect" }
 
     val model = SoundModel()
     model.setSteering(150.0)
