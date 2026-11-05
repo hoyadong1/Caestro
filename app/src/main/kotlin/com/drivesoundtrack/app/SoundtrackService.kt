@@ -16,6 +16,7 @@ import android.media.session.PlaybackState
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Build
 import android.service.media.MediaBrowserService
 import android.util.Log
 
@@ -34,6 +35,7 @@ class SoundtrackService : MediaBrowserService() {
         const val DEBUG_SPEED_JOURNEY = "com.drivesoundtrack.DEBUG_SPEED_JOURNEY"
         const val DEBUG_SPEED_HOLD = "com.drivesoundtrack.DEBUG_SPEED_HOLD"
         const val DEBUG_PRESET = "com.drivesoundtrack.DEBUG_PRESET"
+        const val SCENARIO_TOGGLE = "com.drivesoundtrack.SCENARIO_TOGGLE"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
     }
@@ -54,6 +56,9 @@ class SoundtrackService : MediaBrowserService() {
     private var preset = 0
     private var bassSolo = false
     private var debugJourneyEnabled = false
+    private var scenarioEnabled = false
+    private var vehicleKmh = 0.0
+    private val pleosEmulator by lazy { Build.PRODUCT.contains("crp_avd", ignoreCase = true) }
     private val handler = Handler(Looper.getMainLooper())
     private val statusTicker = object : Runnable {
         override fun run() {
@@ -79,7 +84,11 @@ class SoundtrackService : MediaBrowserService() {
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
         bandReader = PleosBandReader().also { it.start(this, model) { broadcastStatus() } }
         pedalReader = CarPedalReader().also { it.start(this) { value -> model.setAccelerator(value); broadcastStatus() } }
-        restrictionsReader = DriveRestrictionsReader().also { it.start(this) { value -> restricted = value } }
+        restrictionsReader = DriveRestrictionsReader().also { it.start(this) { value ->
+            restricted = value
+            if (value && scenarioEnabled) stopScenario()
+            broadcastStatus()
+        } }
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
@@ -146,6 +155,7 @@ class SoundtrackService : MediaBrowserService() {
                 setPreset(intent.getIntExtra("preset", 0), debugOverride = true)
             }
             PRESET -> setPreset(intent.getIntExtra("preset", 0))
+            SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
             STATUS_REQUEST -> broadcastStatus()
             RECONNECT_SPEED -> {
                 speedReader.stop()
@@ -175,15 +185,20 @@ class SoundtrackService : MediaBrowserService() {
         speedReader.start(this,
             { available ->
                 carAvailable = available
-                if (!available && !debugJourneyEnabled) model.setSpeed(0.0)
+                if (!available && !debugJourneyEnabled && !scenarioEnabled) model.setSpeed(0.0)
                 broadcastStatus()
             },
-            { kmh -> if (!debugJourneyEnabled) { model.setSpeed(kmh); broadcastStatus() } })
+            { kmh ->
+                vehicleKmh = kmh
+                if (scenarioEnabled && kmh >= 5.0) stopScenario()
+                if (!debugJourneyEnabled && !scenarioEnabled) model.setSpeed(kmh)
+                broadcastStatus()
+            })
         broadcastStatus()
     }
 
     private fun setPreset(choice: Int, debugOverride: Boolean = false) {
-        if (!debugOverride && (restricted || (carAvailable && model.targetSpeed() >= 5))) return
+        if (!debugOverride && (restricted || (carAvailable && !scenarioEnabled && vehicleKmh >= 5))) return
         preset = choice.coerceIn(Soundscapes.all.indices)
         model.setPreset(preset)
         engine.setPreset(preset)
@@ -230,6 +245,26 @@ class SoundtrackService : MediaBrowserService() {
         broadcastStatus()
     }
 
+    private fun startScenario() {
+        if (!pleosEmulator || restricted || vehicleKmh >= 5.0) return
+        if (playing) pause()
+        debugJourneyEnabled = false
+        scenarioEnabled = true
+        model.setSpeed(0.0)
+        engine.setDebugSpeedJourney(true)
+        play()
+        if (!playing) stopScenario()
+    }
+
+    private fun stopScenario() {
+        if (!scenarioEnabled) return
+        pause()
+        scenarioEnabled = false
+        engine.setDebugSpeedJourney(false)
+        model.setSpeed(if (carAvailable) vehicleKmh else 0.0)
+        broadcastStatus()
+    }
+
     private fun updateSession() {
         session.setMetadata(MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, NAMES[preset])
@@ -246,6 +281,8 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("playing", playing)
         status.putExtra("preset", preset)
         status.putExtra("carAvailable", carAvailable && !debugJourneyEnabled)
+        status.putExtra("scenarioEnabled", scenarioEnabled)
+        status.putExtra("scenarioAvailable", pleosEmulator && !restricted && vehicleKmh < 5.0)
         status.putExtra("kmh", model.targetSpeed())
         status.putExtra("bpm", if (playing) model.bpm() else model.targetBpm())
         status.putExtra("energy", model.intensity())

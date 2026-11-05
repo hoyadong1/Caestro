@@ -25,6 +25,18 @@
 - 차량 UX 제한이 활성화되거나 실제 차량 속도가 5 km/h 이상일 때 사운드스케이프 선택·시연 조작과 자체 화면의 애니메이션 제한
 - 차량 서비스가 재시작되면 속도·UX 제한 구독을 정리하고 재연결을 시도
 
+## Pleos에서 직접 비교하기 (Windows)
+
+PowerShell에서 저장소 폴더로 이동한 뒤 아래 명령을 실행합니다. 스크립트는 Pleos Connect 2.1 에뮬레이터를 호스트 GPU 모드로 열고, 최신 APK를 설치하며, 가상 차량을 0 km/h와 P 상태로 맞춥니다. Pleos는 D에서 0 km/h여도 앱 화면을 가리므로 버튼과 모드 비교는 P에서 진행합니다.
+
+`powershell
+.\demo\start-interactive.ps1
+`
+
+앱에서 **주행 시나리오 시작**을 한 번 누르면 0 → 30 → 50 → 70 → 95 → 130 → 0 km/h의 약 100초 음악 시나리오가 시작됩니다. 오른쪽의 Pulse, Night, Coast, Horizon, Circuit 카드를 누르면 재생 중에도 모드를 비교할 수 있습니다. **주행 시나리오 종료**를 누르면 정지합니다. 이 버튼의 속도는 앱의 합성 엔진에 주입되는 시연 값으로, 실제 차량이나 Pleos 계기판 속도를 바꾸지는 않습니다. 시나리오 버튼은 Pleos 에뮬레이터가 정지 상태일 때만 표시됩니다.
+
+D 선택 자체를 확인하려면 .\demo\start-interactive.ps1 -Gear Drive를 실행할 수 있습니다. 이때 Pleos의 주행 제한 화면이 앱을 가립니다. 기본 명령의 -gpu host는 PC GPU 드라이버를 사용합니다. 호환성 문제가 있으면 -Gpu auto로 실행할 수 있습니다. 종전 녹화에 썼던 swiftshader_indirect는 소프트웨어 렌더링입니다. Pleos 가상 콘솔의 D 선택 응답과 Android 차량의 현재 기어 속성은 다를 수 있으므로, D는 콘솔 선택 상태를 뜻합니다.
+
 ## 실행
 
 1. [`apk/홍원택_DriveSoundtrack_release.apk`](apk/홍원택_DriveSoundtrack_release.apk)를 Pleos Connect 또는 호환 Android Automotive 기기에 설치합니다.

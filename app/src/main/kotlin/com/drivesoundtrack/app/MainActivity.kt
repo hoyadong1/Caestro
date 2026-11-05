@@ -38,6 +38,7 @@ class MainActivity : Activity() {
     private lateinit var layersValue: TextView
     private lateinit var phase: TextView
     private lateinit var play: Button
+    private lateinit var scenario: Button
     private lateinit var demo: LinearLayout
     private lateinit var demoLabel: TextView
     private lateinit var slider: SeekBar
@@ -51,6 +52,8 @@ class MainActivity : Activity() {
     private var preset = 0
     private var playing = false
     private var carAvailable = false
+    private var scenarioEnabled = false
+    private var scenarioAvailable = false
     private var demoBrake = false
     private var demoTurn = false
     private var demoWiper = false
@@ -60,6 +63,8 @@ class MainActivity : Activity() {
             playing = intent.getBooleanExtra("playing", false)
             preset = intent.getIntExtra("preset", 0).coerceIn(Soundscapes.all.indices)
             carAvailable = intent.getBooleanExtra("carAvailable", false)
+            scenarioEnabled = intent.getBooleanExtra("scenarioEnabled", false)
+            scenarioAvailable = intent.getBooleanExtra("scenarioAvailable", false)
             kmh = intent.getDoubleExtra("kmh", 0.0)
             val bpm = intent.getDoubleExtra("bpm", Soundscapes.all[preset].baseBpm).roundToInt()
             val energy = intent.getDoubleExtra("energy", 0.0).toFloat()
@@ -72,7 +77,11 @@ class MainActivity : Activity() {
             val turn = intent.getIntExtra("turn", 0)
             val wiper = intent.getBooleanExtra("wiper", false)
             val scene = Soundscapes.all[preset]
-            source.text = if (carAvailable) "●  차량 속도 신호" else "●  데모 속도 입력"
+            source.text = when {
+                scenarioEnabled -> "●  시연 주행"
+                carAvailable -> "●  차량 속도 신호"
+                else -> "●  데모 속도 입력"
+            }
             source.setTextColor(if (carAvailable) 0xff66c9ff.toInt() else 0xffffc784.toInt())
             song.text = scene.name.uppercase()
             genre.text = scene.character.uppercase()
@@ -138,6 +147,15 @@ class MainActivity : Activity() {
         source = label("●  DEMO INPUT", 12f, 0xffffc784.toInt(), true)
         header.addView(source)
         root.addView(header)
+        scenario = Button(this).apply {
+            text = "▶  주행 시나리오 시작"
+            textSize = 16f
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            background = panel(0xff29465b.toInt(), 16)
+            setOnClickListener { send(SoundtrackService.SCENARIO_TOGGLE) }
+        }
+        root.addView(scenario, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(10) })
 
         val body = LinearLayout(this).apply { orientation = if (landscape) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL }
         root.addView(body, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(20) })
@@ -271,6 +289,8 @@ class MainActivity : Activity() {
         library.addView(label("주행 중에는 선택과 시연 조작이 제한됩니다.", 12f, MUTED),
             LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(5) })
         setContentView(scroll)
+        scroll.isFocusableInTouchMode = true
+        scroll.requestFocus()
         renderRestrictions()
         startService(Intent(this, SoundtrackService::class.java))
     }
@@ -298,7 +318,8 @@ class MainActivity : Activity() {
     }
     private fun send(action: String) {
         val intent = Intent(this, SoundtrackService::class.java).setAction(action)
-        if (action == SoundtrackService.PLAY) startForegroundService(intent) else startService(intent)
+        if (action == SoundtrackService.PLAY || action == SoundtrackService.SCENARIO_TOGGLE)
+            startForegroundService(intent) else startService(intent)
     }
     private fun send(action: String, key: String, value: Int) {
         startService(Intent(this, SoundtrackService::class.java).setAction(action).putExtra(key, value))
@@ -322,11 +343,14 @@ class MainActivity : Activity() {
     } catch (_: PackageManager.NameNotFoundException) { false }
 
     private fun renderRestrictions() {
-        val canConfigure = !restricted && (!carAvailable || kmh < 5)
+        val canConfigure = !restricted && (scenarioEnabled || !carAvailable || kmh < 5)
         cards.forEach { it.isEnabled = canConfigure; it.alpha = if (canConfigure) 1f else 0.55f }
         visualizer.playing = playing && canConfigure
         play.isEnabled = canConfigure
         play.alpha = if (canConfigure) 1f else 0.55f
+        scenario.visibility = if (scenarioAvailable || scenarioEnabled) View.VISIBLE else View.GONE
+        scenario.isEnabled = scenarioEnabled || scenarioAvailable
+        scenario.text = if (scenarioEnabled) "■  주행 시나리오 종료" else "▶  주행 시나리오 시작"
         demo.visibility = if (carAvailable || restricted) View.GONE else View.VISIBLE
         val canRequest = restrictionsKnown && !restricted && !carAvailable &&
             packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE) &&
