@@ -15,7 +15,7 @@ s = clamp(완만하게 반영한 속도 / 130, 0, 1)
 
 ## 실제 앱 출력
 
-디버그 앱의 오디오 샘플 시간에 맞춰 0→40→80→130→0 km/h를 한 번 연주하고, `AudioTrack.write()`에 전달한 PCM을 단일 WAV로 기록했다. [시연 스크립트](demo/record-app-speed-pitch-v043.ps1)와 [영상 생성 코드](demo/render-musical-speed-v044.py)를 남겼다. 이번 영상의 속도 입력은 **차량 센서가 아닌 앱 내부 디버그 시나리오**다. 영상의 파형과 속도 곡선은 같은 오디오 샘플 시계를 사용한다.
+디버그 앱의 오디오 샘플 시간에 맞춰 0→40→80→130→0 km/h를 한 번 연주하고, `AudioTrack.write()`에 전달한 PCM을 단일 WAV로 기록했다. [시연 스크립트](../../demo/archive/record-app-speed-pitch-v043.ps1)와 [영상 생성 코드](../../demo/archive/render-musical-speed-v044.py)를 남겼다. 이번 영상의 속도 입력은 **차량 센서가 아닌 앱 내부 디버그 시나리오**다. 영상의 파형과 속도 곡선은 같은 오디오 샘플 시계를 사용한다.
 
 | 구간 | 평균 속도 | 베이스 RMS |
 | --- | ---: | ---: |

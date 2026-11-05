@@ -4,7 +4,7 @@
 
 > **개정 방향:** 화면의 주인공을 차량에서 악기로 바꾼 [악기 중심 기획안](PRODUCT_V2_INSTRUMENT_CONCEPT.md)이 현재 제안이다. 아래의 차량 중심 이미지는 초기 시안으로 남긴다.
 
-![Journey Score 정차 시연 화면 콘셉트](demo/journey-score-v2-concept.png)
+![Journey Score 정차 시연 화면 콘셉트](journey-score-v2-concept.png)
 
 위 이미지는 **디자인 콘셉트**다. 현재 앱 화면이나 구현·검증된 차량 신호를 보여 주는 캡처가 아니다.
 

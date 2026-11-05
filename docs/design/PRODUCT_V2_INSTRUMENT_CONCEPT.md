@@ -4,7 +4,7 @@
 
 전기차의 정숙한 실내를 위한 [제품 근거와 첫 구현 범위](EV_PRODUCT_RATIONALE.md)를 함께 참조한다.
 
-![악기 중심 정차 시연 화면 콘셉트](demo/instrument-stage-v2-concept.png)
+![악기 중심 정차 시연 화면 콘셉트](instrument-stage-v2-concept.png)
 
 이미지는 **시나리오 시연 디자인**이다. 화면에 그려진 악기와 가속·브레이크·조향 입력이 현재 앱에 구현되었다는 뜻은 아니다.
 
