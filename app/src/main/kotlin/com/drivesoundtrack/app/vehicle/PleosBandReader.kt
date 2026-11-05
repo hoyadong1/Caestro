@@ -102,6 +102,7 @@ class PleosBandReader {
         try {
             val api = v.getWiper().also { wiperApi = it }
             fun apply(value: WiperState?) {
+                Log.d("DriveSoundtrack", "Wiper state: $value")
                 if (!closed) { model.setWiper(when (value) { WiperState.ON -> true; WiperState.OFF -> false; else -> null }); update() }
             }
             val listener = object : WiperStateListener {

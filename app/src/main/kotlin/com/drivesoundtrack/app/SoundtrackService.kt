@@ -206,7 +206,7 @@ class SoundtrackService : MediaBrowserService() {
                     loggedVehicleKmh = kmh.toInt()
                     Log.i("DriveSoundtrack", "Vehicle speed received: $loggedVehicleKmh km/h")
                 }
-                if (scenarioEnabled && kmh >= 5.0) stopScenario()
+                if (scenarioEnabled && kmh >= 5.0) handOffScenarioToVehicle()
                 if (!debugJourneyEnabled && !scenarioEnabled) model.setSpeed(kmh)
                 broadcastStatus()
             })
@@ -278,6 +278,15 @@ class SoundtrackService : MediaBrowserService() {
         scenarioEnabled = false
         engine.setDebugSpeedJourney(false)
         model.setSpeed(if (carAvailable) vehicleKmh else 0.0)
+        broadcastStatus()
+    }
+
+    /** The car started moving during the parked demo: keep the music and follow the real speed. */
+    private fun handOffScenarioToVehicle() {
+        if (!scenarioEnabled) return
+        scenarioEnabled = false
+        engine.setDebugSpeedJourney(false)
+        model.setSpeed(vehicleKmh)
         broadcastStatus()
     }
 
