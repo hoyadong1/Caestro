@@ -2,7 +2,7 @@
 
 작성: 2026-11-03 · 상태: 구현 전 개정 기획. [초기 Journey Score 기획](PRODUCT_V2_PLAN.md)의 차량 중심 비주얼을 악기 중심으로 바꾼다.
 
-전기차의 정숙한 실내를 위한 [제품 근거와 첫 구현 범위](EV_PRODUCT_RATIONALE.md)를 함께 참조한다.
+[제품 근거와 파워트레인 중립 설계](PRODUCT_RATIONALE.md)를 함께 참조한다.
 
 ![악기 중심 정차 시연 화면 콘셉트](instrument-stage-v2-concept.png)
 
