@@ -1,5 +1,7 @@
 # Drive Soundtrack
 
+[![Drive Soundtrack 시연 페이지 열기: D단 130 km/h에서 악기 6개가 연주되는 앱 화면](docs/readme-thumbnail.png)](https://hoyadong1.github.io/DriveSoundtrack/)
+
 전기차의 조용한 실내에서 차량 조작이 악기를 연주하는 경험을 제안하는 Android Automotive용 오리지널 음악 앱입니다. 파란 Pulse가 기본 모드이며 속도에 따라 베이스·드럼·화음·아르페지오·선율·고역 질감이 차례로 합류합니다. 악기 화면도 한 칸에서 최대 여섯 칸으로 나뉩니다. 음악 편곡에는 기어 단수를 사용하지 않습니다. 다섯 사운드스케이프를 음원 파일이나 네트워크 없이 실시간 합성합니다. **앱은 모두 Kotlin**이며, 화면은 Jetpack Compose로 구현했습니다.
 
 [주행 음악 알고리즘과 신호별 매핑](docs/design/DRIVING_SCORE_ALGORITHM.md) · [전기차 제품 근거와 검증 범위](docs/design/EV_PRODUCT_RATIONALE.md) · [악기 중심 기획](docs/design/PRODUCT_V2_INSTRUMENT_CONCEPT.md) · [시각 콘셉트](docs/design/instrument-stage-v2-concept.png)
