@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Drive Soundtrack 0.6.0: 속도별 여섯 악기 합류와 분할 화면">
+  <meta name="description" content="Drive Soundtrack 0.6.1: 실제 앱 화면과 앱 PCM을 맞춘 여섯 악기 시연">
   <title>Drive Soundtrack · Pleos 시연</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #09101b; color: #f2f8fa; }
@@ -29,7 +29,20 @@
   <main>
     <p class="eyebrow">Pleos Connect · App Demo</p>
     <h1>Drive Soundtrack</h1>
-    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. 0.6.0은 파란 Pulse를 기본으로 속도에 따라 여섯 악기가 합류하고, 화면도 한 칸에서 여섯 칸으로 나뉩니다.</p>
+    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. 파란 Pulse를 기본으로 속도에 따라 여섯 악기가 합류하고, 화면도 한 칸에서 여섯 칸으로 나뉩니다.</p>
+    <p class="eyebrow" style="margin-top:40px">Live app screen + audio · 0.6.1</p>
+    <h2>실제 앱 화면과 같은 테이크의 음악</h2>
+    <p class="intro">정차에서 130 km/h까지 차례로 악기가 합류하고 감속할 때 빠지는 모습을 소리와 함께 볼 수 있습니다. 다섯 모드의 악기 음은 각 화음에 맞춰 편곡했습니다.</p>
+    <div class="player">
+      <video id="appDemoVideo" controls playsinline preload="metadata" poster="pulse-harmony-live-poster.png" style="aspect-ratio:210/151" aria-label="Pleos에서 실제 앱 화면과 앱이 출력한 음악을 함께 녹화한 시연 영상">
+        <source src="pulse-harmony-live-demo.mp4" type="video/mp4">
+        브라우저에서 영상을 재생할 수 없습니다.
+      </video>
+    </div>
+    <nav class="links" aria-label="여섯 악기 합류 단계 바로 보기">
+      <button type="button" data-app-seek="0">베이스</button><button type="button" data-app-seek="5">드럼</button><button type="button" data-app-seek="8">화음</button><button type="button" data-app-seek="10">아르페지오</button><button type="button" data-app-seek="13">선율</button><button type="button" data-app-seek="17">여섯 악기</button><button type="button" data-app-seek="23">감속</button>
+    </nav>
+    <p class="details"><strong>에뮬레이터 화면 + 같은 테이크의 앱 PCM:</strong> 화면은 Pleos Connect에서 녹화했고, 소리는 그때 앱이 AudioTrack에 전달한 PCM을 기록했습니다. 느리게 작동하는 에뮬레이터의 화면 프레임을 PCM 시간에 맞췄습니다. 속도 곡선은 앱 내부 디버그 입력으로 만든 시연이며 실제 차량 주행 영상은 아닙니다.</p>
     <p class="eyebrow" style="margin-top:40px">Six instruments · 0.6.0</p>
     <h2>베이스 하나에서 여섯 악기까지</h2>
     <p class="intro">18 km/h 드럼, 38 km/h 화음, 58 km/h 아르페지오, 82 km/h 선율, 105 km/h 고역 질감이 차례로 들어옵니다. 감속하면 반대 순서로 빠집니다.</p>
@@ -102,6 +115,11 @@
     </nav>
   </main>
   <script>
+    const appDemoVideo = document.getElementById('appDemoVideo');
+    document.querySelectorAll('[data-app-seek]').forEach(button => button.addEventListener('click', () => {
+      appDemoVideo.currentTime = Number(button.dataset.appSeek);
+      appDemoVideo.play();
+    }));
     const musicalSpeedVideo = document.getElementById('musicalSpeedVideo');
     document.querySelectorAll('[data-seek]').forEach(button => button.addEventListener('click', () => {
       musicalSpeedVideo.currentTime = Number(button.dataset.seek);

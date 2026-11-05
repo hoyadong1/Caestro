@@ -191,11 +191,11 @@ class SoundRenderer(private val model: SoundModel) {
                 exp(-leadAge * 5.0) * scene.leadGain *
                 (0.55 + energy * 0.45) else 0.0
             arpPhase += TWO_PI * arpFrequency * frameTime
-            val arp = if (arpAge < 0.55) (sin(arpPhase) * 0.82 + sin(arpPhase * 2.0) * 0.18) *
-                exp(-arpAge * 7.0) * 0.065 else 0.0
+            val arp = if (arpAge < 0.55) (sin(arpPhase) * 0.88 + sin(arpPhase * 2.0) * 0.12) *
+                exp(-arpAge * 7.0) * 0.042 else 0.0
             shimmerPhase += TWO_PI * shimmerFrequency * frameTime
             val shimmer = if (shimmerAge < 1.1) (sin(shimmerPhase) * 0.72 +
-                sin(shimmerPhase * 1.995) * 0.28) * exp(-shimmerAge * 3.2) * 0.040 else 0.0
+                sin(shimmerPhase * 2.0) * 0.28) * exp(-shimmerAge * 3.2) * 0.024 else 0.0
             val turnVoice = if (turnAge < 0.52) {
                 val second = turnAge >= 0.18
                 val noteAge = if (second) turnAge - 0.18 else turnAge
@@ -245,13 +245,15 @@ class SoundRenderer(private val model: SoundModel) {
                             steering: Double, rhythmLevel: Int, turn: Int) {
         val position = (absoluteStep % 16).toInt()
         val bar = absoluteStep / 16
-        val chord = scene.chords[(bar % scene.chords.size).toInt()]
+        val chordIndex = (bar % scene.chords.size).toInt()
+        val chord = scene.chords[chordIndex]
+        val tones = scene.chordTones?.get(chordIndex) ?: scene.scale
         if (position == 0) {
             val root = scene.rootHz * 2.0 * ratio(chord)
             driveBassHz = scene.rootHz * ratio(chord)
             padFrequency[0] = root
-            padFrequency[1] = root * ratio(scene.scale[2])
-            padFrequency[2] = root * ratio(scene.scale[4])
+            padFrequency[1] = root * ratio(tones[if (scene.chordTones == null) 2 else 1])
+            padFrequency[2] = root * ratio(tones[if (scene.chordTones == null) 4 else 2])
         }
         if ((scene.kick.hasStep(position) && (rhythmLevel >= 1 || position == 0 || position == 8)) ||
             (activePreset == 4 && rhythmLevel == 2 && position == 14)) {
@@ -264,18 +266,18 @@ class SoundRenderer(private val model: SoundModel) {
             (rhythmLevel >= 2 && position % 4 == 3)) hatAge = 0.0
         if (scene.bass.hasStep(position)) {
             val degree = if (position % 8 == 0) 0 else if (position % 4 == 0) 2 else 1
-            bassFrequency = scene.rootHz * ratio(chord + scene.scale[degree])
+            bassFrequency = scene.rootHz * ratio(chord + tones[degree])
             bassAge = 0.0
             bassPhase = 0.0
         }
         if (position == 2 || position == 6 || position == 10 || position == 14) {
-            val degree = scene.scale[(position / 4 + (bar % 2).toInt()) % scene.scale.size]
+            val degree = tones[(position / 4 + (bar % 2).toInt()) % tones.size]
             arpFrequency = scene.rootHz * 4.0 * ratio(chord + degree)
             arpAge = 0.0
             arpPhase = 0.0
         }
         if (position == 0 || position == 8) {
-            shimmerFrequency = scene.rootHz * 8.0 * ratio(chord + scene.scale[if (position == 0) 2 else 4])
+            shimmerFrequency = scene.rootHz * 8.0 * ratio(chord + tones[if (position == 0) 2 else 4])
             shimmerAge = 0.0
             shimmerPhase = 0.0
         }
@@ -284,15 +286,15 @@ class SoundRenderer(private val model: SoundModel) {
             (bar % 4 != 3L || position % 4 == 0)) {
             val octave = if ((bar / 4) % 2 == 1L) 12 else 0
             val directed = (note + if (steering > 0.16) 1 else if (steering < -0.16) -1 else 0)
-                .coerceIn(scene.scale.indices)
-            leadFrequency = scene.rootHz * 4.0 * ratio(chord + scene.scale[directed] + octave)
+                .coerceIn(tones.indices)
+            leadFrequency = scene.rootHz * 4.0 * ratio(chord + tones[directed] + octave)
             leadAge = 0.0
             leadPhase = 0.0
         }
         // A held indicator keeps a gentle two-note answer on the musical half-bar.
         if (turn != 0 && (position == 0 || position == 8)) {
-            val low = scene.rootHz * 4.0 * ratio(chord + scene.scale[1])
-            val high = scene.rootHz * 4.0 * ratio(chord + scene.scale[3])
+            val low = scene.rootHz * 4.0 * ratio(chord + tones[1])
+            val high = scene.rootHz * 4.0 * ratio(chord + tones[3])
             turnFirstHz = if (turn < 0) high else low
             turnSecondHz = if (turn < 0) low else high
             turnPan = turn.toDouble()

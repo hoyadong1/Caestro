@@ -6,6 +6,10 @@
 
 ## 시연 영상
 
+**0.6.1 실제 앱 화면 + 음악:** [GitHub Pages에서 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](docs/pulse-harmony-live-demo.mp4). 정차→130 km/h→정차에서 악기가 1개에서 6개까지 늘었다가 줄어드는 모습을 Pleos 앱 화면으로 보여 줍니다. 소리는 화면을 녹화한 같은 테이크에서 앱이 `AudioTrack.write()`에 전달한 PCM입니다. 에뮬레이터가 실시간보다 느리게 작동해 화면 프레임을 PCM 시간에 맞췄습니다. 속도는 앱 내부 디버그 시나리오이며 실제 도로 주행 신호가 아닙니다. Pulse를 포함한 다섯 모드에 화음별 음 구성을 지정하고 베이스·화음·아르페지오·선율·고역 악기가 함께 켜져도 조성 안에 있도록 편곡했습니다.
+
+화음 검사는 [`test/HarmonyCheck.kt`](test/HarmonyCheck.kt)에 있습니다. 모든 모드의 화음 음이 각 조성에 속하고, 이웃한 화음에 공통음이 있으며, 1~6개 악기 단계와 다섯 모드의 전체 합주에서 PCM 피크가 클리핑 범위에 들어가지 않는지 확인합니다. 이 검사는 청감 평가를 대신하지는 않습니다.
+
 **0.6.0 여섯 악기:** [웹에서 앱 PCM과 분할 화면 보기](https://hoyadong1.github.io/DriveSoundtrack/) · [MP3 바로 듣기](docs/six-layer-journey.mp3) · [정차 1/6](docs/six-layer-idle.png) · [45 km/h 3/6](docs/six-layer-three.png) · [120 km/h 6/6](docs/six-layer-six.png). 0→40→80→130→0 km/h의 앱 내부 디버그 시나리오에서 실제 앱 PCM을 녹음했습니다. 화면도 정차한 에뮬레이터에서 디버그 속도로 캡처했습니다.
 
 **이전 0.5.0 Pulse 전체 합주:** [29초 앱 PCM](docs/pulse-layer-journey.mp3). 당시에는 네 악기 층과 가상 7단 음색을 사용했습니다. 현재 0.6.0 편곡에는 기어 단수가 들어가지 않습니다. 아래 영상들은 이전 0.4.x 설계입니다.
