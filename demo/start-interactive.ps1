@@ -71,10 +71,26 @@ for ($attempt = 0; $attempt -lt 15; $attempt++) {
     }
 }
 
-$regulation = if ($Gear -eq 'Drive') { 'off' } else { 'on' }
-$regulationResult = & $adb shell cmd hmg_car_service --service drivingstate driving_regulation $regulation 2>&1
-$regulationResult | Out-Host
-if ($LASTEXITCODE -ne 0) { throw "Could not set emulator driving regulation $regulation." }
+if ($Gear -eq 'Drive') {
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $regulationResult = & $adb shell cmd hmg_car_service --service drivingstate driving_regulation off 2>&1
+        $regulationCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    $regulationText = $regulationResult | Out-String
+    if ($regulationCode -ne 0 -or $regulationText -match "Can't find service") {
+        Write-Warning 'This Pleos image does not provide the documented driving-regulation test service. Returning to P so the app screen can open.'
+        Invoke-RestMethod -Method Post -Uri "$base/browser/session?client=drive-soundtrack-interactive" -TimeoutSec 3 | Out-Null
+        $gearState = Invoke-RestMethod -Method Put -Uri "$base/vehicle/gear?gear=Park" -TimeoutSec 3
+        if ($gearState.actual.value -ne 'Park') { throw 'Could not return the virtual vehicle to P.' }
+        $Gear = 'Park'
+    } else {
+        Write-Host $regulationText
+    }
+}
 Start-Sleep -Seconds 1
 & $adb shell am start --user 10 -n com.drivesoundtrack.app/.MainActivity | Out-Host
 Write-Host "Pleos $Gear selected, speed 0 km/h. In the app, tap the scenario start button once."

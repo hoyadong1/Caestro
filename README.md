@@ -27,7 +27,7 @@
 
 ## Pleos에서 직접 비교하기 (Windows)
 
-PowerShell에서 저장소 폴더로 이동한 뒤 아래 명령을 실행합니다. 스크립트는 Pleos Connect 2.1 에뮬레이터를 호스트 GPU 모드로 열고, 최신 APK를 설치하며, 가상 차량을 0 km/h와 D 상태로 맞춥니다. Pleos 공식 ADB 테스트 명령으로 에뮬레이터의 주행 화면 제한을 잠시 끕니다.
+PowerShell에서 저장소 폴더로 이동한 뒤 아래 명령을 실행합니다. 스크립트는 Pleos Connect 2.1 에뮬레이터를 호스트 GPU 모드로 열고 최신 APK를 설치합니다. 먼저 0 km/h와 D를 선택하고 Pleos 공식 ADB 명령으로 개발용 주행 제한 해제를 시도합니다. 현재 확인된 v2.1 이미지에는 해당 서비스가 없어, 지원되지 않으면 자동으로 P로 돌아가 앱 화면을 엽니다.
 
 ```powershell
 .\demo\start-interactive.ps1
@@ -37,7 +37,7 @@ PowerShell에서 저장소 폴더로 이동한 뒤 아래 명령을 실행합니
 
 테스트가 끝나면 `.\demo\stop-interactive.ps1`을 실행해 주행 제한을 다시 켜고 에뮬레이터를 닫습니다. 기본 명령의 `-gpu host`는 PC GPU 드라이버를 사용합니다. 호환성 문제가 있으면 `-Gpu auto`로 실행할 수 있습니다. 종전 녹화에 썼던 `swiftshader_indirect`는 소프트웨어 렌더링입니다. Pleos 가상 콘솔의 D 선택 응답과 Android 차량의 현재 기어 속성은 다를 수 있으므로, D는 콘솔 선택 상태를 뜻합니다.
 
-**주의:** `driving_regulation off`는 Pleos가 문서화한 개발용 ADB 테스트 설정입니다. 실제 차량에서 앱 화면을 허용하는 권한이 아니며, 이 설정으로 D에서 화면을 보는 장면을 주행 중 사용 가능성의 검증으로 제시하지 않습니다. 실제 배포 화면은 Pleos/Android Automotive 미디어 앱 UI 정책에 맞춰 별도로 설계·심사받아야 합니다. 참고: [Pleos ADB 테스트 명령](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-developer-guide/adb-command-reference-guide), [Pleos 주행 제한 정책](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-planning-guide/driving-restiction-policy).
+**주의:** `driving_regulation off`는 Pleos가 문서화한 개발용 ADB 테스트 설정이지만 현재 v2.1 이미지에서는 사용할 수 없습니다. 실제 차량에서 앱 화면을 허용하는 권한도 아닙니다. 현재 P 시연은 D 주행 중 화면 사용 가능성의 검증으로 제시하지 않습니다. 실제 배포 화면은 Pleos/Android Automotive 미디어 앱 UI 정책에 맞춰 별도로 설계·심사받아야 합니다. 참고: [Pleos ADB 테스트 명령](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-developer-guide/adb-command-reference-guide), [Pleos 주행 제한 정책](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-planning-guide/driving-restiction-policy).
 
 ## 실행
 

@@ -7,7 +7,16 @@ if ($devices -notmatch 'emulator-\d+\s+device') {
     exit 0
 }
 & $adb shell am start-service --user 10 -n com.drivesoundtrack.app/.SoundtrackService -a com.drivesoundtrack.PAUSE | Out-Null
-& $adb shell cmd hmg_car_service --service drivingstate driving_regulation on | Out-Host
+$previousPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    $regulationResult = & $adb shell cmd hmg_car_service --service drivingstate driving_regulation on 2>&1
+    $regulationCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $previousPreference
+}
+if ($regulationCode -ne 0) { Write-Host 'Driving-regulation test service is unavailable on this emulator image.' }
+else { $regulationResult | Out-Host }
 & $adb forward tcp:8088 tcp:8088 | Out-Null
 $base = 'http://127.0.0.1:8088'
 try {
