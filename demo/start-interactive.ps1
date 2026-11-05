@@ -35,14 +35,27 @@ do {
 $product = (& $adb shell getprop ro.product.name | Out-String).Trim()
 if ($product -ne 'crp_avd') { throw "This test launcher is only for the Pleos emulator; connected product: $product" }
 
-$installResult = & $adb install -r $Apk 2>&1
-if ($LASTEXITCODE -ne 0 -and ($installResult | Out-String) -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' -and (Test-Path -LiteralPath $debugApk)) {
+function Install-Apk([string]$path) {
+    # Windows PowerShell 5.1 turns native stderr into an ErrorRecord when
+    # ErrorActionPreference is Stop. Capture the exit code before restoring it.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & $adb install -r $path 2>&1
+        return @{ Code = $LASTEXITCODE; Message = ($output | Out-String) }
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+}
+
+$install = Install-Apk $Apk
+if ($install.Code -ne 0 -and $install.Message -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' -and (Test-Path -LiteralPath $debugApk)) {
     Write-Host 'Existing app has a different signing key; trying the local debug APK without deleting app data.'
     $Apk = $debugApk
-    $installResult = & $adb install -r $Apk 2>&1
+    $install = Install-Apk $Apk
 }
-$installResult | Out-Host
-if ($LASTEXITCODE -ne 0) { throw 'APK installation failed. Remove the old app manually if its signing key differs.' }
+Write-Host $install.Message
+if ($install.Code -ne 0) { throw 'APK installation failed. Remove the old app manually if its signing key differs.' }
 & $adb forward tcp:8088 tcp:8088 | Out-Null
 $base = 'http://127.0.0.1:8088'
 for ($attempt = 0; $attempt -lt 15; $attempt++) {
