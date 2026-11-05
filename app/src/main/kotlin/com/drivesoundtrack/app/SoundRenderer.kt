@@ -31,7 +31,7 @@ class SoundRenderer(private val model: SoundModel) {
             t < 53.0 -> 95.0
             t < 61.0 -> smoothSpeed(95.0, 130.0, (t - 53.0) / 8.0)
             t < 66.0 -> 130.0
-            t < 80.0 -> smoothSpeed(130.0, 0.0, (t - 66.0) / 14.0)
+            t < 94.0 -> smoothSpeed(130.0, 0.0, (t - 66.0) / 28.0)
             else -> 0.0
         }
 
