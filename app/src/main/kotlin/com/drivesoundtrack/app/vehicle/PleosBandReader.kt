@@ -1,5 +1,6 @@
-package com.drivesoundtrack.app
+package com.drivesoundtrack.app.vehicle
 
+import com.drivesoundtrack.app.audio.SoundModel
 import android.content.Context
 import android.util.Log
 import ai.pleos.playground.vehicle.Vehicle

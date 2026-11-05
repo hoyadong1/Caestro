@@ -1,4 +1,4 @@
-package com.drivesoundtrack.app
+package com.drivesoundtrack.app.audio
 
 import kotlin.math.abs
 import kotlin.math.max

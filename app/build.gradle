@@ -1,4 +1,7 @@
-plugins { id 'com.android.application' }
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
 
 android {
     namespace 'com.drivesoundtrack.app'
@@ -7,13 +10,14 @@ android {
         applicationId 'com.drivesoundtrack.app'
         minSdk 28
         targetSdk 34
-        versionCode 16
-        versionName '0.6.5'
+        versionCode 18
+        versionName '0.7.0'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    buildFeatures { compose true }
 }
 
 def localSdkProperties = new Properties()
@@ -40,4 +44,12 @@ if (localSigningFile.exists()) {
 dependencies {
     compileOnly files("${sdkRoot}/platforms/android-37.0/optional/android.car.jar")
     implementation 'ai.pleos.playground:Vehicle:2.3.2'
+
+    implementation platform('androidx.compose:compose-bom:2025.10.01')
+    implementation 'androidx.activity:activity-compose:1.11.0'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.material3:material3'
+
+    testImplementation 'junit:junit:4.13.2'
 }

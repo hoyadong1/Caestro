@@ -1,5 +1,13 @@
 package com.drivesoundtrack.app
 
+import com.drivesoundtrack.app.audio.SoundModel
+import com.drivesoundtrack.app.audio.Soundscapes
+import com.drivesoundtrack.app.audio.SynthEngine
+import com.drivesoundtrack.app.vehicle.CarPedalReader
+import com.drivesoundtrack.app.vehicle.CarSpeedReader
+import com.drivesoundtrack.app.vehicle.DriveRestrictionsReader
+import com.drivesoundtrack.app.vehicle.PleosBandReader
+import com.drivesoundtrack.app.vehicle.PleosDriveModeReader
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -58,6 +66,7 @@ class SoundtrackService : MediaBrowserService() {
     private var debugJourneyEnabled = false
     private var scenarioEnabled = false
     private var vehicleKmh = 0.0
+    private var loggedVehicleKmh = Int.MIN_VALUE
     private val pleosEmulator by lazy { Build.PRODUCT.contains("crp_avd", ignoreCase = true) }
     private val handler = Handler(Looper.getMainLooper())
     private val statusTicker = object : Runnable {
@@ -86,13 +95,16 @@ class SoundtrackService : MediaBrowserService() {
         pedalReader = CarPedalReader().also { it.start(this) { value -> model.setAccelerator(value); broadcastStatus() } }
         restrictionsReader = DriveRestrictionsReader().also { it.start(this) { value ->
             restricted = value
-            if (value && scenarioEnabled) stopScenario()
             broadcastStatus()
         } }
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-            .setOnAudioFocusChangeListener { change -> if (change <= 0) pause() }.build()
+            .setOnAudioFocusChangeListener { change ->
+                if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+                    Log.i("DriveSoundtrack", "Audio focus change: $change")
+                if (change <= 0) pause()
+            }.build()
         session = MediaSession(this, "DriveSoundtrack")
         session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
         session.setCallback(object : MediaSession.Callback() {
@@ -190,6 +202,10 @@ class SoundtrackService : MediaBrowserService() {
             },
             { kmh ->
                 vehicleKmh = kmh
+                if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && kmh.toInt() != loggedVehicleKmh) {
+                    loggedVehicleKmh = kmh.toInt()
+                    Log.i("DriveSoundtrack", "Vehicle speed received: $loggedVehicleKmh km/h")
+                }
                 if (scenarioEnabled && kmh >= 5.0) stopScenario()
                 if (!debugJourneyEnabled && !scenarioEnabled) model.setSpeed(kmh)
                 broadcastStatus()

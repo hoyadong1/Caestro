@@ -13,3 +13,4 @@ test-classes/
 signing.properties
 __pycache__/
 *.pyc
+.kotlin/

@@ -1,4 +1,4 @@
-package com.drivesoundtrack.app
+package com.drivesoundtrack.app.vehicle
 
 import android.car.Car
 import android.car.VehiclePropertyIds

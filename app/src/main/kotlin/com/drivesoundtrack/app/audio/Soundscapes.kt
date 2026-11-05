@@ -1,4 +1,4 @@
-package com.drivesoundtrack.app
+package com.drivesoundtrack.app.audio
 
 /** Original musical identities. Patterns are 16-step bars; each bit is one sixteenth note. */
 data class Soundscape(

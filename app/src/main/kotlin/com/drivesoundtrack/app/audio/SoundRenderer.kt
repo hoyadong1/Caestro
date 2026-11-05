@@ -1,4 +1,4 @@
-package com.drivesoundtrack.app
+package com.drivesoundtrack.app.audio
 
 import java.util.Random
 import kotlin.math.PI
