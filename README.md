@@ -27,20 +27,22 @@
 
 ## Pleos에서 직접 비교하기 (Windows)
 
-PowerShell에서 저장소 폴더로 이동한 뒤 아래 명령을 실행합니다. 스크립트는 Pleos Connect 2.1 에뮬레이터를 호스트 GPU 모드로 열고, 최신 APK를 설치하며, 가상 차량을 0 km/h와 P 상태로 맞춥니다. Pleos는 D에서 0 km/h여도 앱 화면을 가리므로 버튼과 모드 비교는 P에서 진행합니다.
+PowerShell에서 저장소 폴더로 이동한 뒤 아래 명령을 실행합니다. 스크립트는 Pleos Connect 2.1 에뮬레이터를 호스트 GPU 모드로 열고, 최신 APK를 설치하며, 가상 차량을 0 km/h와 D 상태로 맞춥니다. Pleos 공식 ADB 테스트 명령으로 에뮬레이터의 주행 화면 제한을 잠시 끕니다.
 
-`powershell
+```powershell
 .\demo\start-interactive.ps1
-`
+```
 
-앱에서 **주행 시나리오 시작**을 한 번 누르면 0 → 30 → 50 → 70 → 95 → 130 → 0 km/h의 약 100초 음악 시나리오가 시작됩니다. 오른쪽의 Pulse, Night, Coast, Horizon, Circuit 카드를 누르면 재생 중에도 모드를 비교할 수 있습니다. **주행 시나리오 종료**를 누르면 정지합니다. 이 버튼의 속도는 앱의 합성 엔진에 주입되는 시연 값으로, 실제 차량이나 Pleos 계기판 속도를 바꾸지는 않습니다. 시나리오 버튼은 Pleos 에뮬레이터가 정지 상태일 때만 표시됩니다.
+앱 상단의 유일한 재생 버튼인 **주행 시나리오 시작**을 한 번 누르면 0 → 30 → 50 → 70 → 95 → 130 → 0 km/h의 약 100초 음악 시나리오가 시작됩니다. 오른쪽의 Pulse, Night, Coast, Horizon, Circuit 카드를 누르면 재생 중에도 모드를 비교할 수 있습니다. **주행 시나리오 종료**를 누르면 정지합니다. 이 버튼의 속도는 앱의 합성 엔진에 주입되는 시연 값으로, 실제 차량이나 Pleos 계기판 속도를 바꾸지는 않습니다. 시나리오 버튼은 Pleos 에뮬레이터가 정지 상태일 때만 표시됩니다.
 
-D 선택 자체를 확인하려면 .\demo\start-interactive.ps1 -Gear Drive를 실행할 수 있습니다. 이때 Pleos의 주행 제한 화면이 앱을 가립니다. 기본 명령의 -gpu host는 PC GPU 드라이버를 사용합니다. 호환성 문제가 있으면 -Gpu auto로 실행할 수 있습니다. 종전 녹화에 썼던 swiftshader_indirect는 소프트웨어 렌더링입니다. Pleos 가상 콘솔의 D 선택 응답과 Android 차량의 현재 기어 속성은 다를 수 있으므로, D는 콘솔 선택 상태를 뜻합니다.
+테스트가 끝나면 `.\demo\stop-interactive.ps1`을 실행해 주행 제한을 다시 켜고 에뮬레이터를 닫습니다. 기본 명령의 `-gpu host`는 PC GPU 드라이버를 사용합니다. 호환성 문제가 있으면 `-Gpu auto`로 실행할 수 있습니다. 종전 녹화에 썼던 `swiftshader_indirect`는 소프트웨어 렌더링입니다. Pleos 가상 콘솔의 D 선택 응답과 Android 차량의 현재 기어 속성은 다를 수 있으므로, D는 콘솔 선택 상태를 뜻합니다.
+
+**주의:** `driving_regulation off`는 Pleos가 문서화한 개발용 ADB 테스트 설정입니다. 실제 차량에서 앱 화면을 허용하는 권한이 아니며, 이 설정으로 D에서 화면을 보는 장면을 주행 중 사용 가능성의 검증으로 제시하지 않습니다. 실제 배포 화면은 Pleos/Android Automotive 미디어 앱 UI 정책에 맞춰 별도로 설계·심사받아야 합니다. 참고: [Pleos ADB 테스트 명령](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-developer-guide/adb-command-reference-guide), [Pleos 주행 제한 정책](https://document.pleos.ai/en/docs/pleos-only/vehicle-app-planning-guide/driving-restiction-policy).
 
 ## 실행
 
 1. [`apk/홍원택_DriveSoundtrack_release.apk`](apk/홍원택_DriveSoundtrack_release.apk)를 Pleos Connect 또는 호환 Android Automotive 기기에 설치합니다.
-2. 앱을 열어 프리셋을 고르고 **재생**을 누릅니다. 차량 속도 권한 요청이 보이면 허용해야 실제 속도 신호를 읽을 수 있습니다. 가속 페달 권한은 지원하는 시스템에서만 요청합니다.
+2. 실제 차량에서는 앱을 열어 프리셋을 고르고 차량 미디어 제어로 재생합니다. 차량 속도 권한 요청이 보이면 허용해야 실제 속도 신호를 읽을 수 있습니다. 가속 페달 권한은 지원하는 시스템에서만 요청합니다. 앱 내부의 시나리오 버튼은 Pleos 개발용 에뮬레이터에서만 나타납니다.
 3. 차량 속도 연결이 불가능한 환경에서는 **시연 속도·가속 페달** 슬라이더와 세 가지 신호 버튼을 사용합니다. 차량 신호가 연결되면 시연 조작은 숨겨집니다.
 
 차량 속도 권한은 시스템에서 위치 정보로 표시될 수 있습니다. 앱은 GPS 위치를 읽지 않으며 속도 값을 저장하거나 전송하지 않습니다.

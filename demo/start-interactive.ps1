@@ -2,7 +2,7 @@ param(
     [string]$Avd = 'pleos_connect_210',
     [string]$Apk = '',
     [ValidateSet('host', 'auto')][string]$Gpu = 'host',
-    [ValidateSet('Park', 'Drive')][string]$Gear = 'Park'
+    [ValidateSet('Park', 'Drive')][string]$Gear = 'Drive'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +32,8 @@ do {
     if ((Get-Date) -gt $deadline) { throw 'Pleos emulator did not boot within five minutes.' }
     Start-Sleep -Seconds 2
 } while ($true)
+$product = (& $adb shell getprop ro.product.name | Out-String).Trim()
+if ($product -ne 'crp_avd') { throw "This test launcher is only for the Pleos emulator; connected product: $product" }
 
 $installResult = & $adb install -r $Apk 2>&1
 if ($LASTEXITCODE -ne 0 -and ($installResult | Out-String) -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' -and (Test-Path -LiteralPath $debugApk)) {
@@ -56,7 +58,12 @@ for ($attempt = 0; $attempt -lt 15; $attempt++) {
     }
 }
 
+$regulation = if ($Gear -eq 'Drive') { 'off' } else { 'on' }
+$regulationResult = & $adb shell cmd hmg_car_service --service drivingstate driving_regulation $regulation 2>&1
+$regulationResult | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "Could not set emulator driving regulation $regulation." }
+Start-Sleep -Seconds 1
 & $adb shell am start --user 10 -n com.drivesoundtrack.app/.MainActivity | Out-Host
 Write-Host "Pleos $Gear selected, speed 0 km/h. In the app, tap the scenario start button once."
-if ($Gear -eq 'Drive') { Write-Warning 'Pleos blocks this app screen in D, even at 0 km/h. Use the default Park mode for in-app comparison.' }
+if ($Gear -eq 'Drive') { Write-Warning 'Driving restrictions are disabled in this emulator for testing. This does not enable the app screen in production vehicles.' }
 Write-Host 'Tap a soundscape card during the scenario to compare all five modes.'

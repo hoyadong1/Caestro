@@ -37,7 +37,6 @@ class MainActivity : Activity() {
     private lateinit var tempoValue: TextView
     private lateinit var layersValue: TextView
     private lateinit var phase: TextView
-    private lateinit var play: Button
     private lateinit var scenario: Button
     private lateinit var demo: LinearLayout
     private lateinit var demoLabel: TextView
@@ -101,8 +100,6 @@ class MainActivity : Activity() {
                     .ifEmpty { "정차 → 기본 리듬" }
             if (playing && !bassSolo) phase.text = listOf("베이스", "드럼", "화음", "아르페지오", "선율", "반짝임")
                 .filterIndexed { index, _ -> layerMask and (1 shl index) != 0 }.joinToString("  +  ")
-            play.text = if (playing) "Ⅱ   일시정지" else "▶   음악 재생"
-            play.background = panel(scene.accent or (0xff shl 24), 16)
             visualizer.accent = scene.accent or (0xff shl 24)
             visualizer.playing = playing
             visualizer.bassSolo = bassSolo
@@ -196,13 +193,6 @@ class MainActivity : Activity() {
             layersValue = it.second; metrics.addView(it.first, LinearLayout.LayoutParams(0, dp(86), 1f))
         }
         now.addView(metrics, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
-        play = Button(this).apply {
-            text = "▶   음악 재생"; textSize = 19f; isAllCaps = false
-            setTextColor(BG); background = panel(0xff66c9ff.toInt(), 16)
-            setOnClickListener { send(if (playing) SoundtrackService.PAUSE else SoundtrackService.PLAY) }
-        }
-        now.addView(play, LinearLayout.LayoutParams(-1, dp(67)).apply { topMargin = dp(14) })
-
         demo = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         demoLabel = label("시연 속도   0 km/h", 13f, MUTED)
         demo.addView(demoLabel)
@@ -346,8 +336,6 @@ class MainActivity : Activity() {
         val canConfigure = !restricted && (scenarioEnabled || !carAvailable || kmh < 5)
         cards.forEach { it.isEnabled = canConfigure; it.alpha = if (canConfigure) 1f else 0.55f }
         visualizer.playing = playing && canConfigure
-        play.isEnabled = canConfigure
-        play.alpha = if (canConfigure) 1f else 0.55f
         scenario.visibility = if (scenarioAvailable || scenarioEnabled) View.VISIBLE else View.GONE
         scenario.isEnabled = scenarioEnabled || scenarioAvailable
         scenario.text = if (scenarioEnabled) "■  주행 시나리오 종료" else "▶  주행 시나리오 시작"
