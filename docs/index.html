@@ -3,127 +3,122 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Drive Soundtrack 0.6.1: 실제 앱 화면과 앱 PCM을 맞춘 여섯 악기 시연">
-  <title>Drive Soundtrack · Pleos 시연</title>
+  <meta name="theme-color" content="#07121c">
+  <meta name="description" content="Drive Soundtrack: 전기차 주행 신호가 여섯 악기를 하나씩 더하는 음악 경험. 실제 앱 화면과 사운드를 함께 보세요.">
+  <title>Drive Soundtrack | 차가 연주하는 음악</title>
   <style>
-    :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #09101b; color: #f2f8fa; }
-    * { box-sizing: border-box; }
-    body { margin: 0; }
-    main { max-width: 1080px; margin: 0 auto; padding: clamp(24px, 5vw, 64px) 20px 72px; }
-    .eyebrow { margin: 0 0 8px; color: #79e8dc; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-    h1 { margin: 0; font-size: clamp(34px, 5vw, 56px); line-height: 1.1; }
-    .intro { max-width: 760px; color: #b5c7d3; font-size: 18px; line-height: 1.6; }
-    .player { margin-top: 32px; border: 1px solid #26394b; border-radius: 18px; overflow: hidden; background: #050a12; box-shadow: 0 24px 64px #0008; }
-    video { display: block; width: 100%; aspect-ratio: 16 / 9; }
-    .details { margin-top: 24px; padding: 20px 24px; border-radius: 14px; background: #142535; color: #cfdee6; line-height: 1.6; }
-    .details strong { color: #79e8dc; }
-    .links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-    .links a, .links button { padding: 12px 18px; border: 1px solid #477e82; border-radius: 10px; color: #a5f3eb; background: transparent; text-decoration: none; font: inherit; font-weight: 600; cursor: pointer; }
-    .links a:hover, .links a:focus-visible, .links button:hover, .links button:focus-visible { background: #183b43; }
-    .stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
-    .stages img { width: 100%; border: 1px solid #26394b; border-radius: 12px; }
-    .stages span { display: block; margin-top: 7px; color: #a9cde1; font-size: 14px; }
+    :root { color-scheme:dark; font-family:Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif; color:#edf7fb; background:#07121c; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:radial-gradient(circle at 70% 4%, #113649 0, transparent 33%), #07121c; }
+    a { color:inherit; }
+    button { font:inherit; }
+    .wrap { width:min(1140px, calc(100% - 40px)); margin-inline:auto; }
+    .topbar { border-bottom:1px solid #213745; background:#07121cd9; backdrop-filter:blur(14px); }
+    .topbar .wrap { min-height:70px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.02em; text-decoration:none; white-space:nowrap; }
+    .brand-mark { width:29px; height:29px; display:grid; place-items:center; border:1px solid #65c6f5; border-radius:9px; color:#7ed4ff; font-size:18px; }
+    .toplinks { display:flex; gap:24px; color:#b4cbd8; font-size:14px; }
+    .toplinks a { text-decoration:none; }
+    .toplinks a:hover, .toplinks a:focus-visible { color:#83d9ff; }
+    .hero { padding:82px 0 64px; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr); align-items:center; gap:56px; }
+    .eyebrow { margin:0 0 15px; color:#70cfff; font-size:12px; font-weight:800; letter-spacing:.19em; text-transform:uppercase; }
+    h1 { max-width:690px; margin:0; font-size:clamp(42px, 6vw, 75px); line-height:1.12; letter-spacing:-.065em; }
+    .accent { color:#7bd5ff; }
+    .lead { max-width:650px; margin:24px 0 0; color:#bad0dd; font-size:18px; line-height:1.8; word-break:keep-all; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:32px; }
+    .button { display:inline-flex; justify-content:center; align-items:center; min-height:48px; padding:0 20px; border:1px solid #416a7e; border-radius:10px; color:#d8f5ff; font-weight:700; text-decoration:none; background:#123044; }
+    .button.primary { border-color:#70cfff; background:#70cfff; color:#07121c; }
+    .button:hover, .button:focus-visible { filter:brightness(1.13); }
+    .hero-card { padding:28px; border:1px solid #365a6c; border-radius:24px; background:linear-gradient(155deg,#14394d,#0c1f2c 75%); box-shadow:0 25px 80px #0005; }
+    .hero-card p { margin:0 0 22px; color:#afd3e2; font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    .hero-card ol { list-style:none; margin:0; padding:0; }
+    .hero-card li { display:flex; align-items:center; gap:13px; padding:10px 0; border-top:1px solid #ffffff15; font-size:15px; }
+    .hero-card li span { width:28px; height:28px; display:grid; place-items:center; border:1px solid #69c7ee; border-radius:8px; color:#8cdbff; font-size:12px; }
+    section { scroll-margin-top:24px; }
+    .section-head { display:flex; justify-content:space-between; align-items:end; gap:24px; margin-bottom:24px; }
+    h2 { margin:0; font-size:clamp(27px, 3vw, 38px); letter-spacing:-.045em; }
+    .muted { color:#a9bfcd; line-height:1.75; }
+    .section-head .muted { max-width:580px; margin:0; }
+    .video-shell { padding:14px; border:1px solid #355267; border-radius:20px; background:#0b1c2a; box-shadow:0 30px 90px #0008; }
+    video { display:block; width:100%; max-height:min(76vh,780px); aspect-ratio:210/151; margin:auto; border-radius:11px; background:#02080c; }
+    .chapters { display:flex; flex-wrap:wrap; gap:9px; margin:20px 0 0; }
+    .chapters button { min-height:40px; padding:0 14px; border:1px solid #375369; border-radius:8px; background:#102738; color:#c8e4f1; cursor:pointer; }
+    .chapters button:hover, .chapters button:focus-visible { background:#225271; border-color:#83d9ff; }
+    .recording-note { margin:16px 0 0; color:#93adbc; font-size:13px; line-height:1.7; }
+    .section { padding-top:100px; }
+    .instrument-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .instrument { min-height:162px; padding:23px; border:1px solid #29485b; border-radius:15px; background:linear-gradient(145deg,#122b3b,#0d202e); }
+    .instrument .number { color:#70cfff; font-size:12px; font-weight:800; letter-spacing:.1em; }
+    .instrument h3 { margin:17px 0 7px; font-size:19px; }
+    .instrument p { margin:0; color:#a9bfcd; font-size:14px; line-height:1.6; }
+    .signal-panel { display:grid; grid-template-columns:1fr 1fr; gap:36px; padding:32px; border:1px solid #29485b; border-radius:17px; background:#0d2231; }
+    .signal-panel h3 { margin:0 0 12px; font-size:19px; }
+    .signal-panel p { margin:0; color:#b4c9d5; line-height:1.8; }
+    .modes { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+    .modes span { padding:8px 12px; border:1px solid #42657a; border-radius:999px; color:#bfe7f8; font-size:13px; }
+    .download { margin:100px 0 70px; padding:34px; display:flex; justify-content:space-between; align-items:center; gap:24px; border:1px solid #4c8ba8; border-radius:20px; background:linear-gradient(115deg,#173e55,#0b2636); }
+    .download h2 { font-size:28px; }
+    .download p { margin:9px 0 0; color:#b6d0dc; line-height:1.6; }
+    .download .actions { margin:0; flex-shrink:0; }
+    footer { padding:0 0 40px; color:#829cac; font-size:13px; line-height:1.7; }
+    @media (max-width:800px) { .hero { grid-template-columns:1fr; padding:58px 0 70px; gap:36px; } .hero-card { max-width:520px; } .section-head { display:block; } .section-head .muted { margin:12px 0 0; } .instrument-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .download { display:block; } .download .actions { margin-top:22px; } }
+    @media (max-width:550px) { .toplinks { gap:12px; font-size:12px; } .brand { font-size:13px; } .hero-tail { display:block; } .hero-card { padding:22px; } .instrument-grid, .signal-panel { grid-template-columns:1fr; } .signal-panel { gap:26px; padding:24px; } .instrument { min-height:140px; } .section { padding-top:76px; } .download { margin-top:76px; padding:25px; } }
   </style>
 </head>
 <body>
-  <main>
-    <p class="eyebrow">Pleos Connect · App Demo</p>
-    <h1>Drive Soundtrack</h1>
-    <p class="intro">차량 신호로 악기를 연주하는 전기차용 음악 앱. 파란 Pulse를 기본으로 속도에 따라 여섯 악기가 합류하고, 화면도 한 칸에서 여섯 칸으로 나뉩니다.</p>
-    <p class="eyebrow" style="margin-top:40px">Live app screen + audio · 0.6.1</p>
-    <h2>실제 앱 화면과 같은 테이크의 음악</h2>
-    <p class="intro">정차에서 130 km/h까지 차례로 악기가 합류하고 감속할 때 빠지는 모습을 소리와 함께 볼 수 있습니다. 다섯 모드의 악기 음은 각 화음에 맞춰 편곡했습니다.</p>
-    <div class="player">
-      <video id="appDemoVideo" controls playsinline preload="metadata" poster="pulse-harmony-live-poster.png" style="aspect-ratio:210/151" aria-label="Pleos에서 실제 앱 화면과 앱이 출력한 음악을 함께 녹화한 시연 영상">
-        <source src="pulse-harmony-live-demo.mp4" type="video/mp4">
-        브라우저에서 영상을 재생할 수 없습니다.
-      </video>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="#top"><span class="brand-mark">♫</span> DRIVE SOUNDTRACK</a>
+      <nav class="toplinks" aria-label="페이지 메뉴"><a href="#demo">시연</a><a href="#instruments">악기 구성</a><a href="#download">설치</a></nav>
     </div>
-    <nav class="links" aria-label="여섯 악기 합류 단계 바로 보기">
-      <button type="button" data-app-seek="0">베이스</button><button type="button" data-app-seek="5">드럼</button><button type="button" data-app-seek="8">화음</button><button type="button" data-app-seek="10">아르페지오</button><button type="button" data-app-seek="13">선율</button><button type="button" data-app-seek="17">여섯 악기</button><button type="button" data-app-seek="23">감속</button>
-    </nav>
-    <p class="details"><strong>에뮬레이터 화면 + 같은 테이크의 앱 PCM:</strong> 화면은 Pleos Connect에서 녹화했고, 소리는 그때 앱이 AudioTrack에 전달한 PCM을 기록했습니다. 느리게 작동하는 에뮬레이터의 화면 프레임을 PCM 시간에 맞췄습니다. 속도 곡선은 앱 내부 디버그 입력으로 만든 시연이며 실제 차량 주행 영상은 아닙니다.</p>
-    <p class="eyebrow" style="margin-top:40px">Six instruments · 0.6.0</p>
-    <h2>베이스 하나에서 여섯 악기까지</h2>
-    <p class="intro">18 km/h 드럼, 38 km/h 화음, 58 km/h 아르페지오, 82 km/h 선율, 105 km/h 고역 질감이 차례로 들어옵니다. 감속하면 반대 순서로 빠집니다.</p>
-    <audio controls preload="metadata" style="width:100%" aria-label="0.6.0 여섯 악기 속도별 합주">
-      <source src="six-layer-journey.mp3" type="audio/mpeg">
-    </audio>
-    <div class="stages" aria-label="악기 분할 화면 단계">
-      <a href="six-layer-idle.png"><img src="six-layer-idle.png" alt="정차, 베이스 한 화면"><span>정차 · 1/6</span></a>
-      <a href="six-layer-three.png"><img src="six-layer-three.png" alt="45 km/h, 베이스 드럼 화음 세 화면"><span>45 km/h · 3/6</span></a>
-      <a href="six-layer-six.png"><img src="six-layer-six.png" alt="120 km/h, 여섯 악기 분할 화면"><span>120 km/h · 6/6</span></a>
+  </header>
+  <main class="wrap" id="top">
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Electric vehicle · Adaptive music</p>
+        <h1>조용한 전기차에<br><span class="accent">주행의 리듬을</span><span class="hero-tail"> 더하다.</span></h1>
+        <p class="lead">Drive Soundtrack은 차량 움직임을 음악의 악기와 연결합니다. 속도가 오르면 베이스에 악기가 하나씩 합류하고, 감속하면 다시 차분한 소리로 돌아옵니다.</p>
+        <div class="actions"><a class="button primary" href="#demo">영상과 소리 보기 ↓</a><a class="button" href="#download">앱 설치</a></div>
+      </div>
+      <div class="hero-card" aria-label="속도에 따라 합류하는 여섯 악기">
+        <p>One drive · Six instruments</p>
+        <ol><li><span>01</span> 베이스</li><li><span>02</span> 드럼</li><li><span>03</span> 화음</li><li><span>04</span> 아르페지오</li><li><span>05</span> 선율</li><li><span>06</span> 고역 질감</li></ol>
+      </div>
     </div>
-    <p class="details"><strong>앱 PCM 29초 단일 녹음:</strong> 앱이 AudioTrack에 보낸 소리를 직접 기록했습니다. 속도 곡선과 화면 사진은 정차한 Pleos 에뮬레이터에서 앱 내부 디버그 입력으로 만들었습니다. 실제 도로 주행이나 차량 기어 신호 시험은 아닙니다.</p>
-    <p class="eyebrow" style="margin-top:40px">Pulse layered drive · 0.5.0</p>
-    <h2>속도에 따라 악기가 합류하는 실제 앱 소리</h2>
-    <p class="intro">정차에서는 베이스, 18 km/h부터 드럼, 48 km/h부터 화음, 82 km/h부터 선율이 들어옵니다. 감속 때는 반대 순서로 빠집니다.</p>
-    <audio controls preload="metadata" style="width:100%" aria-label="Pulse 속도별 악기와 가상 7단 시연">
-      <source src="pulse-layer-journey.mp3" type="audio/mpeg">
-    </audio>
-    <p class="details"><strong>0.5.0 앱 PCM 29초 단일 녹음:</strong> Pleos 에뮬레이터에서 앱이 AudioTrack에 전달한 PCM을 기록했습니다. 0→40→80→130→0 km/h는 차량 센서가 아닌 앱 내부 디버그 시나리오입니다. DCT의 실제 변속 기록이 아니라 당시의 가상 7단 매핑을 들려줍니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/fb46d7a/DRIVING_SCORE_ALGORITHM.md" style="color:#a5f3eb">0.5.0 속도·단수 매핑</a></p>
-    <p class="eyebrow" style="margin-top:40px">Musical speed · 0.4.4</p>
-    <h2>모든 속도에서 화성에 맞는 베이스</h2>
-    <p class="intro">독립적인 상승음을 제거하고, 기존 베이스 음표의 기본음·옥타브 비율을 바꿨습니다. 정차·시내·도로·고속 구간을 각각 들어볼 수 있습니다.</p>
-    <div class="player">
-      <video id="musicalSpeedVideo" controls playsinline preload="metadata" poster="musical-speed-poster.png" aria-label="화성에 맞춰 변하는 속도 베이스 솔로 시연 영상">
-        <source src="musical-speed-journey.mp4" type="video/mp4">
-        브라우저에서 영상을 재생할 수 없습니다.
-      </video>
-    </div>
-    <nav class="links" aria-label="속도 구간 바로 듣기">
-      <button type="button" data-seek="0">정차</button><button type="button" data-seek="6">40 km/h</button><button type="button" data-seek="11">80 km/h</button><button type="button" data-seek="18">130 km/h</button><button type="button" data-seek="24">감속</button>
-    </nav>
-    <p class="details"><strong>실제 앱 PCM 29초 단일 녹음:</strong> 속도는 앱 내부 디버그 시나리오가 오디오 샘플 시간에 맞춰 생성했습니다. 차량 센서 신호로 만든 테이크는 아닙니다. 그래프와 파형은 이 PCM에서 만든 시각화입니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/MUSICAL_SPEED_JOURNEY.md" style="color:#a5f3eb">음색 설계·녹음 검증</a> · <a href="speed-pitch-journey.mp4" style="color:#a5f3eb">이전 상승음과 비교</a></p>
-    <p class="eyebrow" style="margin-top:40px">Vehicle signal bass drive · 0.4.2</p>
-    <h2>차량 신호로 가속부터 정차까지</h2>
-    <p class="intro">이전 버전의 0→88→0 km/h Pleos Console 입력입니다. 한 번 재생을 시작하고 속도를 282번 점진적으로 갱신했습니다.</p>
-    <div class="player">
-      <video controls playsinline preload="metadata" poster="bass-drive-poster.png" aria-label="연속 주행 베이스 솔로 시연 영상">
-        <source src="bass-drive-journey.mp4" type="video/mp4">
-        브라우저에서 영상을 재생할 수 없습니다.
-      </video>
-    </div>
-    <p class="details"><strong>82초 한 번의 앱 PCM 녹음:</strong> Pleos Virtual Console에서 P→D 선택 뒤 속도를 올렸다가 낮췄습니다. 오른쪽 파형·속도 곡선은 실제 앱 PCM과 콘솔 로그로 만든 시각화입니다. 에뮬레이터는 선택 기어 D를 앱에 전달했지만 현재 기어는 P로 보고했습니다. 실제 차량 주행이나 변속기 작동은 아닙니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/BASS_JOURNEY.md" style="color:#a5f3eb">시나리오·검증 결과</a></p>
-    <p class="eyebrow" style="margin-top:40px">Full score · 0.4.0</p>
-    <h2>전체 악기 시연</h2>
-    <div class="player">
-      <video controls playsinline preload="metadata" poster="poster.png" aria-label="Drive Soundtrack Pleos 시연 영상">
-        <source src="drive-soundtrack-demo.mp4" type="video/mp4">
-        브라우저에서 영상을 재생할 수 없습니다. 아래 저장소에서 파일을 열어 주세요.
-      </video>
-    </div>
-    <p class="details"><strong>0.4.0 · 에뮬레이터 시험:</strong> P 기어의 Virtual Console에서 속도 상승, 제동, 좌우 조향, 좌우 방향지시등과 복합 입력을 순서대로 주입했습니다. 방향지시등 장면의 측면 카메라는 Pleos 화면입니다. 음악은 각 화면을 녹화하는 동안 실제 앱이 AudioTrack에 전달한 PCM을 디버그 빌드에서 기록해 합쳤습니다. 시스템 오디오 캡처가 무음이어서 사용한 방식이며, 스피커 출력의 루프백 녹음은 아닙니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/DRIVING_SCORE_ALGORITHM.md" style="color:#a5f3eb">주행 신호별 음악 매핑</a></p>
-    <p class="eyebrow" style="margin-top:40px">Bass study · 0.4.1</p>
-    <h2>속도별 베이스만 듣기</h2>
-    <p class="intro">Circuit의 베이스만 분리했습니다. 정차부터 130 km/h까지 8개 속도를 차례로 비교합니다. 속도가 높아질수록 음량·배음·지속 시간이 바뀝니다.</p>
-    <div class="player">
-      <video controls playsinline preload="metadata" poster="bass-poster.png" aria-label="속도별 베이스 솔로 비교 영상">
-        <source src="bass-speed-study.mp4" type="video/mp4">
-        브라우저에서 영상을 재생할 수 없습니다.
-      </video>
-    </div>
-    <p class="details">Pleos Connect의 P 기어에서 속도를 강제 주입한 에뮬레이터 시험입니다. 오디오는 디버그 앱이 AudioTrack에 전달한 베이스 솔로 PCM이며, 각 속도 변경 후 안정된 구간을 사용했습니다. 오른쪽 파형과 RMS는 같은 PCM의 분석 시각화입니다. 에뮬레이터가 앱 영역을 흰 화면으로 캡처해 그 부분을 파형으로 대체했습니다. <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/BASS_STUDY.md" style="color:#a5f3eb">속도별 수치와 매핑 식</a></p>
-    <p class="eyebrow" style="margin-top:32px">Five soundscapes</p>
-    <p class="intro">0.4.4의 다섯 모드를 8초씩 들어볼 수 있습니다. 모든 소리는 앱의 Kotlin 합성 엔진에서 만들었습니다.</p>
-    <audio controls preload="metadata" style="width:100%" aria-label="다섯 사운드스케이프 음악 미리듣기">
-      <source src="drive-soundtrack-soundscapes.mp3" type="audio/mpeg">
-    </audio>
-    <nav class="links" aria-label="프로젝트 링크">
-      <a href="https://github.com/hoyadong1/DriveSoundtrack">GitHub 저장소</a>
-      <a href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/apk/%ED%99%8D%EC%9B%90%ED%83%9D_DriveSoundtrack_release.apk">Release APK</a>
-    </nav>
+
+    <section id="demo">
+      <div class="section-head"><div><p class="eyebrow">Live app demo · About 85 seconds</p><h2>한 번의 주행, 천천히 쌓이는 음악</h2></div><p class="muted">정차에서 출발해 30·50·70·95·130 km/h를 잠시 유지합니다. 각 악기의 조합을 들은 뒤 천천히 감속하는 장면까지 이어집니다.</p></div>
+      <div class="video-shell"><video id="demoVideo" controls playsinline preload="metadata" poster="pulse-harmony-live-poster.png" aria-label="실제 앱 화면과 같은 테이크의 앱 소리로 만든 약 85초 시연 영상"><source src="pulse-harmony-live-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
+      <nav class="chapters" aria-label="영상 구간 바로 보기"><button data-seek="0">정차 · 베이스</button><button data-seek="14">30 km/h</button><button data-seek="26">50 km/h</button><button data-seek="38">70 km/h</button><button data-seek="50">95 km/h</button><button data-seek="62">130 km/h</button><button data-seek="70">감속</button><button data-seek="82">다시 정차</button></nav>
+      <p class="recording-note">Pleos Connect 에뮬레이터에서 앱 화면을 녹화하고, 같은 재생 중 앱이 AudioTrack에 전달한 PCM을 기록해 맞췄습니다. 속도는 앱 내부 시연 입력이며 실제 도로 주행은 아닙니다.</p>
+    </section>
+
+    <section class="section" id="instruments">
+      <div class="section-head"><div><p class="eyebrow">The arrangement</p><h2>속도가 악기를 더합니다</h2></div><p class="muted">악기는 마디 시작에서 자연스럽게 들어오고 감속하면 반대 순서로 빠집니다. 화면도 활성 악기 수에 따라 분할됩니다.</p></div>
+      <div class="instrument-grid">
+        <div class="instrument"><span class="number">01 · ALWAYS ON</span><h3>베이스</h3><p>음악의 중심 음과 속도에 따른 저역의 무게.</p></div>
+        <div class="instrument"><span class="number">02 · FROM 18 KM/H</span><h3>드럼</h3><p>주행이 시작되면 리듬을 더합니다.</p></div>
+        <div class="instrument"><span class="number">03 · FROM 38 KM/H</span><h3>화음</h3><p>베이스 위에 넓은 음역을 채웁니다.</p></div>
+        <div class="instrument"><span class="number">04 · FROM 58 KM/H</span><h3>아르페지오</h3><p>화음 안의 음을 순서대로 연주합니다.</p></div>
+        <div class="instrument"><span class="number">05 · FROM 82 KM/H</span><h3>선율</h3><p>주행에 따라 달라지는 짧은 멜로디.</p></div>
+        <div class="instrument"><span class="number">06 · FROM 105 KM/H</span><h3>고역 질감</h3><p>고속 구간의 공간감과 밝기를 더합니다.</p></div>
+      </div>
+    </section>
+
+    <section class="section" id="signals">
+      <div class="section-head"><div><p class="eyebrow">Beyond speed</p><h2>차량 입력에 반응하는 소리</h2></div></div>
+      <div class="signal-panel"><div><h3>연주에 쓰는 신호</h3><p>속도는 악기 수와 음색을, 가속과 제동은 소리의 강약을 바꿉니다. 조향은 선율의 좌우 위치에, 방향지시등은 서로 다른 두 음의 응답에 연결됩니다. 와이퍼도 리듬 질감에 영향을 줍니다.</p></div><div><h3>다섯 가지 음악 모드</h3><p>Pulse, Night, Coast, Horizon, Circuit은 리듬과 악기 성격이 다릅니다. 각 모드의 음은 화음에 맞게 배치했습니다. 위 영상은 기본 모드인 Pulse의 속도 시연입니다.</p><div class="modes"><span>Pulse</span><span>Night</span><span>Coast</span><span>Horizon</span><span>Circuit</span></div></div></div>
+    </section>
+
+    <section class="download" id="download"><div><p class="eyebrow">Try the app</p><h2>차 안의 움직임을 음악으로</h2><p>Android Automotive용 Kotlin 앱입니다. 저장소에서 구현과 검증 자료를 확인할 수 있습니다.</p></div><div class="actions"><a class="button primary" href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/apk/%ED%99%8D%EC%9B%90%ED%83%9D_DriveSoundtrack_release.apk">APK 다운로드</a><a class="button" href="https://github.com/hoyadong1/DriveSoundtrack">GitHub 저장소</a></div></section>
   </main>
+  <footer class="wrap">© Drive Soundtrack · 시연 영상의 속도는 에뮬레이터 내부 입력입니다. 실제 차량 적용과 주행 중 UX는 별도 검증이 필요합니다.</footer>
   <script>
-    const appDemoVideo = document.getElementById('appDemoVideo');
-    document.querySelectorAll('[data-app-seek]').forEach(button => button.addEventListener('click', () => {
-      appDemoVideo.currentTime = Number(button.dataset.appSeek);
-      appDemoVideo.play();
-    }));
-    const musicalSpeedVideo = document.getElementById('musicalSpeedVideo');
+    const video = document.getElementById('demoVideo');
     document.querySelectorAll('[data-seek]').forEach(button => button.addEventListener('click', () => {
-      musicalSpeedVideo.currentTime = Number(button.dataset.seek);
-      musicalSpeedVideo.play();
+      video.currentTime = Number(button.dataset.seek);
+      video.play();
     }));
   </script>
 </body>

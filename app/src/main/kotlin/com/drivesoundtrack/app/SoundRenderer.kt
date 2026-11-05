@@ -18,18 +18,26 @@ class SoundRenderer(private val model: SoundModel) {
         const val CHANNELS = 2
         private const val TWO_PI = 2.0 * PI
         private const val TRANSITION_SAMPLES = RATE * 0.35
-        /** Debug capture profile. Time is based on emitted PCM, never wall time. */
+        /** Long debug drive. Time follows emitted PCM, including emulator slowdowns. */
         fun speedJourneyKmh(t: Double): Double = when {
-            t < 2.0 -> 0.0
-            t < 6.0 -> (t - 2.0) * 10.0
-            t < 7.0 -> 40.0
-            t < 11.0 -> 40.0 + (t - 7.0) * 10.0
-            t < 12.0 -> 80.0
-            t < 17.0 -> 80.0 + (t - 12.0) * 10.0
-            t < 19.0 -> 130.0
-            t < 23.0 -> 130.0 - (t - 19.0) * 16.25
-            t < 27.0 -> 65.0 - (t - 23.0) * 16.25
+            t < 5.0 -> 0.0
+            t < 13.0 -> smoothSpeed(0.0, 30.0, (t - 5.0) / 8.0)
+            t < 17.0 -> 30.0
+            t < 25.0 -> smoothSpeed(30.0, 50.0, (t - 17.0) / 8.0)
+            t < 29.0 -> 50.0
+            t < 37.0 -> smoothSpeed(50.0, 70.0, (t - 29.0) / 8.0)
+            t < 41.0 -> 70.0
+            t < 49.0 -> smoothSpeed(70.0, 95.0, (t - 41.0) / 8.0)
+            t < 53.0 -> 95.0
+            t < 61.0 -> smoothSpeed(95.0, 130.0, (t - 53.0) / 8.0)
+            t < 66.0 -> 130.0
+            t < 80.0 -> smoothSpeed(130.0, 0.0, (t - 66.0) / 14.0)
             else -> 0.0
+        }
+
+        private fun smoothSpeed(from: Double, to: Double, progress: Double): Double {
+            val eased = progress * progress * (3.0 - 2.0 * progress)
+            return from + (to - from) * eased
         }
     }
 

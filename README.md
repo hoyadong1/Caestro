@@ -6,28 +6,11 @@
 
 ## 시연 영상
 
-**0.6.1 실제 앱 화면 + 음악:** [GitHub Pages에서 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](docs/pulse-harmony-live-demo.mp4). 정차→130 km/h→정차에서 악기가 1개에서 6개까지 늘었다가 줄어드는 모습을 Pleos 앱 화면으로 보여 줍니다. 소리는 화면을 녹화한 같은 테이크에서 앱이 `AudioTrack.write()`에 전달한 PCM입니다. 에뮬레이터가 실시간보다 느리게 작동해 화면 프레임을 PCM 시간에 맞췄습니다. 속도는 앱 내부 디버그 시나리오이며 실제 도로 주행 신호가 아닙니다. Pulse를 포함한 다섯 모드에 화음별 음 구성을 지정하고 베이스·화음·아르페지오·선율·고역 악기가 함께 켜져도 조성 안에 있도록 편곡했습니다.
+[**최신 앱 화면과 소리 바로 재생**](https://hoyadong1.github.io/DriveSoundtrack/) · [MP4 파일](docs/pulse-harmony-live-demo.mp4) · [서명된 APK](apk/홍원택_DriveSoundtrack_release.apk)
 
-화음 검사는 [`test/HarmonyCheck.kt`](test/HarmonyCheck.kt)에 있습니다. 모든 모드의 화음 음이 각 조성에 속하고, 이웃한 화음에 공통음이 있으며, 1~6개 악기 단계와 다섯 모드의 전체 합주에서 PCM 피크가 클리핑 범위에 들어가지 않는지 확인합니다. 이 검사는 청감 평가를 대신하지는 않습니다.
+약 85초 동안 정차에서 30·50·70·95·130 km/h를 천천히 거쳐 다시 정차합니다. 악기가 1개에서 6개까지 합류하고 빠지는 모습을 실제 Pleos 앱 화면에서 볼 수 있습니다. 소리는 같은 재생 중 앱이 `AudioTrack.write()`에 전달한 PCM입니다. 에뮬레이터가 느리게 작동해 화면 프레임을 표시 속도에 맞춰 정렬했습니다. 속도는 앱 내부 시연 입력이며 실제 차량 주행은 아닙니다.
 
-**0.6.0 여섯 악기:** [웹에서 앱 PCM과 분할 화면 보기](https://hoyadong1.github.io/DriveSoundtrack/) · [MP3 바로 듣기](docs/six-layer-journey.mp3) · [정차 1/6](docs/six-layer-idle.png) · [45 km/h 3/6](docs/six-layer-three.png) · [120 km/h 6/6](docs/six-layer-six.png). 0→40→80→130→0 km/h의 앱 내부 디버그 시나리오에서 실제 앱 PCM을 녹음했습니다. 화면도 정차한 에뮬레이터에서 디버그 속도로 캡처했습니다.
-
-**이전 0.5.0 Pulse 전체 합주:** [29초 앱 PCM](docs/pulse-layer-journey.mp3). 당시에는 네 악기 층과 가상 7단 음색을 사용했습니다. 현재 0.6.0 편곡에는 기어 단수가 들어가지 않습니다. 아래 영상들은 이전 0.4.x 설계입니다.
-
-[![화성에 맞춰 변하는 속도 베이스 시연 영상](docs/musical-speed-poster.png)](https://hoyadong1.github.io/DriveSoundtrack/)
-
-[GitHub Pages에서 영상 바로 재생](https://hoyadong1.github.io/DriveSoundtrack/) · [0.4.0 전체 합주 MP4](docs/drive-soundtrack-demo.mp4) · [서명된 release APK 다운로드](apk/홍원택_DriveSoundtrack_release.apk)
-
-**새 0.4.4 화성 기반 베이스:** [29초 베이스 솔로 영상](docs/musical-speed-journey.mp4) · [속도별 음색과 실제 PCM 검증](MUSICAL_SPEED_JOURNEY.md). 0.4.3의 독립적인 연속 상승음을 제거했습니다. 0→40→80→130→0 km/h에 따라 베이스가 **같은 음의 기본음과 옥타브 성분을 섞는 비율**을 바꿉니다. 앱이 `AudioTrack.write()`에 전달한 단일 PCM을 사용했고, 이번 영상의 속도는 오디오 시간에 맞춘 앱 내부 디버그 시나리오입니다.
-
-**이전 0.4.3 실험:** [연속 상승음 영상](docs/speed-pitch-journey.mp4) · [독립 발진음 실측](SPEED_PITCH_JOURNEY.md). 음악의 화음 사이로 음높이가 지나가며 거슬릴 수 있어 현재 앱에서 교체했습니다.
-
-**이전 0.4.2 차량 신호 시연:** [82초 베이스 솔로 영상](docs/bass-drive-journey.mp4) · [주행 곡선·기어 신호·PCM 검증](BASS_JOURNEY.md). Pleos Console에서 D를 선택하고 0→88→0 km/h를 282번 점진적으로 갱신했습니다. 에뮬레이터의 현재 기어 속성은 P로 남았습니다.
-
-**베이스만 집중 비교:** [0·10·20·35·55·80·110·130 km/h 베이스 솔로 영상](https://hoyadong1.github.io/DriveSoundtrack/bass-speed-study.mp4) · [속도별 측정값과 음색 설계](BASS_STUDY.md). 0.4.1 디버그 빌드의 베이스 솔로 출력만 녹음했습니다. 영상 오른쪽은 실제 앱 PCM의 파형과 RMS를 표시합니다.
-
-**0.4.0 · Pleos Connect v2.1.0 에뮬레이터 시연.** 왼쪽 3D 차량과 오른쪽 악기 무대를 함께 보여 줍니다. P 기어의 Virtual Console에서 정차 → 가속 → 고속 주행 → 제동 → 좌측 조향 → 좌·우 방향지시등 → 속도·조향·제동·지시등의 복합 상태를 짧은 장면으로 녹화했습니다. 마지막은 Pulse 모드입니다. **음악은 화면을 녹화하는 동안 실제 앱이 `AudioTrack.write()`에 전달한 PCM을 디버그 빌드에서 WAV로 기록해 합쳤습니다.** 에뮬레이터의 시스템 오디오 캡처가 무음이어서 앱 재생 경로에서 직접 기록했습니다. 스피커 출력의 루프백 녹음은 아닙니다. [0.4.4 다섯 모드 음악 미리듣기](docs/drive-soundtrack-soundscapes.mp3)
-
+다섯 음악 모드의 음을 각 화음에 맞게 구성했습니다. [`test/HarmonyCheck.kt`](test/HarmonyCheck.kt)는 조성·화음 공통음·6개 악기 합주의 출력 범위를 확인합니다.
 ## 기능
 
 - Pulse(일렉트로), Night(퓨처 개러지), Coast(앰비언트 하우스), Horizon(시네마틱), Circuit(멜로딕 드라이브)의 다섯 사운드스케이프
@@ -63,21 +46,19 @@ macOS/Linux에서는 `./gradlew :app:assembleDebug`를 사용합니다. 제출�
 
 ## Kotlin 보조 도구
 
-`test/SoundModelCheck.kt`는 신호별 상태와 안전한 값 범위를, `test/InstrumentAudioCheck.kt`는 각 악기 입력이 실제 PCM 출력을 바꾸는지 검사합니다. `test/PreviewWav.kt`는 앱과 동일한 `SoundRenderer`로 40초 WAV(각 모드 8초)를 만듭니다. Kotlin CLI가 있는 환경에서 다음처럼 실행할 수 있습니다.
+`test/SoundModelCheck.kt`는 신호별 상태와 값 범위를, `test/InstrumentAudioCheck.kt`는 각 악기 입력이 실제 PCM 출력을 바꾸는지 검사합니다. `test/HarmonyCheck.kt`는 다섯 모드의 화음과 1~6개 악기 합주, 긴 속도 시나리오를 검사합니다. Kotlin CLI가 있는 환경에서 다음처럼 실행할 수 있습니다.
 
 ```powershell
-kotlinc app/src/main/kotlin/com/drivesoundtrack/app/Soundscapes.kt app/src/main/kotlin/com/drivesoundtrack/app/SoundModel.kt app/src/main/kotlin/com/drivesoundtrack/app/SoundRenderer.kt test/SoundModelCheck.kt test/InstrumentAudioCheck.kt test/PreviewWav.kt -include-runtime -d audio-tools.jar
+kotlinc app/src/main/kotlin/com/drivesoundtrack/app/Soundscapes.kt app/src/main/kotlin/com/drivesoundtrack/app/SoundModel.kt app/src/main/kotlin/com/drivesoundtrack/app/SoundRenderer.kt test/SoundModelCheck.kt test/InstrumentAudioCheck.kt test/HarmonyCheck.kt -include-runtime -d audio-tools.jar
 java -cp audio-tools.jar SoundModelCheckKt
 java -cp audio-tools.jar InstrumentAudioCheckKt
-java -cp audio-tools.jar PreviewWavKt preview.wav
+java -cp audio-tools.jar HarmonyCheckKt
 ```
 
-Kotlin 보조 도구로 모델 검사와 악기별·방향별 PCM 차이, 연속 조향, 복합 신호 검사를 통과했습니다. `test/BassSpeedCheck.kt`는 Circuit 베이스를 8개 정속 상태에서 따로 검증합니다. 웹 페이지의 40초 MP3는 0.4.4 `SoundRenderer`가 생성한 다섯 모드 미리듣기입니다. 시연 영상의 오디오는 이 MP3를 사용하지 않고 녹화 당시 앱의 PCM에서 가져왔습니다. 모든 음악은 이 저장소의 합성 코드로 생성하며 게임 음원을 사용하지 않습니다.
+시연 영상은 미리 만든 음원을 덧씌우지 않고 녹화 당시 앱의 PCM을 사용합니다. 음악은 이 저장소의 Kotlin 합성 코드에서 생성합니다.
 
 ## 검증 범위와 남은 항목
 
-0.6.0 디버그·릴리스 빌드와 릴리스 APK 서명 검증을 마쳤습니다. 이전 베이스 영상은 앱 내부 디버그 입력을 사용하므로 차량 센서 시험은 아닙니다. 실제 청취자가 모든 속도대에서 음악을 선호하는지, 소리만으로 속도대를 알아맞히는지는 아직 평가하지 않았습니다. 기존 0.4.0 전체 합주 영상은 P 기어에서 값을 강제 주입한 **에뮬레이터 시험**이며 실제 도로 주행은 아닙니다. 0.4.2 베이스 영상은 P에서 D를 선택하고 속도를 연속으로 주입했지만 에뮬레이터의 현재 기어 속성은 P로 남아 있어 실제 변속기 작동을 입증하지 않습니다. Kotlin PCM 검사에서 가속·제동·조향·방향지시등·와이퍼 각각이 음원 샘플을 변경하고, 좌·우 지시등이 다른 음형과 스테레오 위치를 만들며 복합 입력도 소리를 바꾸는 것을 확인했습니다.
-
-[0.3.0 악기 화면과 Pleos 방향지시등 신호 시험](demo/v03-signal-test2.png) · [0.2.1 속도 신호 시험](demo/Drive_Soundtrack_차량신호_검증.png)
+0.6.2 디버그·릴리스 빌드와 릴리스 APK 서명 검증을 마쳤습니다. 최신 영상의 속도는 앱 내부 디버그 입력이며 실제 차량 센서 시험은 아닙니다. 청취자가 모든 속도에서 편곡을 선호하는지, 소리만으로 속도대를 알아맞히는지는 아직 평가하지 않았습니다. Kotlin PCM 검사에서 가속·제동·조향·방향지시등·와이퍼 각각의 입력이 출력을 바꾸는 것은 확인했습니다.
 
 Pleos v2.1 AVD에는 `android.car.permission.READ_CAR_PEDALS` 권한이 없어 **실제 가속 페달값은 검증되지 않았습니다**. 와이퍼 콜백/스위치의 앱 표시와 스피커 출력 오디오의 루프백 녹음, Pleos `DrivingMode` 변경, 실제 차량 주행, 차량 서비스 재연결, UX 제한 콜백의 실동작도 아직 검증되지 않았습니다.

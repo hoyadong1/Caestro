@@ -5,6 +5,13 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 fun main() {
+    val journey = { second: Double -> SoundRenderer.speedJourneyKmh(second) }
+    val speedStops = mapOf(0.0 to 0.0, 13.0 to 30.0, 25.0 to 50.0,
+        37.0 to 70.0, 49.0 to 95.0, 61.0 to 130.0, 80.0 to 0.0, 85.0 to 0.0)
+    check(speedStops.all { (second, speed) -> abs(journey(second) - speed) < 0.001 })
+    check((5..61).all { journey(it.toDouble()) >= journey(it - 1.0) })
+    check((66..80).all { journey(it.toDouble()) <= journey(it - 1.0) })
+
     val allowedNotes = listOf(
         setOf(0, 2, 3, 5, 7, 8, 10), // Pulse: A natural minor
         setOf(0, 2, 3, 5, 7, 8, 10), // Night: D natural minor
