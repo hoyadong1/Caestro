@@ -18,6 +18,8 @@ class SoundRenderer(private val model: SoundModel) {
         const val CHANNELS = 2
         private const val TWO_PI = 2.0 * PI
         private const val TRANSITION_SAMPLES = RATE * 0.35
+        /** Per-sample decay of a cut note's leftover value: about a 3 ms time constant. */
+        private val DECLICK = kotlin.math.exp(-1.0 / (0.003 * RATE))
         /** Long debug drive. Time follows emitted PCM, including emulator slowdowns. */
         fun speedJourneyKmh(t: Double): Double = when {
             t < 5.0 -> 0.0
@@ -62,6 +64,12 @@ class SoundRenderer(private val model: SoundModel) {
     private var shimmerAge = 10.0
     private var kickPhase = 0.0
     private var bassPhase = 0.0
+    // Retriggering a voice cuts its previous note mid-waveform. The cut value is carried as an
+    // offset that decays over a few milliseconds, which removes the click without a second voice.
+    private var bassDeclick = 0.0; private var lastBass = 0.0
+    private var leadDeclick = 0.0; private var lastLead = 0.0
+    private var arpDeclick = 0.0; private var lastArp = 0.0
+    private var shimmerDeclick = 0.0; private var lastShimmer = 0.0
     private var driveBassPhase = 0.0
     private var driveBassHz = 55.0
     private var leadPhase = 0.0
@@ -172,8 +180,10 @@ class SoundRenderer(private val model: SoundModel) {
                 else 3.4 - speedLevel * 0.8 + accelerator * 1.3
             val bassDrive = if (activePreset == 4) 0.75 + accelerator * 0.22 + speedLevel * 0.13
                 else 0.68 + accelerator * 0.32 + speedLevel * 0.45
-            val bass = if (bassAge < 1.4) bassWave * exp(-bassAge * bassDecay) *
-                scene.bassGain * bassDrive else 0.0
+            val bass = (if (bassAge < 1.4) bassWave * onset(bassAge) * exp(-bassAge * bassDecay) *
+                scene.bassGain * bassDrive * release(bassAge, 1.4) else 0.0) + bassDeclick
+            bassDeclick *= DECLICK
+            lastBass = bass
             driveBassPhase += TWO_PI * driveBassHz * frameTime
             val driveBass = if (activePreset == 4) scene.bassGain * 0.22 *
                 (sin(driveBassPhase) * 0.94 + sin(driveBassPhase * 2.0) * 0.06)
@@ -195,15 +205,22 @@ class SoundRenderer(private val model: SoundModel) {
                 4 -> sin(leadPhase) * 0.82 + sin(leadPhase * 2.0) * 0.14 + sin(leadPhase * 4.0) * 0.04
                 else -> sin(leadPhase) + sin(leadPhase * 2.0) * scene.brightness * 0.28
             }
-            val lead = if (leadAge < 1.0) (leadWave + sin(leadPhase * 2.0) * abs(steering) * 0.08) *
-                exp(-leadAge * 5.0) * scene.leadGain *
-                (0.55 + energy * 0.45) else 0.0
+            val lead = (if (leadAge < 1.0) (leadWave + sin(leadPhase * 2.0) * abs(steering) * 0.08) *
+                onset(leadAge) * exp(-leadAge * 5.0) * scene.leadGain *
+                (0.55 + energy * 0.45) * release(leadAge, 1.0) else 0.0) + leadDeclick
+            leadDeclick *= DECLICK
+            lastLead = lead
             arpPhase += TWO_PI * arpFrequency * frameTime
-            val arp = if (arpAge < 0.55) (sin(arpPhase) * 0.88 + sin(arpPhase * 2.0) * 0.12) *
-                exp(-arpAge * 7.0) * 0.042 else 0.0
+            val arp = (if (arpAge < 0.55) (sin(arpPhase) * 0.88 + sin(arpPhase * 2.0) * 0.12) *
+                onset(arpAge) * exp(-arpAge * 7.0) * 0.042 * release(arpAge, 0.55) else 0.0) + arpDeclick
+            arpDeclick *= DECLICK
+            lastArp = arp
             shimmerPhase += TWO_PI * shimmerFrequency * frameTime
-            val shimmer = if (shimmerAge < 1.1) (sin(shimmerPhase) * 0.72 +
-                sin(shimmerPhase * 2.0) * 0.28) * exp(-shimmerAge * 3.2) * 0.024 else 0.0
+            val shimmer = (if (shimmerAge < 1.1) (sin(shimmerPhase) * 0.72 +
+                sin(shimmerPhase * 2.0) * 0.28) * onset(shimmerAge) * exp(-shimmerAge * 3.2) * 0.024 *
+                release(shimmerAge, 1.1) else 0.0) + shimmerDeclick
+            shimmerDeclick *= DECLICK
+            lastShimmer = shimmer
             val turnVoice = if (turnAge < 0.52) {
                 val second = turnAge >= 0.18
                 val noteAge = if (second) turnAge - 0.18 else turnAge
@@ -275,17 +292,20 @@ class SoundRenderer(private val model: SoundModel) {
         if (scene.bass.hasStep(position)) {
             val degree = if (position % 8 == 0) 0 else if (position % 4 == 0) 2 else 1
             bassFrequency = scene.rootHz * ratio(chord + tones[degree])
+            bassDeclick = lastBass
             bassAge = 0.0
             bassPhase = 0.0
         }
         if (position == 2 || position == 6 || position == 10 || position == 14) {
             val degree = tones[(position / 4 + (bar % 2).toInt()) % tones.size]
             arpFrequency = scene.rootHz * 4.0 * ratio(chord + degree)
+            arpDeclick = lastArp
             arpAge = 0.0
             arpPhase = 0.0
         }
         if (position == 0 || position == 8) {
             shimmerFrequency = scene.rootHz * 8.0 * ratio(chord + tones[if (position == 0) 2 else 4])
+            shimmerDeclick = lastShimmer
             shimmerAge = 0.0
             shimmerPhase = 0.0
         }
@@ -296,6 +316,7 @@ class SoundRenderer(private val model: SoundModel) {
             val directed = (note + if (steering > 0.16) 1 else if (steering < -0.16) -1 else 0)
                 .coerceIn(tones.indices)
             leadFrequency = scene.rootHz * 4.0 * ratio(chord + tones[directed] + octave)
+            leadDeclick = lastLead
             leadAge = 0.0
             leadPhase = 0.0
         }
@@ -311,6 +332,11 @@ class SoundRenderer(private val model: SoundModel) {
         }
         if (bar % 8 == 7L && position == 14 && energy >= 0.48) snareAge = 0.0
     }
+
+    /** ~3 ms fade-in so a note never starts at full level. */
+    private fun onset(age: Double) = 1.0 - exp(-age * 900.0)
+    /** 60 ms fade before a voice's hard length limit. */
+    private fun release(age: Double, limit: Double) = ((limit - age) / 0.06).coerceIn(0.0, 1.0)
 
     private fun Int.hasStep(position: Int) = (this and (1 shl position)) != 0
     private fun ratio(semitones: Int) = 2.0.pow(semitones / 12.0)

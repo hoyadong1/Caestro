@@ -77,6 +77,11 @@ class MainActivity : ComponentActivity(), PlayerActions {
 
     // PlayerActions
 
+    override fun togglePlay() = send(when {
+        status.scenarioEnabled -> SoundtrackService.SCENARIO_TOGGLE // stops the demo and its playback
+        status.playing -> SoundtrackService.PAUSE
+        else -> SoundtrackService.PLAY
+    })
     override fun toggleScenario() = send(SoundtrackService.SCENARIO_TOGGLE)
     override fun selectPreset(index: Int) = send(SoundtrackService.PRESET) { putExtra("preset", index) }
     override fun demoSpeed(kmh: Double) {

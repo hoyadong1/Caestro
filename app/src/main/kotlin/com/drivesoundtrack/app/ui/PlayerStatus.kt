@@ -47,6 +47,7 @@ data class PlayerStatus(
 
 /** UI actions the screen can request from the host activity. */
 interface PlayerActions {
+    fun togglePlay()
     fun toggleScenario()
     fun selectPreset(index: Int)
     fun demoSpeed(kmh: Double)

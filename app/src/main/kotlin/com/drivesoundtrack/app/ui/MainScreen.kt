@@ -66,30 +66,39 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
     val accent = accentColor(scene.accent)
 
     MaterialTheme(colorScheme = darkColorScheme(primary = accent)) {
+        // Landscape (the car display) fits on one screen without scrolling: the stage and the
+        // soundscape cards share the height that is left. Portrait falls back to a scrolling page.
         Column(
-            Modifier.fillMaxSize().background(Palette.Background).verticalScroll(rememberScrollState())
-                .padding(start = 28.dp, top = 22.dp, end = 28.dp, bottom = 24.dp)
+            Modifier.fillMaxSize().background(Palette.Background)
+                .then(if (landscape) Modifier else Modifier.verticalScroll(rememberScrollState()))
+                .padding(start = 28.dp, top = 20.dp, end = 28.dp, bottom = 20.dp)
         ) {
             Header(status)
-            if (status.scenarioAvailable || status.scenarioEnabled) ScenarioButton(status.scenarioEnabled, actions)
-            val nowPlaying: @Composable ColumnScope.() -> Unit = {
-                Hero(status, accent, playing = status.playing && canConfigure,
-                    height = if (landscape) maxOf(365.dp, screenHeight - 300.dp) else 330.dp, landscape = landscape)
-                Metrics(status)
-                if (!status.carAvailable && !restricted) DemoControls(status, actions)
-                if (canRequestPermission) PermissionPrompt(actions)
-            }
-            val library: @Composable ColumnScope.() -> Unit = {
-                Library(status.preset, canConfigure, landscape, screenHeight, actions)
-            }
+            Transport(status, actions)
             if (landscape) {
-                Row(Modifier.fillMaxWidth().padding(top = 20.dp)) {
-                    Column(Modifier.weight(1.15f).padding(end = 20.dp), content = nowPlaying)
-                    Column(Modifier.weight(0.85f), content = library)
+                Row(Modifier.fillMaxWidth().weight(1f).padding(top = 16.dp)) {
+                    Column(Modifier.weight(1.15f).fillMaxHeight().padding(end = 20.dp)) {
+                        Hero(status, accent, playing = status.playing && canConfigure, landscape = true,
+                            modifier = Modifier.fillMaxWidth().weight(1f))
+                        Metrics(status)
+                        if (!status.carAvailable && !restricted) DemoControls(status, actions)
+                        if (canRequestPermission) PermissionPrompt(actions)
+                    }
+                    Column(Modifier.weight(0.85f).fillMaxHeight()) {
+                        Library(status.preset, canConfigure, landscape = true, actions = actions)
+                    }
                 }
             } else {
-                Column(Modifier.fillMaxWidth().padding(top = 20.dp), content = nowPlaying)
-                Column(Modifier.fillMaxWidth().padding(top = 22.dp), content = library)
+                Column(Modifier.fillMaxWidth().padding(top = 20.dp)) {
+                    Hero(status, accent, playing = status.playing && canConfigure, landscape = false,
+                        modifier = Modifier.fillMaxWidth().height(330.dp))
+                    Metrics(status)
+                    if (!status.carAvailable && !restricted) DemoControls(status, actions)
+                    if (canRequestPermission) PermissionPrompt(actions)
+                }
+                Column(Modifier.fillMaxWidth().padding(top = 22.dp)) {
+                    Library(status.preset, canConfigure, landscape = false, actions = actions)
+                }
             }
         }
     }
@@ -118,20 +127,32 @@ private fun Header(status: PlayerStatus) {
     }
 }
 
+/** Play/pause is always available (also while driving); the parked scenario only on the Pleos emulator. */
 @Composable
-private fun ScenarioButton(running: Boolean, actions: PlayerActions) {
-    Button(
-        onClick = actions::toggleScenario,
-        modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(52.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Palette.ScenarioButton, contentColor = Color.White),
-    ) { Text(if (running) "■  주행 시나리오 종료" else "▶  주행 시나리오 시작", fontSize = 16.sp) }
+private fun Transport(status: PlayerStatus, actions: PlayerActions) {
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        val playing = status.playing
+        Button(
+            onClick = actions::togglePlay,
+            modifier = Modifier.weight(1f).height(52.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (playing) Palette.ScenarioButton else MaterialTheme.colorScheme.primary,
+                contentColor = if (playing) Color.White else Palette.Background),
+        ) { Text(if (playing) "❚❚  일시정지" else "▶  재생", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        if (status.scenarioAvailable || status.scenarioEnabled) Button(
+            onClick = actions::toggleScenario,
+            modifier = Modifier.weight(1f).height(52.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Palette.ScenarioButton, contentColor = Color.White),
+        ) { Text(if (status.scenarioEnabled) "■  시연 시나리오 종료" else "◷  시연 시나리오 (0→130 km/h)", fontSize = 15.sp) }
+    }
 }
 
 @Composable
-private fun Hero(status: PlayerStatus, accent: Color, playing: Boolean, height: Dp, landscape: Boolean) {
+private fun Hero(status: PlayerStatus, accent: Color, playing: Boolean, landscape: Boolean, modifier: Modifier) {
     val scene = Soundscapes.all[status.preset]
-    Box(Modifier.fillMaxWidth().height(height)) {
+    Box(modifier) {
         InstrumentStage(status, accent, playing, Modifier.fillMaxSize())
         Column(Modifier.fillMaxWidth().padding(start = 26.dp, top = 22.dp, end = 26.dp)) {
             Label("NOW PLAYING  /  ORIGINAL SCORE", 11.sp, Palette.Muted, bold = true, spacing = 0.12.em)
@@ -213,32 +234,33 @@ private fun PermissionPrompt(actions: PlayerActions) {
 }
 
 @Composable
-private fun Library(selected: Int, enabled: Boolean, landscape: Boolean, screenHeight: Dp, actions: PlayerActions) {
+private fun ColumnScope.Library(selected: Int, enabled: Boolean, landscape: Boolean, actions: PlayerActions) {
     Label("SOUNDSCAPES", 19.sp, Color.White, bold = true, spacing = 0.08.em)
     Label("정차 중 음악의 분위기를 선택하세요", 12.sp, Palette.Muted, modifier = Modifier.padding(top = 3.dp, bottom = 10.dp))
-    val cardHeight = if (landscape) maxOf(64.dp, (screenHeight - 170.dp) / Soundscapes.all.size) else 72.dp
+    // In landscape the five cards split the remaining height evenly, so the list always fits.
     for ((i, scene) in Soundscapes.all.withIndex()) {
         val accent = accentColor(scene.accent)
         val shape = RoundedCornerShape(17.dp)
         Row(
-            Modifier.fillMaxWidth().padding(bottom = 7.dp).height(cardHeight).alpha(if (enabled) 1f else 0.55f)
+            Modifier.fillMaxWidth().padding(bottom = 7.dp)
+                .then(if (landscape) Modifier.weight(1f) else Modifier.height(72.dp))
+                .alpha(if (enabled) 1f else 0.55f)
                 .background(if (i == selected) Palette.PanelSelected else Palette.Panel, shape)
                 .border(1.dp, if (i == selected) accent else Palette.PanelStroke, shape)
                 .clickable(enabled = enabled) { actions.selectPreset(i) }
                 .semantics { contentDescription = "${scene.name}, ${scene.character}, 사운드스케이프 선택" }
-                .padding(start = 17.dp, top = 9.dp, end = 16.dp, bottom = 9.dp),
+                .padding(start = 17.dp, top = 6.dp, end = 16.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(4.dp, 39.dp).background(accent))
+            Box(Modifier.size(4.dp, 34.dp).background(accent))
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Label(scene.name, if (landscape) 25.sp else 18.sp, Color.White, bold = true)
-                Label(scene.character.uppercase(), if (landscape) 13.sp else 11.sp, Palette.Muted, spacing = 0.09.em)
+                Label(scene.name, if (landscape) 23.sp else 18.sp, Color.White, bold = true)
+                Label(scene.character.uppercase(), if (landscape) 12.sp else 11.sp, Palette.Muted, spacing = 0.09.em)
             }
-            if (landscape) SoundscapeGlyph(i, accent, Modifier.width(125.dp).fillMaxHeight())
+            if (landscape) SoundscapeGlyph(i, accent, Modifier.width(96.dp).fillMaxHeight())
             else Label("${scene.baseBpm.roundToInt()} BPM", 11.sp, Palette.Muted)
         }
     }
-    Label("전기차의 주행 신호가 각 악기의 연주를 바꿉니다.", 12.sp, Palette.Muted, modifier = Modifier.padding(top = 7.dp))
-    Label("주행 중에는 선택과 시연 조작이 제한됩니다.", 12.sp, Palette.Muted, modifier = Modifier.padding(top = 5.dp))
+    Label("주행 중에는 모드 선택과 시연 조작이 잠깁니다.", 12.sp, Palette.Muted, modifier = Modifier.padding(top = 4.dp))
 }
