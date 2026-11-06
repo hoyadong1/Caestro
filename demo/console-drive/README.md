@@ -10,8 +10,13 @@ Pleos Virtual Console로 D단 주행을 하면서, 에뮬레이터 화면·콘�
 준비: 헤드리스로 실행한 Pleos 에뮬레이터, 사용자 10에 설치한 **디버그** APK, `adb forward tcp:8088 tcp:8088`, Chrome, WSL의 `ffmpeg`.
 
 ```powershell
-.\demo\console-drive\record.ps1 -Out C:\temp\take1 -Duration 100
-python .\demo\console-drive\compose.py C:\temp\take1 C:\temp\take1\drive.mp4
+# D단 콘솔 주행. -Rate는 에뮬레이터 오디오 속도에 맞춰 페달 곡선을 늦춥니다
+.\demo\console-drive\record.ps1 -Out C:\temp\drive -Duration 104 -Rate 0.73
+python .\demo\console-drive\compose.py C:\temp\drive C:\temp\drive\out.mp4
+
+# 정차 시나리오 (앱 영역만)
+.\demo\console-drive\record-scenario.ps1 -Out C:\temp\scenario -Duration 104
+python .\demo\console-drive\compose.py C:\temp\scenario C:\temp\scenario\out.mp4 scenario
 ```
 
-에뮬레이터가 오디오를 실시간보다 느리게(약 0.8배) 만들기 때문에 영상은 실제 주행보다 짧고, 화면은 실제보다 약간 빠르게 흘러갑니다.
+에뮬레이터가 오디오를 실시간보다 느리게(PC 부하에 따라 약 0.6~0.8배) 만들기 때문에 영상은 실제 주행보다 짧고, 화면은 실제보다 빠르게 흘러갑니다. 녹화 전에 무거운 프로세스를 닫아 두면 이 차이가 줄어듭니다.
