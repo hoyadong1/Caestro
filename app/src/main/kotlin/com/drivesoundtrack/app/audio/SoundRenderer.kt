@@ -18,6 +18,7 @@ class SoundRenderer(private val model: SoundModel) {
         const val CHANNELS = 2
         private const val TWO_PI = 2.0 * PI
         private const val TRANSITION_SAMPLES = RATE * 0.35
+        private const val NEON = 5
         /** Per-sample decay of a cut note's leftover value: about a 3 ms time constant. */
         private val DECLICK = kotlin.math.exp(-1.0 / (0.003 * RATE))
         private const val SWELL_IN = 1.0 / (0.6 * RATE)
@@ -72,6 +73,10 @@ class SoundRenderer(private val model: SoundModel) {
     private var leadDeclick = 0.0; private var lastLead = 0.0
     private var arpDeclick = 0.0; private var lastArp = 0.0
     private var shimmerDeclick = 0.0; private var lastShimmer = 0.0
+    /** Neon has its own electro instruments; the other soundscapes use the shared voices below. */
+    private val neon = NeonEngine()
+    private var currentBpm = 96.0
+    private var currentWiper = false
     // Curve strings: one bowed section that swells while the wheel is turned and settles when
     // the car straightens. Direction is carried by stereo only: the strings come from the side the
     // car turns toward and the rest of the mix leans that way too (the bass stays centred).
@@ -114,6 +119,8 @@ class SoundRenderer(private val model: SoundModel) {
         }
         model.tick()
         val bpm = model.bpm()
+        currentBpm = bpm
+        currentWiper = model.wiper()
         val energy = model.intensity()
         val momentum = model.momentum()
         val accelerator = model.accelerator()
@@ -274,10 +281,17 @@ class SoundRenderer(private val model: SoundModel) {
             // Lean the mix into the turn: the far side drops by up to 60 %, strings pan with it.
             val leanLeft = 1.0 - max(0.0, steering) * 0.60
             val leanRight = 1.0 - max(0.0, -steering) * 0.60
-            val mixLeft = (fullLeft - bassStem) * leanLeft + bassStem + strings * (0.5 - steering * 0.45)
-            val mixRight = (fullRight - bassStem) * leanRight + bassStem + strings * (0.5 + steering * 0.45)
-            val left = tanh((if (bassSolo) bassStem else mixLeft) * 1.75) * 0.78 * transition
-            val right = tanh((if (bassSolo) bassStem else mixRight) * 1.75) * 0.78 * transition
+            val electro = activePreset == NEON
+            if (electro) neon.render(speedLevel, accelerator, brake, layerMixes, steeringPitch, bpm)
+            val turnLeft = turnVoice * (0.60 - turnPan * 0.35)
+            val turnRight = turnVoice * (0.60 + turnPan * 0.35)
+            val stemBass = if (electro) neon.bass else bassStem
+            val restLeft = if (electro) neon.left + turnLeft else fullLeft - bassStem
+            val restRight = if (electro) neon.right + turnRight else fullRight - bassStem
+            val mixLeft = restLeft * leanLeft + stemBass + strings * (0.5 - steering * 0.45)
+            val mixRight = restRight * leanRight + stemBass + strings * (0.5 + steering * 0.45)
+            val left = tanh((if (bassSolo) stemBass else mixLeft) * 1.75) * 0.78 * transition
+            val right = tanh((if (bassSolo) stemBass else mixRight) * 1.75) * 0.78 * transition
             pcm[output++] = (left * 32767.0).toInt().toShort()
             pcm[output++] = (right * 32767.0).toInt().toShort()
 
@@ -357,6 +371,7 @@ class SoundRenderer(private val model: SoundModel) {
             turnPhase = 0.0
         }
         if (bar % 8 == 7L && position == 14 && energy >= 0.48) snareAge = 0.0
+        neon.step(position, bar, chord, tones, scene, rhythmLevel, currentBpm, currentWiper)
     }
 
     /** ~3 ms fade-in so a note never starts at full level. */

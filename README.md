@@ -31,7 +31,7 @@ release APK를 다시 빌드하려면 저장소에 없는 서명키가 필요합
 
 | | |
 |---|---|
-| [기능](https://github.com/hoyadong1/DriveSoundtrack/wiki/Features) | 다섯 사운드스케이프, 악기 합류 속도, 신호별 연주, 안전 처리 |
+| [기능](https://github.com/hoyadong1/DriveSoundtrack/wiki/Features) | 여섯 사운드스케이프, 악기 합류 속도, 신호별 연주, 안전 처리 |
 | [아키텍처](https://github.com/hoyadong1/DriveSoundtrack/wiki/Architecture) | 차량 신호 → 음악 모델 → 합성 → 화면의 구조 |
 | [폴더 구조](https://github.com/hoyadong1/DriveSoundtrack/wiki/Project-Structure) | 저장소의 폴더와 파일 설명 |
 | [작업 방식](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development-Workflow) | 개발·검증 순서, 에뮬레이터, 시연 영상 제작 |

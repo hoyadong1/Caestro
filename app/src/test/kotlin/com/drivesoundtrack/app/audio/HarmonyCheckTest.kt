@@ -21,6 +21,7 @@ class HarmonyCheckTest {
             setOf(0, 2, 4, 5, 7, 9, 11), // Coast: C major
             setOf(0, 2, 3, 5, 7, 8, 10), // Horizon: G natural minor
             setOf(0, 2, 3, 5, 7, 8, 10), // Circuit: A natural minor
+            setOf(0, 2, 3, 5, 7, 8, 10), // Neon: D natural minor
         )
         Soundscapes.all.forEachIndexed { sceneIndex, scene ->
             val tones = requireNotNull(scene.chordTones) { "${scene.name} has no chord voicings" }

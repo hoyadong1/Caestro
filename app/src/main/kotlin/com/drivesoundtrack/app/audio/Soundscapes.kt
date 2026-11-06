@@ -79,5 +79,18 @@ object Soundscapes {
                 intArrayOf(0, 4, 7, 12, 16), // C major
                 intArrayOf(0, 3, 7, 10, 12), // D minor 7
             )),
+        // Neon uses its own electro engine (NeonEngine); the patterns below only feed the shared
+        // voices' bookkeeping. Harmony: D minor, i - iv - VI - VII.
+        Soundscape("Neon", "night electro", 0x5EE6C8, 104.0, 73.42,
+            intArrayOf(0, 5, -4, -2), intArrayOf(0, 3, 7, 10, 12),
+            0x1111, 0x1010, 0x4444, 0x1111,
+            intArrayOf(0, -1, -1, -1, -1, -1, 2, -1, -1, -1, 3, -1, -1, -1, -1, -1),
+            0.10, 0.12, 0.07, 0.45,
+            arrayOf(
+                intArrayOf(0, 3, 7, 10, 12), // D minor 7
+                intArrayOf(0, 3, 7, 10, 12), // G minor 7
+                intArrayOf(0, 4, 7, 11, 12), // B-flat major 7
+                intArrayOf(0, 4, 7, 9, 12),  // C major 6
+            )),
     )
 }
