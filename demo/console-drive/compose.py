@@ -5,7 +5,7 @@ import bisect, csv, json, os, shutil, subprocess, sys, wave
 from pathlib import Path
 
 take = Path(sys.argv[1]).resolve(); out = Path(sys.argv[2]).resolve()
-# 'console': emulator + console side by side. 'scenario': app area of the emulator only (parked in-app scenario).
+# 'console': emulator + console side by side. 'scenario': app area only. 'full': the whole Pleos screen.
 MODE = sys.argv[3] if len(sys.argv) > 3 else 'console'
 FPS = 30
 def wsl(p: Path) -> str:
@@ -48,6 +48,9 @@ for f in range(round(dur * FPS)):
 if MODE == 'console':
     inputs = ['-framerate', str(FPS), '-i', wsl(emu_out) + '/%05d.jpg', '-framerate', str(FPS), '-i', wsl(con_out) + '/%05d.jpg']
     graph = '[0:v]scale=1080:608:flags=lanczos[e];[1:v]scale=840:525:flags=lanczos,pad=840:608:0:41:color=0x0b0f14[c];[e][c]hstack=inputs=2,format=yuv420p[v]'
+elif MODE == 'full':
+    inputs = ['-framerate', str(FPS), '-i', wsl(emu_out) + '/%05d.jpg']
+    graph = '[0:v]scale=1920:1080:flags=lanczos,format=yuv420p[v]'
 else:
     inputs = ['-framerate', str(FPS), '-i', wsl(emu_out) + '/%05d.jpg']
     # Right-hand app area of the Pleos screen (status bar and climate bar removed), from a 1920x1080 recording.
@@ -55,7 +58,7 @@ else:
 audio_index = len(inputs) // 4
 ff('ffmpeg', '-v', 'error', '-y', *inputs, '-i', wsl(take / 'app-audio.wav'),
    '-filter_complex', graph,
-   '-map', '[v]', '-map', f'{audio_index}:a', '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-profile:v', 'high', '-level', '4.1', '-r', '30',
-   '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', wsl(out))
+   '-map', '[v]', '-map', f'{audio_index}:a', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-profile:v', 'main', '-level', '4.1', '-bf', '0', '-refs', '1', '-r', '30',
+   '-c:a', 'aac', '-ar', '48000', '-b:a', '192k', '-shortest', '-movflags', '+faststart', wsl(out))
 (take / 'audio_to_wall.json').write_text(json.dumps(log))
 print(f'{out}: {dur:.1f}s audio, {n_emu} emulator frames, {len(con)} console shots, drive wall {log[-1][1]:.1f}s')

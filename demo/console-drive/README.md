@@ -20,3 +20,11 @@ python .\demo\console-drive\compose.py C:\temp\scenario C:\temp\scenario\out.mp4
 ```
 
 에뮬레이터가 오디오를 실시간보다 느리게(PC 부하에 따라 약 0.6~0.8배) 만들기 때문에 영상은 실제 주행보다 짧고, 화면은 실제보다 빠르게 흘러갑니다. 녹화 전에 무거운 프로세스를 닫아 두면 이 차이가 줄어듭니다.
+
+핸들 반응 영상은 콘솔 페이지 없이 REST로 속도와 핸들 각도를 넣어 녹화하고, 구간 자막과 좌우 음량 막대를 붙입니다.
+
+```powershell
+.\demo\console-drive\record-steering.ps1 -Out C:\temp\steering
+python .\demo\console-drive\compose.py C:\temp\steering C:\temp\steering\full.mp4 full
+python .\demo\console-drive\caption_steering.py C:\temp\steering C:\temp\steering\full.mp4 C:\temp\steering\out.mp4
+```

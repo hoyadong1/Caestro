@@ -74,7 +74,7 @@
   <header class="topbar">
     <div class="wrap">
       <a class="brand" href="#top"><span class="brand-mark">♫</span> DRIVE SOUNDTRACK</a>
-      <nav class="toplinks" aria-label="페이지 메뉴"><a href="#demo">시연</a><a href="#instruments">악기 구성</a><a href="#download">설치</a></nav>
+      <nav class="toplinks" aria-label="페이지 메뉴"><a href="#demo">주행 시연</a><a href="#instruments">악기 구성</a><a href="#steering">핸들</a><a href="#scenario">정차 시연</a><a href="#download">설치</a></nav>
     </div>
   </header>
   <main class="wrap" id="top">
@@ -92,15 +92,7 @@
     </div>
 
     <section id="demo">
-      <div class="section-head"><div><p class="eyebrow">Live app demo · About 100 seconds</p><h2>한 번의 주행, 천천히 쌓이는 음악</h2></div><p class="muted">정차에서 출발해 30·50·70·95·130 km/h를 잠시 유지합니다. 각 악기의 조합을 들은 뒤 약 28초에 걸쳐 감속하는 장면까지 이어집니다.</p></div>
-      <div class="video-shell"><video id="demoVideo" controls playsinline preload="metadata" poster="pulse-harmony-live-poster.png" aria-label="실제 앱 화면과 같은 테이크의 앱 소리로 만든 약 100초 시연 영상"><source src="pulse-harmony-live-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
-      <nav class="chapters" aria-label="영상 구간 바로 보기"><button data-seek="0">정차 · 베이스</button><button data-seek="14">30 km/h</button><button data-seek="26">50 km/h</button><button data-seek="38">70 km/h</button><button data-seek="50">95 km/h</button><button data-seek="62">130 km/h</button><button data-seek="80">감속 중간</button><button data-seek="98">다시 정차</button></nav>
-      <p class="recording-note">Pleos Connect 전체 화면을 녹화한 뒤 오른쪽 앱 영역만 잘랐습니다. 원본의 왼쪽 3D 차량은 정차·P 상태입니다. 소리는 같은 재생 중 앱이 AudioTrack에 전달한 PCM이며, 속도는 앱 내부 시연 입력입니다. 실제 도로 주행은 아닙니다.</p>
-      <details class="source-view"><summary>Pleos 전체 화면 원본 보기</summary><img src="pleos-full-screen-context.png" loading="lazy" alt="왼쪽은 정차·P 상태의 Pleos 3D 차량, 오른쪽은 주행 시연 속도를 표시한 Drive Soundtrack 앱"><p>한 화면을 녹화한 뒤 오른쪽 앱 부분을 잘라 본편에 사용했습니다. 왼쪽 차량 표시는 앱 내부 시연 속도와 연동되지 않습니다.</p></details>
-    </section>
-
-    <section class="section" id="drive">
-      <div class="section-head"><div><p class="eyebrow">D gear · Real vehicle speed signal</p><h2>D단에서 받은 속도로 연주합니다</h2></div><p class="muted">Pleos Virtual Console의 가속·브레이크 페달로 같은 속도 곡선을 주행했습니다. 앱은 시나리오 없이 차량 속도 신호를 받아 악기를 더하고 뺍니다.</p></div>
+      <div class="section-head"><div><p class="eyebrow">D gear · Real vehicle speed signal</p><h2>차가 달리면, 악기가 하나씩 합류합니다</h2></div><p class="muted">Pleos Virtual Console의 가속·브레이크 페달로 같은 속도 곡선을 주행했습니다. 앱은 시나리오 없이 차량 속도 신호를 받아 악기를 더하고 뺍니다.</p></div>
       <div class="video-shell"><video controls playsinline preload="metadata" poster="console-d-drive-app-poster.png" aria-label="D단 주행 중 Pleos 화면의 앱과 Virtual Console을 나란히 녹화한 약 90초 영상"><source src="console-d-drive-app.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
       <p class="recording-note">왼쪽은 Pleos 화면(계기판 속도와 앱), 오른쪽은 Virtual Console입니다. 소리는 같은 재생 중 앱이 AudioTrack에 전달한 PCM입니다. 에뮬레이터가 오디오를 실시간보다 느리게 만들어 화면을 소리에 맞췄기 때문에 화면이 실제보다 약 1.6배 빠르게 흐릅니다. 실제 도로 주행은 아닙니다.</p>
     </section>
@@ -117,14 +109,24 @@
       </div>
     </section>
 
-    <section class="section" id="signals">
-      <div class="section-head"><div><p class="eyebrow">Beyond speed</p><h2>차량 입력에 반응하는 소리</h2></div></div>
-      <div class="signal-panel"><div><h3>연주에 쓰는 신호</h3><p>속도는 악기 수와 음색을, 가속과 제동은 소리의 강약을 바꿉니다. 조향은 선율의 좌우 위치에, 방향지시등은 서로 다른 두 음의 응답에 연결됩니다. 와이퍼도 리듬 질감에 영향을 줍니다.</p></div><div><h3>다섯 가지 음악 모드</h3><p>Pulse, Night, Coast, Horizon, Circuit은 리듬과 악기 성격이 다릅니다. 각 모드의 음은 화음에 맞게 배치했습니다. 위 영상은 기본 모드인 Pulse의 속도 시연입니다.</p><div class="modes"><span>Pulse</span><span>Night</span><span>Coast</span><span>Horizon</span><span>Circuit</span></div></div></div>
+    <section class="section" id="steering">
+      <div class="section-head"><div><p class="eyebrow">Beyond speed · Steering</p><h2>핸들을 꺾으면 소리도 따라 기웁니다</h2></div><p class="muted">D단 60 km/h를 유지한 채 핸들 각도만 바꿨습니다. 커브에서는 현악이 부풀어 오르고, 소리 전체가 꺾는 쪽 스피커로 기웁니다. 직선으로 돌아오면 가운데로 돌아옵니다.</p></div>
+      <div class="video-shell"><video controls playsinline preload="metadata" poster="steering-drive-poster.png" aria-label="D단 60 km/h에서 왼쪽 차선 변경, 왼쪽 커브, 오른쪽 커브를 차례로 주행한 약 70초 영상"><source src="steering-drive.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
+      <p class="recording-note">Pleos Virtual Console로 핸들 각도를 넣고, 앱은 Pleos SDK의 조향각을 받아 연주합니다. 아래쪽 막대는 왼쪽(L)·오른쪽(R) 스피커의 음량입니다. 스테레오 스피커나 헤드폰으로 들어 보세요. 실제 도로 주행은 아닙니다.</p>
+      <div class="signal-panel"><div><h3>연주에 쓰는 신호</h3><p>속도는 악기 수와 음색을, 가속과 제동은 소리의 강약을 바꿉니다. 핸들은 현악과 좌우 기울기로, 방향지시등은 서로 다른 두 음의 응답으로 연결됩니다. 와이퍼도 리듬 질감에 영향을 줍니다.</p></div><div><h3>다섯 가지 음악 모드</h3><p>Pulse, Night, Coast, Horizon, Circuit은 리듬과 악기 성격이 다릅니다. 각 모드의 음은 화음에 맞게 배치했습니다. 영상은 기본 모드인 Pulse입니다.</p><div class="modes"><span>Pulse</span><span>Night</span><span>Coast</span><span>Horizon</span><span>Circuit</span></div></div></div>
+    </section>
+
+    <section class="section" id="scenario">
+      <div class="section-head"><div><p class="eyebrow">In-app demo · About 100 seconds</p><h2>정차 중에 미리 들어 보는 시연 주행</h2></div><p class="muted">앱의 시연 버튼으로 0→30→50→70→95→130→0 km/h를 재생합니다. 아래 버튼으로 속도 구간을 바로 들어 볼 수 있고, 재생 중에 다섯 모드를 바꿔 비교할 수 있습니다.</p></div>
+      <div class="video-shell"><video id="demoVideo" controls playsinline preload="metadata" poster="pulse-harmony-live-poster.png" aria-label="실제 앱 화면과 같은 테이크의 앱 소리로 만든 약 100초 시연 영상"><source src="pulse-harmony-live-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
+      <nav class="chapters" aria-label="영상 구간 바로 보기"><button data-seek="0">정차 · 베이스</button><button data-seek="14">30 km/h</button><button data-seek="26">50 km/h</button><button data-seek="38">70 km/h</button><button data-seek="50">95 km/h</button><button data-seek="62">130 km/h</button><button data-seek="80">감속 중간</button><button data-seek="98">다시 정차</button></nav>
+      <p class="recording-note">Pleos Connect 전체 화면을 녹화한 뒤 오른쪽 앱 영역만 잘랐습니다. 원본의 왼쪽 3D 차량은 정차·P 상태입니다. 소리는 같은 재생 중 앱이 AudioTrack에 전달한 PCM이며, 속도는 앱 내부 시연 입력입니다. 실제 도로 주행은 아닙니다.</p>
+      <details class="source-view"><summary>Pleos 전체 화면 원본 보기</summary><img src="pleos-full-screen-context.png" loading="lazy" alt="왼쪽은 정차·P 상태의 Pleos 3D 차량, 오른쪽은 주행 시연 속도를 표시한 Drive Soundtrack 앱"><p>한 화면을 녹화한 뒤 오른쪽 앱 부분을 잘라 본편에 사용했습니다. 왼쪽 차량 표시는 앱 내부 시연 속도와 연동되지 않습니다.</p></details>
     </section>
 
     <section class="download" id="download"><div><p class="eyebrow">Try the app</p><h2>차 안의 움직임을 음악으로</h2><p>Android Automotive용 Kotlin 앱입니다. 저장소에서 구현과 검증 자료를 확인할 수 있습니다.</p></div><div class="actions"><a class="button primary" href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/apk/%ED%99%8D%EC%9B%90%ED%83%9D_DriveSoundtrack_release.apk">APK 다운로드</a><a class="button" href="https://github.com/hoyadong1/DriveSoundtrack">GitHub 저장소</a></div></section>
   </main>
-  <footer class="wrap">© Drive Soundtrack · 시연 영상의 속도는 에뮬레이터 내부 입력입니다. 실제 차량 적용과 주행 중 UX는 별도 검증이 필요합니다.</footer>
+  <footer class="wrap">© Drive Soundtrack · 모든 시연은 Pleos Connect 에뮬레이터에서 녹화했습니다. 주행·핸들 영상은 Virtual Console 입력을, 정차 시연은 앱 내부 시연 입력을 사용합니다. 실제 차량 적용과 주행 중 UX는 별도 검증이 필요합니다.</footer>
   <script>
     const video = document.getElementById('demoVideo');
     document.querySelectorAll('[data-seek]').forEach(button => button.addEventListener('click', () => {
