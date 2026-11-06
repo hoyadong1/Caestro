@@ -6,7 +6,7 @@
 
 파란 Pulse가 기본 모드이며 속도에 따라 베이스·드럼·화음·아르페지오·선율·고역 질감이 차례로 합류합니다. 악기 화면도 한 칸에서 최대 여섯 칸으로 나뉩니다. 음악 편곡에는 기어 단수를 사용하지 않습니다. 다섯 사운드스케이프를 음원 파일이나 네트워크 없이 실시간 합성합니다. **앱은 모두 Kotlin**이며, 화면은 Jetpack Compose로 구현했습니다.
 
-[주행 음악 알고리즘과 신호별 매핑](docs/design/DRIVING_SCORE_ALGORITHM.md) · [제품 근거와 파워트레인 중립 설계](docs/design/PRODUCT_RATIONALE.md) · [악기 중심 기획](docs/design/PRODUCT_V2_INSTRUMENT_CONCEPT.md) · [시각 콘셉트](docs/design/instrument-stage-v2-concept.png)
+[프로젝트 가이드(구조·폴더·작업 방식)](docs/PROJECT_GUIDE.md) · [주행 음악 알고리즘과 신호별 매핑](docs/design/DRIVING_SCORE_ALGORITHM.md) · [제품 근거와 파워트레인 중립 설계](docs/design/PRODUCT_RATIONALE.md) · [악기 중심 기획](docs/design/PRODUCT_V2_INSTRUMENT_CONCEPT.md) · [시각 콘셉트](docs/design/instrument-stage-v2-concept.png)
 
 ## 시연 영상
 
@@ -43,6 +43,7 @@ app/src/test/kotlin/...    합성 엔진 JUnit 검사
 docs/                      GitHub Pages 쇼케이스(index.html과 영상)
   design/                  제품·알고리즘 설계 문서
   history/                 0.4.x 베이스 실험 기록
+  PROJECT_GUIDE.md         아키텍처, 폴더 설명, 작업 방식, 버전 이력
 demo/                      Pleos 에뮬레이터 실행·시연 스크립트
   console-drive/           콘솔 주행 녹화 도구
   archive/                 이전 버전 녹화·분석 스크립트
