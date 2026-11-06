@@ -6,7 +6,7 @@
 
 파란 Pulse가 기본 모드이며 속도에 따라 베이스·드럼·화음·아르페지오·선율·고역 질감이 차례로 합류합니다. 악기 화면도 한 칸에서 최대 여섯 칸으로 나뉩니다. 음악 편곡에는 기어 단수를 사용하지 않습니다. 다섯 사운드스케이프를 음원 파일이나 네트워크 없이 실시간 합성합니다. **앱은 모두 Kotlin**이며, 화면은 Jetpack Compose로 구현했습니다.
 
-[프로젝트 가이드(구조·폴더·작업 방식)](docs/PROJECT_GUIDE.md) · [주행 음악 알고리즘과 신호별 매핑](docs/design/DRIVING_SCORE_ALGORITHM.md) · [제품 근거와 파워트레인 중립 설계](docs/design/PRODUCT_RATIONALE.md) · [악기 중심 기획](docs/design/PRODUCT_V2_INSTRUMENT_CONCEPT.md) · [시각 콘셉트](docs/design/instrument-stage-v2-concept.png)
+📖 **[프로젝트 위키](https://github.com/hoyadong1/DriveSoundtrack/wiki)**: [아키텍처](https://github.com/hoyadong1/DriveSoundtrack/wiki/Architecture) · [폴더 구조](https://github.com/hoyadong1/DriveSoundtrack/wiki/Project-Structure) · [작업 방식](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development-Workflow) · [버전 이력](https://github.com/hoyadong1/DriveSoundtrack/wiki/Version-History) · [제품 근거와 파워트레인 중립 설계](https://github.com/hoyadong1/DriveSoundtrack/wiki/Product-Rationale) · [주행 음악 알고리즘](https://github.com/hoyadong1/DriveSoundtrack/wiki/Driving-Score-Algorithm)
 
 ## 시연 영상
 
@@ -22,7 +22,7 @@
 - Pulse(일렉트로), Night(퓨처 개러지), Coast(앰비언트 하우스), Horizon(시네마틱), Circuit(멜로딕 드라이브)의 다섯 사운드스케이프
 - 베이스는 항상 유지하고 드럼 18, 화음 38, 아르페지오 58, 선율 82, 고역 질감 105 km/h에서 차례로 합류. 감속 시 각각 12·31·50·73·94 km/h에서 빠지고 마디 시작에서 전환해 1.15초 동안 소리를 섞음
 - 각 모드의 16단계 리듬 패턴, 4마디 화성 순환, 선율 변화와 스테레오 딜레이. 속도의 BPM 영향은 최대 6 BPM으로 제한
-- 속도는 Circuit에서 화성에 맞춘 베이스의 기본음·옥타브 비율과 리듬 층, 가속은 베이스와 추진 질감, 제동은 화음 감쇠, 조향각은 좌우 선율·연속 음높이, 좌·우 방향지시등은 서로 반대 방향의 2음 응답에 연결. [수치·조합·제약 상세 설명](docs/design/DRIVING_SCORE_ALGORITHM.md)
+- 속도는 Circuit에서 화성에 맞춘 베이스의 기본음·옥타브 비율과 리듬 층, 가속은 베이스와 추진 질감, 제동은 화음 감쇠, 조향각은 좌우 선율·연속 음높이, 좌·우 방향지시등은 서로 반대 방향의 2음 응답에 연결. [수치·조합·제약 상세 설명](https://github.com/hoyadong1/DriveSoundtrack/wiki/Driving-Score-Algorithm)
 - Android Automotive `PERF_VEHICLE_SPEED`, 선택적 `ACCELERATOR_PEDAL_COMPRESSION_PERCENTAGE`, Pleos Vehicle SDK Brake·SteeringWheel·TurnSignal·Wiper·DrivingMode 읽기 전용 입력
 - 가속 페달 속성이 없는 기기에서는 **속도 변화로 추정한 추진감**을 베이스에 사용하며 실제 페달값과 구분. 차량 속도 입력이 없으면 정차 중 속도·가속·제동·조향·방향지시등·와이퍼 시연 조작 제공
 - 정차 시 베이스 한 화면에서 시작해 활성 악기 수에 따라 2~6개 화면으로 부드럽게 분할되는 악기 무대
@@ -31,6 +31,8 @@
 - 차량 서비스가 재시작되면 속도·UX 제한 구독을 정리하고 재연결을 시도
 
 ## 프로젝트 구조
+
+자세한 설명은 [위키의 폴더 구조](https://github.com/hoyadong1/DriveSoundtrack/wiki/Project-Structure)와 [아키텍처](https://github.com/hoyadong1/DriveSoundtrack/wiki/Architecture)를 보세요.
 
 ```
 app/src/main/kotlin/com/drivesoundtrack/app/
@@ -41,9 +43,7 @@ app/src/main/kotlin/com/drivesoundtrack/app/
   ui/                      MainScreen, InstrumentStage(악기 무대 Canvas), SoundscapeGlyph, 색상
 app/src/test/kotlin/...    합성 엔진 JUnit 검사
 docs/                      GitHub Pages 쇼케이스(index.html과 영상)
-  design/                  제품·알고리즘 설계 문서
-  history/                 0.4.x 베이스 실험 기록
-  PROJECT_GUIDE.md         아키텍처, 폴더 설명, 작업 방식, 버전 이력
+  design/                  설계 문서용 이미지 (문서 자체는 위키)
 demo/                      Pleos 에뮬레이터 실행·시연 스크립트
   console-drive/           콘솔 주행 녹화 도구
   archive/                 이전 버전 녹화·분석 스크립트
