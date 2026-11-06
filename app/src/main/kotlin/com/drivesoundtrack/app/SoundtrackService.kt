@@ -141,6 +141,10 @@ class SoundtrackService : MediaBrowserService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Any command may arrive through startForegroundService (the scenario button, media
+        // controls, a refused PLAY). Android kills the app unless startForeground follows within
+        // seconds, so always enter the foreground first and leave it again if nothing is playing.
+        val enteredForeground = enterForeground()
         when (intent?.action) {
             PLAY -> play()
             PAUSE -> pause()
@@ -189,7 +193,22 @@ class SoundtrackService : MediaBrowserService() {
                 broadcastStatus()
             }
         }
+        if (enteredForeground && !playing) stopForeground(STOP_FOREGROUND_REMOVE)
         return Service.START_STICKY
+    }
+
+    private fun playbackNotification(): Notification = Notification.Builder(this, CHANNEL)
+        .setContentTitle("Drive Soundtrack")
+        .setContentText("${NAMES[preset]} 재생 중")
+        .setSmallIcon(android.R.drawable.ic_media_play)
+        .setVisibility(Notification.VISIBILITY_PUBLIC).build()
+
+    private fun enterForeground(): Boolean = try {
+        startForeground(1, playbackNotification())
+        true
+    } catch (ex: RuntimeException) {
+        Log.w("DriveSoundtrack", "Foreground service not allowed now", ex)
+        false
     }
 
     private fun connectSpeedReader() {
@@ -228,11 +247,7 @@ class SoundtrackService : MediaBrowserService() {
         if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
         playing = true
         try {
-            startForeground(1, Notification.Builder(this, CHANNEL)
-                .setContentTitle("Drive Soundtrack")
-                .setContentText("${NAMES[preset]} 재생 중")
-                .setSmallIcon(android.R.drawable.ic_media_play)
-                .setVisibility(Notification.VISIBILITY_PUBLIC).build())
+            startForeground(1, playbackNotification())
         } catch (ex: RuntimeException) {
             Log.w("DriveSoundtrack", "Playback cannot start in the current vehicle state", ex)
             playing = false

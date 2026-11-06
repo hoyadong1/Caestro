@@ -15,7 +15,8 @@
   window.__drive = { log: [], done: false };
   const LOOKAHEAD = 0.5;
   function step(now) {
-    const t = (now - start) / 1000;
+    // __driveRate < 1 slows the curve to the emulator's audio rate, so speeds line up with the audio clock.
+    const t = (now - start) / 1000 * (window.__driveRate || 1);
     if (t > window.__driveDuration) { set('accelerator', false); set('brake', true); window.__drive.done = true; return; }
     const target = journey(t + LOOKAHEAD);
     const err = target - vehicle.speed_kph;

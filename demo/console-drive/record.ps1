@@ -1,4 +1,4 @@
-param([string]$Out, [double]$Duration = 100)
+param([string]$Out, [double]$Duration = 100, [double]$Rate = 1.0)
 # D-gear drive performed on the Pleos Virtual Console page: an in-page driver works the console's
 # ACCEL/BRAKE pedals to follow the in-app scenario speed curve; the console's own physics produces the
 # vehicle speed. The app runs its normal vehicle-speed path (no in-app scenario).
@@ -20,7 +20,7 @@ Invoke-RestMethod -Method Put "$b/vehicle/controls?speed=0&brake=0&steering=0" -
 Invoke-RestMethod -Method Put "$b/vehicle/gear?gear=Drive" -TimeoutSec 5 | Out-Null
 Svc 'PAUSE'
 & $adb shell run-as com.drivesoundtrack.app --user 10 rm -f files/live-demo.wav 2>$null | Out-Null
-& $adb shell am start --user 10 -n com.drivesoundtrack.app/.MainActivity | Out-Null
+cmd /c "`"$adb`" shell am start --user 10 -n com.drivesoundtrack.app/.MainActivity >nul 2>&1"
 
 # --- console page
 KillChrome
@@ -34,7 +34,7 @@ $cap = Start-Process powershell -ArgumentList @('-NoProfile','-ExecutionPolicy',
 
 # --- emulator screen (host-side recorder)
 $screenStart = Now
-& $adb emu screenrecord start --time-limit 180 --size 1280x720 --bit-rate 12000000 --fps 30 (Join-Path $Out 'emulator.webm') | Out-Null
+& $adb emu screenrecord start --time-limit 180 --size 1920x1080 --bit-rate 16000000 --fps 30 (Join-Path $Out 'emulator.webm') | Out-Null
 Start-Sleep 2
 
 # --- play (normal path) + PCM capture + sampler
@@ -42,12 +42,12 @@ Svc 'ARM_DEBUG_CAPTURE'
 $playStart = Now
 Svc 'PLAY'
 $sampler = Start-Process powershell -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'sample-pcm.ps1'),'-OutCsv',(Join-Path $Out 'pcm.csv'),'-StopFile',$stop) -PassThru -WindowStyle Hidden
-Ev "window.__driveDuration=$Duration" | Out-Null
+Ev "window.__driveDuration=$Duration; window.__driveRate=$Rate" | Out-Null
 $driveStart = Now
 Write-Host (Ev (Get-Content (Join-Path $PSScriptRoot 'driver.js') -Raw))
 try {
     while (-not (Ev 'window.__drive.done')) {
-        if (((Now) - $driveStart) / 1000 -gt $Duration + 30) { throw 'driver did not finish' }
+        if (((Now) - $driveStart) / 1000 -gt $Duration / $Rate + 30) { throw 'driver did not finish' }
         Start-Sleep 1
     }
     Start-Sleep 3

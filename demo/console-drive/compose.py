@@ -1,10 +1,12 @@
-"""Compose emulator screen + Pleos console + app PCM into one video.
+"""Compose the emulator screen (+ Pleos console) + app PCM into one video.
 Audio is master: each output frame's audio time -> wall time (from pcm_bytes samples) -> nearest
 emulator frame (webm PTS + screen start) and latest console screenshot (file name = wall ms)."""
 import bisect, csv, json, os, shutil, subprocess, sys, wave
 from pathlib import Path
 
 take = Path(sys.argv[1]).resolve(); out = Path(sys.argv[2]).resolve()
+# 'console': emulator + console side by side. 'scenario': app area of the emulator only (parked in-app scenario).
+MODE = sys.argv[3] if len(sys.argv) > 3 else 'console'
 FPS = 30
 def wsl(p: Path) -> str:
     s = str(p).replace('\\', '/'); return '/mnt/' + s[0].lower() + s[2:]
@@ -30,7 +32,7 @@ for d in (emu_src, emu_out, con_out): d.mkdir(parents=True)
 st = float(ff('ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=start_time', '-of', 'csv=p=0', wsl(take / 'emulator.webm'), capture=True).split()[0] or 0)
 ff('ffmpeg', '-v', 'error', '-i', wsl(take / 'emulator.webm'), '-vf', 'fps=60', '-q:v', '2', wsl(emu_src) + '/%06d.jpg')
 emu = sorted(emu_src.glob('*.jpg')); n_emu = len(emu); emu = [(st + i / 60, p) for i, p in enumerate(emu)]; pts = [e[0] for e in emu]
-con = sorted((int(p.stem) / 1000, p) for p in (take / 'console').glob('*.jpg'))
+con = sorted((int(p.stem) / 1000, p) for p in (take / 'console').glob('*.jpg')) if MODE == 'console' else []
 con_t = [c[0] for c in con]
 screen0 = meta['screen_start_ms'] / 1000
 
@@ -40,13 +42,20 @@ for f in range(round(dur * FPS)):
     ei = max(0, min(n_emu - 1, bisect.bisect_right(pts, wall - screen0) - 1))
     ci = max(0, bisect.bisect_right(con_t, wall) - 1)
     shutil.copyfile(emu[ei][1], emu_out / f'{f+1:05d}.jpg')
-    shutil.copyfile(con[ci][1], con_out / f'{f+1:05d}.jpg')
+    if con: shutil.copyfile(con[ci][1], con_out / f'{f+1:05d}.jpg')
     log.append((round(a, 3), round(wall - meta['play_start_ms'] / 1000, 3)))
 
-ff('ffmpeg', '-v', 'error', '-y', '-framerate', str(FPS), '-i', wsl(emu_out) + '/%05d.jpg',
-   '-framerate', str(FPS), '-i', wsl(con_out) + '/%05d.jpg', '-i', wsl(take / 'app-audio.wav'),
-   '-filter_complex', '[0:v]scale=1080:608:flags=lanczos[e];[1:v]scale=840:525:flags=lanczos,pad=840:608:0:41:color=0x0b0f14[c];[e][c]hstack=inputs=2,format=yuv420p[v]',
-   '-map', '[v]', '-map', '2:a', '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-profile:v', 'high', '-level', '4.1', '-r', '30',
+if MODE == 'console':
+    inputs = ['-framerate', str(FPS), '-i', wsl(emu_out) + '/%05d.jpg', '-framerate', str(FPS), '-i', wsl(con_out) + '/%05d.jpg']
+    graph = '[0:v]scale=1080:608:flags=lanczos[e];[1:v]scale=840:525:flags=lanczos,pad=840:608:0:41:color=0x0b0f14[c];[e][c]hstack=inputs=2,format=yuv420p[v]'
+else:
+    inputs = ['-framerate', str(FPS), '-i', wsl(emu_out) + '/%05d.jpg']
+    # Right-hand app area of the Pleos screen (status bar and climate bar removed), from a 1920x1080 recording.
+    graph = '[0:v]scale=1920:1080:flags=lanczos,crop=1260:908:640:67,format=yuv420p[v]'
+audio_index = len(inputs) // 4
+ff('ffmpeg', '-v', 'error', '-y', *inputs, '-i', wsl(take / 'app-audio.wav'),
+   '-filter_complex', graph,
+   '-map', '[v]', '-map', f'{audio_index}:a', '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-profile:v', 'high', '-level', '4.1', '-r', '30',
    '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', wsl(out))
 (take / 'audio_to_wall.json').write_text(json.dumps(log))
 print(f'{out}: {dur:.1f}s audio, {n_emu} emulator frames, {len(con)} console shots, drive wall {log[-1][1]:.1f}s')
