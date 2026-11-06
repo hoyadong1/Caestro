@@ -20,6 +20,8 @@ class SoundRenderer(private val model: SoundModel) {
         private const val TRANSITION_SAMPLES = RATE * 0.35
         /** Per-sample decay of a cut note's leftover value: about a 3 ms time constant. */
         private val DECLICK = kotlin.math.exp(-1.0 / (0.003 * RATE))
+        private const val SWELL_IN = 1.0 / (0.6 * RATE)
+        private const val SWELL_OUT = 1.0 / (0.9 * RATE)
         /** Long debug drive. Time follows emitted PCM, including emulator slowdowns. */
         fun speedJourneyKmh(t: Double): Double = when {
             t < 5.0 -> 0.0
@@ -70,6 +72,12 @@ class SoundRenderer(private val model: SoundModel) {
     private var leadDeclick = 0.0; private var lastLead = 0.0
     private var arpDeclick = 0.0; private var lastArp = 0.0
     private var shimmerDeclick = 0.0; private var lastShimmer = 0.0
+    // Curve strings: one bowed section that swells while the wheel is turned and settles when
+    // the car straightens. Direction is carried by stereo only: the strings come from the side the
+    // car turns toward and the rest of the mix leans that way too (the bass stays centred).
+    private val stringPhase = DoubleArray(6)
+    private var curveSwell = 0.0
+    private var vibratoPhase = 0.0
     private var driveBassPhase = 0.0
     private var driveBassHz = 55.0
     private var leadPhase = 0.0
@@ -250,8 +258,26 @@ class SoundRenderer(private val model: SoundModel) {
                 arp * layerMixes[3] + leadRight + echoRight +
                 shimmer * layerMixes[5] - surge - coast - texture +
                 turnVoice * (0.60 + turnPan * 0.35)
-            val left = tanh((if (bassSolo) bassStem else fullLeft) * 1.75) * 0.78 * transition
-            val right = tanh((if (bassSolo) bassStem else fullRight) * 1.75) * 0.78 * transition
+            // The strings swell into a turn (about 0.6 s) and fade a little slower.
+            val swellTarget = abs(steering)
+            curveSwell += (swellTarget - curveSwell) * (if (swellTarget > curveSwell) SWELL_IN else SWELL_OUT)
+            vibratoPhase += TWO_PI * 5.2 * frameTime
+            val vibrato = 1.0 + sin(vibratoPhase) * 0.0025
+            var strings = 0.0
+            if (curveSwell > 0.002) for (index in 0 until 6) {
+                stringPhase[index] += TWO_PI * padFrequency[index / 2] * 2.0 * vibrato *
+                    (if (index % 2 == 0) 0.996 else 1.004) * frameTime
+                val p = stringPhase[index]
+                strings += sin(p) + sin(p * 2.0) * 0.45 + sin(p * 3.0) * 0.26 + sin(p * 4.0) * 0.14
+            }
+            strings *= curveSwell * kotlin.math.sqrt(curveSwell) * 0.034
+            // Lean the mix into the turn: the far side drops by up to 60 %, strings pan with it.
+            val leanLeft = 1.0 - max(0.0, steering) * 0.60
+            val leanRight = 1.0 - max(0.0, -steering) * 0.60
+            val mixLeft = (fullLeft - bassStem) * leanLeft + bassStem + strings * (0.5 - steering * 0.45)
+            val mixRight = (fullRight - bassStem) * leanRight + bassStem + strings * (0.5 + steering * 0.45)
+            val left = tanh((if (bassSolo) bassStem else mixLeft) * 1.75) * 0.78 * transition
+            val right = tanh((if (bassSolo) bassStem else mixRight) * 1.75) * 0.78 * transition
             pcm[output++] = (left * 32767.0).toInt().toShort()
             pcm[output++] = (right * 32767.0).toInt().toShort()
 

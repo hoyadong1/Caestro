@@ -40,7 +40,8 @@ class MainActivity : ComponentActivity(), PlayerActions {
             permissionsChanged // Re-evaluate the prompt after a permission result.
             MainScreen(status, restricted, canRequestPermission(), this)
         }
-        startService(Intent(this, SoundtrackService::class.java))
+        // Opening the app connects the soundtrack right away; the button then only disconnects.
+        if (state == null) send(SoundtrackService.PLAY) else startService(Intent(this, SoundtrackService::class.java))
     }
 
     override fun onStart() {

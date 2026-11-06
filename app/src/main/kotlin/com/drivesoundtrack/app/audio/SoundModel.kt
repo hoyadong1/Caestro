@@ -9,6 +9,8 @@ class SoundModel {
     companion object {
         private val LAYER_ENTER = doubleArrayOf(18.0, 38.0, 58.0, 82.0, 105.0)
         private val LAYER_LEAVE = doubleArrayOf(12.0, 31.0, 50.0, 73.0, 94.0)
+        private const val STEERING_DEADZONE = 5.0
+        private const val STEERING_FULL = 90.0
     }
     private var targetKmh = 0.0
     private var smoothedKmh = 0.0
@@ -57,6 +59,15 @@ class SoundModel {
     @Synchronized fun setDriveMode(mode: Int) { currentDriveMode = mode.coerceIn(0, 2) }
     @Synchronized fun setPreset(index: Int) { currentPreset = index.coerceIn(Soundscapes.all.indices) }
 
+    /**
+     * Wheel angle -> -1..1 on the range drivers actually use: lane changes are 10-30 degrees,
+     * ordinary corners 45-90. Small corrections under 5 degrees are ignored.
+     */
+    private fun steeringCurve(degrees: Double): Double {
+        val magnitude = ((abs(degrees) - STEERING_DEADZONE) / (STEERING_FULL - STEERING_DEADZONE)).coerceIn(0.0, 1.0)
+        return if (degrees < 0) -magnitude else magnitude
+    }
+
     /** Called once per audio buffer, including while speed holds steady. */
     @Synchronized fun tick() {
         val delta = targetKmh - smoothedKmh
@@ -67,7 +78,7 @@ class SoundModel {
         throttle += (throttleTarget - throttle) * 0.07
         acceleration += (accelerationTarget - acceleration) * 0.07
         brakeMix += ((if (brakeValue == true) 1.0 else 0.0) - brakeMix) * 0.08
-        steeringMix += (((steeringValue ?: 0.0) / 540.0) - steeringMix) * 0.055
+        steeringMix += (steeringCurve(steeringValue ?: 0.0) - steeringMix) * 0.055
         val driveBoost = when (currentDriveMode) { 2 -> 0.08; 1 -> -0.08; else -> 0.0 }
         val targetEnergy = (0.17 + smoothedKmh / 130.0 * 0.37 + throttle * 0.25 + momentum * 0.13 + driveBoost - brakeMix * 0.13).coerceIn(0.0, 1.0)
         energy += (targetEnergy - energy) * 0.045

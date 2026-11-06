@@ -65,16 +65,25 @@ class PleosBandReader {
         } catch (ex: Exception) { Log.w("DriveSoundtrack", "Brake signal unavailable", ex) }
     }
 
+    /**
+     * The Pleos SteeringWheel API reports counter-clockwise (left) as positive, the usual vehicle
+     * convention. Verified on the Virtual Console: dragging the wheel right (clockwise) arrives
+     * here as a negative angle. The app's sound model uses right = positive, so flip the sign.
+     */
+    private fun toAppSteering(sdkDegrees: Float?): Double? = sdkDegrees?.let { -it.toDouble() }
+
     private fun readSteering(v: Vehicle, model: SoundModel, update: () -> Unit) {
         try {
             val api = v.getSteeringWheel().also { steeringApi = it }
             val listener = object : SteeringWheelAngleListener {
-                override fun onSteeringWheelAngleUpdated(value: Float?) { if (!closed) { model.setSteering(value?.toDouble()); update() } }
+                override fun onSteeringWheelAngleUpdated(value: Float?) {
+                    if (!closed) { model.setSteering(toAppSteering(value)); update() }
+                }
                 override fun onFailed(e: Exception) { if (!closed) { model.setSteering(null); update() } }
             }
             steeringListener = listener
             api.registerSteeringWheelAngle(listener)
-            api.getCurrentSteeringWheelAngle({ if (!closed) { model.setSteering(it?.toDouble()); update() } },
+            api.getCurrentSteeringWheelAngle({ if (!closed) { model.setSteering(toAppSteering(it)); update() } },
                 { if (!closed) { model.setSteering(null); update() } })
         } catch (ex: Exception) { Log.w("DriveSoundtrack", "Steering signal unavailable", ex) }
     }

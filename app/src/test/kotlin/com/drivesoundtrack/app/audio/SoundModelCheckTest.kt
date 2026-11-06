@@ -13,7 +13,7 @@ class SoundModelCheckTest {
 
         model.setAccelerator(80.0)
         model.setBrake(true)
-        model.setSteering(-270.0)
+        model.setSteering(-60.0)
         model.setTurn(-1)
         model.setWiper(true)
         repeat(120) { model.tick() }

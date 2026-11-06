@@ -32,7 +32,7 @@ class InstrumentAudioCheckTest {
         val neutral = render { }
         val pedal = render { it.setAccelerator(85.0) }
         val brake = render { it.setBrake(true) }
-        val steering = render { it.setSteering(-350.0) }
+        val steering = render { it.setSteering(-80.0) }
         val turn = render { it.setTurn(1) }
         val wiper = render { it.setWiper(true) }
         for ((name, audio) in listOf("pedal" to pedal, "brake" to brake,
@@ -50,9 +50,9 @@ class InstrumentAudioCheckTest {
             audio.indices.filter { it % 2 == channel }.sumOf { abs(audio[it].toInt() - neutral[it].toInt()).toDouble() }
         check(responseEnergy(leftTurn, 0) > responseEnergy(leftTurn, 1) * 1.12) { "left cue is not left-panned" }
         check(responseEnergy(rightTurn, 1) > responseEnergy(rightTurn, 0) * 1.12) { "right cue is not right-panned" }
-        val gentleLeft = render { it.setSteering(-120.0) }
-        val hardLeft = render { it.setSteering(-360.0) }
-        val hardRight = render { it.setSteering(360.0) }
+        val gentleLeft = render { it.setSteering(-30.0) }
+        val hardLeft = render { it.setSteering(-90.0) }
+        val hardRight = render { it.setSteering(90.0) }
         check(difference(gentleLeft, hardLeft) > 0.0005) { "steering amount has no PCM effect" }
         check(difference(hardLeft, hardRight) > 0.001) { "steering direction has no PCM effect" }
         val slow = render { it.setSpeed(10.0) }
@@ -60,10 +60,10 @@ class InstrumentAudioCheckTest {
         check(difference(slow, fast) > 0.005) { "speed progression has no PCM effect" }
 
         val model = SoundModel()
-        model.setSteering(150.0)
+        model.setSteering(30.0)
         repeat(80) { model.tick() }
         val halfTurn = model.steering()
-        model.setSteering(300.0)
+        model.setSteering(60.0)
         repeat(80) { model.tick() }
         check(model.steering() > halfTurn * 1.8) { "steering amount is not continuous" }
         model.setSpeed(35.0)

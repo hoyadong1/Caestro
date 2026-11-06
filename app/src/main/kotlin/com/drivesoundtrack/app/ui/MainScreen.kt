@@ -127,7 +127,7 @@ private fun Header(status: PlayerStatus) {
     }
 }
 
-/** Play/pause is always available (also while driving); the parked scenario only on the Pleos emulator. */
+/** Connect/disconnect the car's soundtrack (also while driving); the parked demo only on the Pleos emulator. */
 @Composable
 private fun Transport(status: PlayerStatus, actions: PlayerActions) {
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -139,7 +139,7 @@ private fun Transport(status: PlayerStatus, actions: PlayerActions) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (playing) Palette.ScenarioButton else MaterialTheme.colorScheme.primary,
                 contentColor = if (playing) Color.White else Palette.Background),
-        ) { Text(if (playing) "❚❚  일시정지" else "▶  재생", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        ) { Text(if (playing) "■  사운드 연결 끊기" else "▶  차량 사운드 연결", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         if (status.scenarioAvailable || status.scenarioEnabled) Button(
             onClick = actions::toggleScenario,
             modifier = Modifier.weight(1f).height(52.dp),
