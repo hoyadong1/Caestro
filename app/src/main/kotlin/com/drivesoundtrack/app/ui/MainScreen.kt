@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -375,19 +376,22 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                     else -> "${scene.name}은 지금 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
                 }, 18.sp, Palette.Muted)
             }
+            // Up here, next to the band/track switch, so the six presets fit on one line.
+            TextButton({ actions.resetInstruments(band) }, enabled = if (band) status.band.size == 6 else status.ownInstruments) {
+                Text(if (band) "↺  곡별 추천으로" else "↺  악단 따르기", fontSize = 18.sp, color = Palette.Muted)
+            }
+            Spacer(Modifier.width(12.dp))
             Segmented(listOf("나만의 악단", if (trackPossible) "이 곡만" else "이 곡만 (클래식)"), if (band) 0 else 1,
                 Modifier.width(420.dp), enabled = { it == 0 || trackPossible }) { onMode(if (it == 0) EDIT_BAND else EDIT_TRACK) }
         }
         Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Label("빠른 편성", 18.sp, Palette.Muted, bold = true)
             Spacer(Modifier.width(14.dp))
-            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Wrap instead of scrolling sideways: a scrolled-off pill looked cut under the reset button.
+            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for ((name, ids) in Instruments.PRESETS) PresetPill(name, ids) {
                     actions.setInstruments(ids.map { Instruments.indexOf(it) }.toIntArray(), band)
                 }
-            }
-            TextButton({ actions.resetInstruments(band) }, enabled = if (band) status.band.size == 6 else status.ownInstruments) {
-                Text(if (band) "↺  곡별 추천으로" else "↺  악단 따르기", fontSize = 18.sp, color = Palette.Muted)
             }
         }
         val slots: @Composable (Modifier) -> Unit = { modifier ->
