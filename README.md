@@ -2,7 +2,7 @@
 
 [![카에스트로 시연 페이지 열기: 130 km/h에서 여섯 악기가 연주되는 앱 화면](docs/readme-thumbnail.png)](https://hoyadong1.github.io/DriveSoundtrack/)
 
-**Car + Maestro. 내 차가 곧 지휘자입니다.**
+**Car + Maestro, 내 차가 곧 지휘자.**
 
 속도를 올리면 첼로 위에 악기가 하나씩 들어오고, 브레이크를 밟으면 잦아들고, 핸들을 꺾으면 소리가 기웁니다. 클래식 명곡을 실제 악기 소리로, 내가 꾸린 악단이 연주합니다. Android Automotive(Pleos) 앱입니다.
 
