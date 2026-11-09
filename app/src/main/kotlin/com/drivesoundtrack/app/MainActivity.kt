@@ -154,10 +154,10 @@ class MainActivity : ComponentActivity(), PlayerActions {
                     {
                         send(SoundtrackService.LIBRARY_CHANGED)
                         cloud.copy(downloading = null, installed = CloudLibrary.installed(root),
-                            message = if (item.isScore) "「${item.title}」을 받았습니다. 앨범의 ‘받은 곡’에 있어요."
-                            else "「${item.title}」을 받았습니다. 악단에서 고를 수 있어요.")
+                            message = if (item.isScore) "「${item.title}」 받기 완료. 앨범의 ‘받은 곡’에 있습니다."
+                            else "「${item.title}」 받기 완료. 악단에서 고를 수 있습니다.")
                     },
-                    { cloud.copy(downloading = null, failed = true, message = "「${item.title}」을 받지 못했습니다. 다시 시도해 주세요.") })
+                    { cloud.copy(downloading = null, failed = true, message = "「${item.title}」 받기 실패. 다시 시도해 주세요.") })
             }
         }
     }

@@ -118,7 +118,7 @@ class ScreenshotTest {
         for (item in items) CloudLibrary.download(item, root, base)
         CloudLibrary.load(root)
         cloud = cloud.copy(downloading = null, installed = CloudLibrary.installed(root),
-            message = "「Largo」을 받았습니다. 앨범의 ‘받은 곡’에 있어요.")
+            message = "「Largo」 받기 완료. 앨범의 ‘받은 곡’에 있습니다.")
         shoot("9-get-downloaded")
 
         val largo = Soundscapes.all.indexOfFirst { it.cloudId == "largo" }

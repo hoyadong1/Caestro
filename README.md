@@ -25,11 +25,11 @@
 .\gradlew.bat :app:testDebugUnitTest    # 단위 테스트 (화음·클릭·조향·악보·악기 음량·앨범·클라우드 받기)
 ```
 
+release APK를 다시 빌드하려면 저장소에 없는 서명키가 필요합니다. → [빌드·테스트와 검증 범위](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development)
+
 ## 클라우드 악보·악기
 
 악보와 악기는 차 밖에서 만들고, 차 앱은 받아서 연주만 합니다. 예시 클라우드는 GitHub Pages의 [`docs/cloud`](docs/cloud)이며 드보르자크 「라르고」 악보, VSCO 2 CE 녹음을 올려 만든 트롬본, 음색을 디자인한 핸드팬이 있습니다. 팩 형식과 만드는 도구는 [`tools/cloud`](tools/cloud/README.md)에 있습니다. [받기 시연 영상](https://hoyadong1.github.io/DriveSoundtrack/cloud-demo.mp4)은 Pleos 에뮬레이터에서 실제로 내려받고 악단에 넣어 연주한 녹화입니다.
-
-release APK를 다시 빌드하려면 저장소에 없는 서명키가 필요합니다. → [빌드·테스트와 검증 범위](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development)
 
 ## 더 보기
 

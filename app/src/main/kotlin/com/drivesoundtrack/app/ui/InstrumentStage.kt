@@ -241,7 +241,7 @@ private class StageScene(
     }
 
     private fun melody(x: Float, y: Float, w: Float, h: Float) {
-        if (s.turn != 0) label(if (s.turn < 0) "◀  LEFT · 하행" else "RIGHT · 상행  ▶", x + dp(14f), y + h * 0.39f, 16f, accent, bold = true)
+        if (s.turn != 0) label(if (s.turn < 0) "◀  왼쪽 · 내려가는 두 음" else "오른쪽 · 올라가는 두 음  ▶", x + dp(14f), y + h * 0.39f, 16f, accent, bold = true)
         for (line in 0..2) {
             val path = Path()
             val baseY = y + h * (0.51f + line * 0.12f)

@@ -171,7 +171,7 @@ private fun NowPlaying(status: PlayerStatus, accent: Color, canConfigure: Boolea
     Column(Modifier.fillMaxSize().then(if (landscape) Modifier else Modifier.verticalScroll(rememberScrollState()))) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Label(scene.piece?.let { "${Albums.names[status.album]}  ·  ${it.composer}" } ?: "${Albums.names[status.album]}  ·  오리지널 스코어",
+                Label(scene.piece?.let { "${Albums.names[status.album]}  ·  ${it.composer}" } ?: "${Albums.names[status.album]}  ·  Drive Soundtrack",
                     18.sp, Palette.Muted, bold = true)
                 Label(scene.name, 46.sp, Color.White, bold = true, modifier = Modifier.padding(top = 2.dp))
                 Label(scene.character, 20.sp, Palette.Genre)
@@ -197,7 +197,7 @@ private fun SignalPill(status: PlayerStatus) {
     val (text, color) = when {
         status.scenarioEnabled -> "시연 주행 중" to Palette.DemoSignal
         status.carAvailable -> "차량 속도 연결됨" to Palette.LiveSignal
-        else -> "데모 속도" to Palette.DemoSignal
+        else -> "시연 속도" to Palette.DemoSignal
     }
     Row(Modifier.background(Palette.Panel, RoundedCornerShape(20.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
@@ -258,7 +258,7 @@ private fun TransportBar(status: PlayerStatus, accent: Color, actions: PlayerAct
         }
         RoundButton(68.dp, Palette.Panel, "이전 곡", { actions.skip(-1) }) { skipIcon(Color.White, back = true) }
         Spacer(Modifier.width(22.dp))
-        RoundButton(88.dp, accent, if (status.playing) "사운드 끄기" else "재생", actions::togglePlay) {
+        RoundButton(88.dp, accent, if (status.playing) "정지" else "재생", actions::togglePlay) {
             if (status.playing) stopIcon(Palette.Background) else playIcon(Palette.Background)
         }
         Spacer(Modifier.width(22.dp))
@@ -298,7 +298,7 @@ private fun AlbumsPage(status: PlayerStatus, actions: PlayerActions, onEditTrack
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             if (tracks.isEmpty()) Label(
                 if (viewed == Albums.DOWNLOADED) "‘받기’에서 클라우드의 악보를 내려받으면 여기에 나옵니다."
-                else "오리지널·클래식 드라이브 앨범에서 ＋ 를 눌러 곡을 담으세요.", 19.sp, Palette.Muted,
+                else "오리지널·클래식 드라이브 앨범에서 ＋를 눌러 곡을 담으세요.", 19.sp, Palette.Muted,
                 modifier = Modifier.padding(vertical = 20.dp))
             for (i in tracks) {
                 val scene = Soundscapes.all[i]
@@ -412,7 +412,7 @@ private fun CloudPage(cloud: CloudState, landscape: Boolean, actions: PlayerActi
             Spacer(Modifier.height(20.dp))
             column("악기", "받으면 악단에서 고르기", instruments, Modifier.fillMaxWidth())
         }
-        Label("만들기·올리기는 웹 제작 플랫폼에서만 · 차에서는 내려받기만 합니다", 18.sp, Palette.Muted, modifier = Modifier.padding(top = 8.dp))
+        Label("만들기와 올리기는 웹 제작 플랫폼에서 하고, 차에서는 내려받기만 합니다", 18.sp, Palette.Muted, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -488,9 +488,9 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                 Label("악단", 34.sp, Color.White, bold = true)
                 Label(when {
                     band -> "모든 클래식 곡이 이 악단으로 연주됩니다. 곡마다 따로 바꾼 곡은 그대로 둡니다."
-                    status.ownInstruments -> "${scene.name}만 따로 편성했습니다."
-                    status.band.size == 6 -> "${scene.name}은 지금 나만의 악단을 따릅니다. 바꾸면 이 곡만 달라집니다."
-                    else -> "${scene.name}은 지금 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
+                    status.ownInstruments -> "「${scene.name}」 · 이 곡만 따로 편성했습니다."
+                    status.band.size == 6 -> "「${scene.name}」 · 지금 나만의 악단을 따릅니다. 바꾸면 이 곡만 달라집니다."
+                    else -> "「${scene.name}」 · 지금 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
                 }, 18.sp, Palette.Muted)
             }
             // Up here, next to the band/track switch, so the six presets fit on one line.
@@ -498,7 +498,7 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                 Text(if (band) "↺  곡별 추천으로" else "↺  악단 따르기", fontSize = 18.sp, color = Palette.Muted)
             }
             Spacer(Modifier.width(12.dp))
-            Segmented(listOf("나만의 악단", if (trackPossible) "이 곡만" else "이 곡만 (클래식)"), if (band) 0 else 1,
+            Segmented(listOf("나만의 악단", if (trackPossible) "이 곡만" else "이 곡만 (클래식 곡)"), if (band) 0 else 1,
                 Modifier.width(420.dp), enabled = { it == 0 || trackPossible }) { onMode(if (it == 0) EDIT_BAND else EDIT_TRACK) }
         }
         Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -534,10 +534,10 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                 Row(Modifier.padding(top = 4.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (status.playing) {
                         Box(Modifier.size(10.dp).background(accent, CircleShape)); Spacer(Modifier.width(8.dp))
-                        Label(if (stage == 0) "베이스는 늘 들립니다. 고르면 바로 바뀝니다." else "지금 이 단계를 미리 들려주고 있어요. 고르면 바로 바뀝니다.",
+                        Label(if (stage == 0) "베이스는 늘 들립니다. 고르면 바로 바뀝니다." else "지금 이 단계를 미리 들려줍니다. 고르면 바로 바뀝니다.",
                             19.sp, accent)
                     } else {
-                        Label("재생을 켜면 고르는 악기를 바로 들을 수 있어요.", 19.sp, Palette.Muted, modifier = Modifier.weight(1f, fill = false))
+                        Label("재생을 켜면 고르는 악기를 바로 들을 수 있습니다.", 19.sp, Palette.Muted, modifier = Modifier.weight(1f, fill = false))
                         Spacer(Modifier.width(12.dp))
                         Button(actions::togglePlay, shape = RoundedCornerShape(12.dp)) { Text("▶  재생", fontSize = 19.sp, color = Palette.Background) }
                     }
@@ -705,7 +705,7 @@ private fun ColumnScope.DemoControls(status: PlayerStatus, actions: PlayerAction
     Slider(value = pedal, onValueChange = { pedal = it; actions.demoAccelerator(it.roundToInt().toDouble()) }, valueRange = 0f..100f)
     Row(Modifier.fillMaxWidth()) {
         DemoToggle("브레이크", brake, Modifier.weight(1f)) { brake = !brake; actions.demoBrake(brake) }
-        DemoToggle("좌측 방향", turn, Modifier.weight(1f)) { turn = !turn; actions.demoLeftTurn(turn) }
+        DemoToggle("왼쪽 방향지시등", turn, Modifier.weight(1f)) { turn = !turn; actions.demoLeftTurn(turn) }
         DemoToggle("와이퍼", wiper, Modifier.weight(1f)) { wiper = !wiper; actions.demoWiper(wiper) }
     }
 }
