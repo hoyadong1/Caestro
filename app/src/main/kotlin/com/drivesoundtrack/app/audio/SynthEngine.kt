@@ -21,6 +21,10 @@ class SynthEngine(model: SoundModel) {
     @Volatile var recorder: DriveRecorder? = null
 
     fun setPreset(preset: Int) = renderer.setPreset(preset)
+    fun setPlaylist(tracks: IntArray) = renderer.setPlaylist(tracks)
+    fun setOrchestration(preset: Int, instruments: IntArray) = renderer.setOrchestration(preset, instruments)
+    /** The track playing now (the renderer moves through the album on its own). */
+    fun track(): Int = renderer.track()
     fun setBassSolo(enabled: Boolean) = renderer.setBassSolo(enabled)
     fun setDebugSpeedJourney(enabled: Boolean) = renderer.setDebugSpeedJourney(enabled)
     fun armCapture(file: File) { captureFile = file }

@@ -1,6 +1,9 @@
 package com.drivesoundtrack.app.audio
 
-/** Original musical identities. Patterns are 16-step bars; each bit is one sixteenth note. */
+/**
+ * A track: one of the original sound worlds (16-step patterns, each bit a sixteenth note) or a
+ * classical [piece] played by [PieceEngine]. Patterns of piece tracks are unused placeholders.
+ */
 data class Soundscape(
     val name: String,
     val character: String,
@@ -20,6 +23,15 @@ data class Soundscape(
     val brightness: Double,
     /** Optional chord-specific note sets, indexed by bar in the chord cycle. */
     val chordTones: Array<IntArray>? = null,
+    /** BPM added at 130 km/h. */
+    val tempoRange: Double = 6.0,
+    val piece: Piece? = null,
+)
+
+private fun classical(piece: Piece, character: String, accent: Int, bpm: Double, tempoRange: Double = 6.0) = Soundscape(
+    piece.title, character, accent, bpm, midiHz(36 + piece.tonic),
+    intArrayOf(0), intArrayOf(0, 2, 4, 5, 7, 9, 11), 0, 0, 0, 0, IntArray(16) { -1 },
+    0.0, 0.0, 0.0, 0.0, tempoRange = tempoRange, piece = piece,
 )
 
 object Soundscapes {
@@ -60,5 +72,27 @@ object Soundscapes {
                 intArrayOf(0, 4, 7, 11, 12), // B-flat major 7
                 intArrayOf(0, 4, 7, 9, 12),  // C major 6
             )),
+        classical(Pieces.canon, "파헬벨 · 캐논 D장조", 0xE7A9C8, 66.0),
+        classical(Pieces.prelude, "바흐 · 평균율 전주곡 C장조", 0x9FD3F5, 66.0),
+        classical(Pieces.gymnopedie, "사티 · 짐노페디 1번", 0xC9B8F2, 70.0, tempoRange = 4.0),
+        classical(Pieces.odeToJoy, "베토벤 · 환희의 송가", 0xF5D27A, 92.0),
+        classical(Pieces.mountainKing, "그리그 · 산왕의 궁전에서", 0xE8836B, 80.0, tempoRange = 40.0),
     )
+}
+
+/** Tracks grouped into albums; an album plays its tracks one after another (about three minutes each). */
+object Albums {
+    const val ORIGINAL = 0
+    const val CLASSIC = 1
+    const val MINE = 2
+    val names = listOf("오리지널", "클래식 드라이브", "내 앨범")
+    val originals: IntArray = Soundscapes.all.indices.filter { Soundscapes.all[it].piece == null }.toIntArray()
+    val classics: IntArray = Soundscapes.all.indices.filter { Soundscapes.all[it].piece != null }.toIntArray()
+    val defaultMine: List<String> = listOf("Canon", "Coast", "Gymnopédie", "Ode to Joy")
+
+    fun tracks(album: Int, mine: IntArray): IntArray = when (album) {
+        ORIGINAL -> originals
+        CLASSIC -> classics
+        else -> mine
+    }
 }

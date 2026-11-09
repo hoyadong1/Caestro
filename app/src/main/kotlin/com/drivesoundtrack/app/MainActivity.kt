@@ -85,7 +85,11 @@ class MainActivity : ComponentActivity(), PlayerActions {
     })
     override fun saveDrive() = send(SoundtrackService.SAVE_DRIVE)
     override fun toggleScenario() = send(SoundtrackService.SCENARIO_TOGGLE)
-    override fun selectPreset(index: Int) = send(SoundtrackService.PRESET) { putExtra("preset", index) }
+    override fun selectTrack(album: Int, index: Int) = send(SoundtrackService.PRESET) { putExtra("album", album); putExtra("preset", index) }
+    override fun setInstrument(stage: Int, instrument: Int) =
+        send(SoundtrackService.INSTRUMENT) { putExtra("stage", stage); putExtra("instrument", instrument) }
+    override fun resetInstruments() = send(SoundtrackService.RESET_INSTRUMENTS)
+    override fun toggleMyAlbum(index: Int) = send(SoundtrackService.MY_ALBUM_TOGGLE) { putExtra("preset", index) }
     override fun demoSpeed(kmh: Double) {
         if (!status.carAvailable) send(SoundtrackService.DEMO_SPEED) { putExtra("kmh", kmh) }
     }

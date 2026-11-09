@@ -24,6 +24,10 @@ data class PlayerStatus(
     val canSaveDrive: Boolean = false,
     val savingDrive: Boolean = false,
     val lastSavedDrive: String? = null,
+    val album: Int = 0,
+    val myAlbum: List<Int> = emptyList(),
+    /** Instrument per stage for a classical track; empty for the original soundscapes. */
+    val instruments: List<Int> = emptyList(),
 ) {
     companion object {
         fun from(intent: Intent): PlayerStatus {
@@ -48,6 +52,9 @@ data class PlayerStatus(
                 canSaveDrive = intent.getBooleanExtra("canSaveDrive", false),
                 savingDrive = intent.getBooleanExtra("savingDrive", false),
                 lastSavedDrive = intent.getStringExtra("lastSavedDrive"),
+                album = intent.getIntExtra("album", 0),
+                myAlbum = intent.getIntArrayExtra("myAlbum")?.toList() ?: emptyList(),
+                instruments = intent.getIntArrayExtra("instruments")?.toList() ?: emptyList(),
             )
         }
     }
@@ -58,7 +65,10 @@ interface PlayerActions {
     fun togglePlay()
     fun saveDrive()
     fun toggleScenario()
-    fun selectPreset(index: Int)
+    fun selectTrack(album: Int, index: Int)
+    fun setInstrument(stage: Int, instrument: Int)
+    fun resetInstruments()
+    fun toggleMyAlbum(index: Int)
     fun demoSpeed(kmh: Double)
     fun demoAccelerator(percent: Double)
     fun demoBrake(active: Boolean)

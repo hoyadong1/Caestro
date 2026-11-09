@@ -11,7 +11,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.tanh
 
-/** Five phrase-based soundscapes with six speed-controlled instruments. Stereo 16-bit PCM. */
+/** Plays the tracks of [Soundscapes] with six speed-controlled stages, one album track after another. Stereo 16-bit PCM. */
 class SoundRenderer(private val model: SoundModel) {
     companion object {
         const val RATE = 44100
@@ -47,6 +47,12 @@ class SoundRenderer(private val model: SoundModel) {
 
     private val random = Random(1049)
     @Volatile private var requestedPreset = 0
+    /** Tracks of the current album, played in turn. Fewer than two: the track repeats. */
+    @Volatile private var playlist = IntArray(0)
+    /** About how long one album track plays before the next one. */
+    internal var trackSeconds = 180.0
+    private var barsInTrack = 0
+    private var fadeStep = 1.0 / TRANSITION_SAMPLES
     @Volatile private var bassSolo = false
     @Volatile private var debugSpeedJourney = false
     private var journeyFrames = 0L
@@ -72,11 +78,13 @@ class SoundRenderer(private val model: SoundModel) {
     private var leadDeclick = 0.0; private var lastLead = 0.0
     private var arpDeclick = 0.0; private var lastArp = 0.0
     private var shimmerDeclick = 0.0; private var lastShimmer = 0.0
-    /** Coast and Neon have their own instruments; Pulse uses the shared voices below. */
+    /** Coast, Neon and the classical pieces have their own instruments; Pulse uses the shared voices below. */
     private val engines: Array<ScoreEngine?> = Array(Soundscapes.all.size) { index ->
-        when (Soundscapes.all[index].name) {
-            "Coast" -> CoastEngine()
-            "Neon" -> NeonEngine()
+        val scene = Soundscapes.all[index]
+        when {
+            scene.piece != null -> PieceEngine(scene.piece)
+            scene.name == "Coast" -> CoastEngine()
+            scene.name == "Neon" -> NeonEngine()
             else -> null
         }
     }
@@ -107,7 +115,17 @@ class SoundRenderer(private val model: SoundModel) {
     private val delayRight = DoubleArray(RATE / 4)
     private var delayPosition = 0
 
-    fun setPreset(index: Int) { requestedPreset = index.coerceIn(Soundscapes.all.indices) }
+    fun setPreset(index: Int) {
+        fadeStep = 1.0 / TRANSITION_SAMPLES
+        requestedPreset = index.coerceIn(Soundscapes.all.indices)
+    }
+    fun setPlaylist(tracks: IntArray) { playlist = tracks.copyOf() }
+    /** The track playing now, or the one it is fading into. */
+    fun track(): Int = requestedPreset
+    /** Instrument per stage for a classical track; ignored for the original soundscapes. */
+    fun setOrchestration(preset: Int, instruments: IntArray) {
+        (engines.getOrNull(preset) as? PieceEngine)?.setOrchestration(instruments)
+    }
     fun setBassSolo(enabled: Boolean) { bassSolo = enabled }
     fun setDebugSpeedJourney(enabled: Boolean) {
         debugSpeedJourney = enabled
@@ -143,22 +161,38 @@ class SoundRenderer(private val model: SoundModel) {
         repeat(pcm.size / CHANNELS) {
             if (requestedPreset != activePreset && !fadingOut) fadingOut = true
             if (fadingOut) {
-                transition = max(0.0, transition - 1.0 / TRANSITION_SAMPLES)
+                transition = max(0.0, transition - fadeStep)
                 if (transition == 0.0) {
+                    // A new track starts from its first bar, with fresh instruments.
                     activePreset = requestedPreset
+                    model.setPreset(activePreset)
+                    engines[activePreset]?.reset()
                     lastStep = -1L
+                    beat = 0.0
+                    barsInTrack = 0
                     fadingOut = false
+                    fadeStep = 1.0 / TRANSITION_SAMPLES
                 }
             } else if (transition < 1.0) {
-                transition = min(1.0, transition + 1.0 / TRANSITION_SAMPLES)
+                transition = min(1.0, transition + fadeStep)
             }
             val scene = Soundscapes.all[activePreset]
+            val stepsPerBar = (scene.piece?.stepsPerBar ?: 16).toLong()
             beat += bpm / (60.0 * RATE)
             val step = floor(beat * 4.0).toLong()
             if (step != lastStep) {
-                if (step % 16L == 0L) {
+                if (step % stepsPerBar == 0L) {
                     for (layer in 1..5) layerTargets[layer] = if (layerMask and (1 shl layer) != 0) 1.0 else 0.0
                     model.setAudibleLayerMask(layerMask)
+                    barsInTrack++
+                }
+                // On the last beat of a track's final bar, fade into the album's next track.
+                val tracks = playlist
+                if (tracks.size > 1 && !fadingOut && requestedPreset == activePreset &&
+                    step % stepsPerBar == stepsPerBar - 4 && barsInTrack >= trackBars(scene)) {
+                    val index = tracks.indexOf(activePreset)
+                    requestedPreset = tracks[(index + 1) % tracks.size]
+                    fadeStep = bpm / (60.0 * RATE)
                 }
                 triggerStep(scene, step, energy, steering, rhythmLevel, turn)
                 lastStep = step
@@ -289,12 +323,23 @@ class SoundRenderer(private val model: SoundModel) {
 
     private fun triggerStep(scene: Soundscape, absoluteStep: Long, energy: Double,
                             steering: Double, rhythmLevel: Int, turn: Int) {
-        val position = (absoluteStep % 16).toInt()
-        val bar = absoluteStep / 16
+        val piece = scene.piece
+        val stepsPerBar = piece?.stepsPerBar ?: 16
+        val position = (absoluteStep % stepsPerBar).toInt()
+        val bar = absoluteStep / stepsPerBar
         val chordIndex = (bar % scene.chords.size).toInt()
-        val chord = scene.chords[chordIndex]
-        val tones = scene.chordTones?.get(chordIndex) ?: scene.scale
-        if (position == 0) {
+        val span = piece?.chordAt((absoluteStep % piece.lengthSteps).toInt())
+        val chord = span?.relativeRoot ?: scene.chords[chordIndex]
+        val tones = span?.tones ?: scene.chordTones?.get(chordIndex) ?: scene.scale
+        if (span != null) {
+            // The curve strings and indicator motif follow the piece's harmony.
+            if (span.start.toLong() == absoluteStep % piece.lengthSteps) {
+                val root = scene.rootHz * 2.0 * ratio(chord)
+                padFrequency[0] = root
+                padFrequency[1] = root * ratio(tones[1])
+                padFrequency[2] = root * ratio(tones[2])
+            }
+        } else if (position == 0) {
             val root = scene.rootHz * 2.0 * ratio(chord)
             padFrequency[0] = root
             padFrequency[1] = root * ratio(tones[if (scene.chordTones == null) 2 else 1])
@@ -351,6 +396,13 @@ class SoundRenderer(private val model: SoundModel) {
         }
         if (bar % 8 == 7L && position == 14 && energy >= 0.48) snareAge = 0.0
         engines[activePreset]?.step(position, bar, chord, tones, scene, rhythmLevel, currentBpm, currentWiper)
+    }
+
+    /** Whole loops of the track that fill about [trackSeconds]. */
+    private fun trackBars(scene: Soundscape): Int {
+        val loop = scene.piece?.lengthBars ?: scene.chords.size
+        val loopSeconds = loop * (scene.piece?.beatsPerBar ?: 4) * 60.0 / scene.baseBpm
+        return loop * max(1, Math.round(trackSeconds / loopSeconds).toInt())
     }
 
     /** ~3 ms fade-in so a note never starts at full level. */

@@ -1,6 +1,8 @@
 package com.drivesoundtrack.app
 
+import com.drivesoundtrack.app.audio.Albums
 import com.drivesoundtrack.app.audio.DriveRecorder
+import com.drivesoundtrack.app.audio.Instruments
 import com.drivesoundtrack.app.audio.SoundModel
 import com.drivesoundtrack.app.audio.Soundscapes
 import com.drivesoundtrack.app.audio.SynthEngine
@@ -53,6 +55,9 @@ class SoundtrackService : MediaBrowserService() {
         const val DEBUG_PRESET = "com.drivesoundtrack.DEBUG_PRESET"
         const val SCENARIO_TOGGLE = "com.drivesoundtrack.SCENARIO_TOGGLE"
         const val SAVE_DRIVE = "com.drivesoundtrack.SAVE_DRIVE"
+        const val INSTRUMENT = "com.drivesoundtrack.INSTRUMENT"
+        const val RESET_INSTRUMENTS = "com.drivesoundtrack.RESET_INSTRUMENTS"
+        const val MY_ALBUM_TOGGLE = "com.drivesoundtrack.MY_ALBUM_TOGGLE"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
     }
@@ -71,6 +76,10 @@ class SoundtrackService : MediaBrowserService() {
     private var carAvailable = false
     @Volatile private var restricted = false
     private var preset = 0
+    private var album = Albums.ORIGINAL
+    private var myAlbum = IntArray(0)
+    /** Instrument per stage for each classical track (null for the original soundscapes). */
+    private val orchestrations = arrayOfNulls<IntArray>(Soundscapes.all.size)
     private var bassSolo = false
     private var debugJourneyEnabled = false
     private var scenarioEnabled = false
@@ -83,7 +92,7 @@ class SoundtrackService : MediaBrowserService() {
     private var lastSavedDrive: String? = null
     private val statusTicker = object : Runnable {
         override fun run() {
-            if (playing) { bandReader.pollWiperSwitch(model); broadcastStatus(); handler.postDelayed(this, 800) }
+            if (playing) { bandReader.pollWiperSwitch(model); followAlbum(); broadcastStatus(); handler.postDelayed(this, 800) }
         }
     }
 
@@ -100,8 +109,21 @@ class SoundtrackService : MediaBrowserService() {
             preset = 0
             preferences.edit().putInt("preset", preset).putBoolean("threeScenesMigrated", true).apply()
         }
+        album = preferences.getInt("album", Albums.ORIGINAL).coerceIn(Albums.names.indices)
+        myAlbum = (preferences.getString("myAlbum", null)?.split('|') ?: Albums.defaultMine)
+            .mapNotNull { name -> NAMES.indexOf(name).takeIf { it >= 0 } }.toIntArray()
+        for (i in Soundscapes.all.indices) {
+            val piece = Soundscapes.all[i].piece ?: continue
+            val saved = preferences.getString("instruments_${NAMES[i]}", null)?.split('|')
+            orchestrations[i] = IntArray(6) { stage ->
+                val id = saved?.getOrNull(stage) ?: piece.defaults[stage]
+                Instruments.all.indexOfFirst { it.id == id }.takeIf { it in Instruments.options[stage] }
+                    ?: Instruments.indexOf(piece.defaults[stage])
+            }.also { engine.setOrchestration(i, it) }
+        }
         model.setPreset(preset)
         engine.setPreset(preset)
+        engine.setPlaylist(Albums.tracks(album, myAlbum))
         speedReader = CarSpeedReader()
         connectSpeedReader()
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
@@ -128,8 +150,8 @@ class SoundtrackService : MediaBrowserService() {
             override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
                 mediaId?.toIntOrNull()?.let { setPreset(it); play() }
             }
-            override fun onSkipToNext() = setPreset((preset + 1) % NAMES.size)
-            override fun onSkipToPrevious() = setPreset((preset + NAMES.size - 1) % NAMES.size)
+            override fun onSkipToNext() = skip(1)
+            override fun onSkipToPrevious() = skip(-1)
         })
         session.isActive = true
         sessionToken = session.sessionToken
@@ -184,7 +206,14 @@ class SoundtrackService : MediaBrowserService() {
             DEBUG_PRESET -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && !playing) {
                 setPreset(intent.getIntExtra("preset", 0), debugOverride = true)
             }
-            PRESET -> setPreset(intent.getIntExtra("preset", 0))
+            PRESET -> {
+                val chosenAlbum = intent.getIntExtra("album", -1)
+                if (chosenAlbum in Albums.names.indices && !locked()) setAlbum(chosenAlbum)
+                setPreset(intent.getIntExtra("preset", 0))
+            }
+            INSTRUMENT -> setInstrument(intent.getIntExtra("stage", -1), intent.getIntExtra("instrument", -1))
+            RESET_INSTRUMENTS -> resetInstruments()
+            MY_ALBUM_TOGGLE -> toggleMyAlbum(intent.getIntExtra("preset", -1))
             SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
             STATUS_REQUEST -> broadcastStatus()
             SAVE_DRIVE -> saveDrive()
@@ -247,8 +276,64 @@ class SoundtrackService : MediaBrowserService() {
         broadcastStatus()
     }
 
+    /** Choices on the screen are locked while driving; the album still moves on by itself. */
+    private fun locked() = restricted || (carAvailable && !scenarioEnabled && vehicleKmh >= 5)
+
+    private fun setAlbum(choice: Int) {
+        album = choice
+        engine.setPlaylist(Albums.tracks(album, myAlbum))
+        getSharedPreferences("soundtrack", MODE_PRIVATE).edit().putInt("album", album).apply()
+    }
+
+    private fun skip(direction: Int) {
+        val tracks = Albums.tracks(album, myAlbum).takeIf { it.isNotEmpty() } ?: Soundscapes.all.indices.toList().toIntArray()
+        val index = tracks.indexOf(preset)
+        setPreset(tracks[Math.floorMod((if (index < 0) 0 else index) + direction, tracks.size)])
+    }
+
+    /** The renderer moved to the album's next track on its own. */
+    private fun followAlbum() {
+        val now = engine.track()
+        if (now == preset) return
+        preset = now
+        getSharedPreferences("soundtrack", MODE_PRIVATE).edit().putInt("preset", preset).apply()
+        updateSession()
+        if (playing) (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(1, playbackNotification())
+    }
+
+    private fun setInstrument(stage: Int, instrument: Int) {
+        val current = orchestrations.getOrNull(preset) ?: return
+        if (locked() || stage !in 0..5 || instrument !in Instruments.options[stage]) return
+        current[stage] = instrument
+        applyInstruments()
+    }
+
+    private fun resetInstruments() {
+        val piece = Soundscapes.all[preset].piece ?: return
+        if (locked()) return
+        orchestrations[preset] = IntArray(6) { Instruments.indexOf(piece.defaults[it]) }
+        applyInstruments()
+    }
+
+    private fun applyInstruments() {
+        val current = orchestrations[preset] ?: return
+        engine.setOrchestration(preset, current)
+        getSharedPreferences("soundtrack", MODE_PRIVATE).edit()
+            .putString("instruments_${NAMES[preset]}", current.joinToString("|") { Instruments.all[it].id }).apply()
+        broadcastStatus()
+    }
+
+    private fun toggleMyAlbum(track: Int) {
+        if (track !in Soundscapes.all.indices || locked()) return
+        myAlbum = if (track in myAlbum) myAlbum.filter { it != track }.toIntArray() else myAlbum + track
+        getSharedPreferences("soundtrack", MODE_PRIVATE).edit()
+            .putString("myAlbum", myAlbum.joinToString("|") { NAMES[it] }).apply()
+        if (album == Albums.MINE) engine.setPlaylist(myAlbum)
+        broadcastStatus()
+    }
+
     private fun setPreset(choice: Int, debugOverride: Boolean = false) {
-        if (!debugOverride && (restricted || (carAvailable && !scenarioEnabled && vehicleKmh >= 5))) return
+        if (!debugOverride && locked()) return
         preset = choice.coerceIn(Soundscapes.all.indices)
         model.setPreset(preset)
         engine.setPreset(preset)
@@ -331,7 +416,8 @@ class SoundtrackService : MediaBrowserService() {
         if (savingDrive) return
         savingDrive = true
         broadcastStatus()
-        val sceneName = NAMES[preset]
+        val sceneName = java.text.Normalizer.normalize(NAMES[preset], java.text.Normalizer.Form.NFD)
+            .replace(Regex("[^A-Za-z0-9]"), "")
         Thread({
             val wasRecording = recorder.active
             val file = recorder.end()
@@ -374,8 +460,8 @@ class SoundtrackService : MediaBrowserService() {
     private fun updateSession() {
         session.setMetadata(MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, NAMES[preset])
-            .putString(MediaMetadata.METADATA_KEY_ARTIST, "Drive Soundtrack")
-            .putString(MediaMetadata.METADATA_KEY_ALBUM, Soundscapes.all[preset].character).build())
+            .putString(MediaMetadata.METADATA_KEY_ARTIST, Soundscapes.all[preset].piece?.composer ?: "Drive Soundtrack")
+            .putString(MediaMetadata.METADATA_KEY_ALBUM, Albums.names[album]).build())
         session.setPlaybackState(PlaybackState.Builder()
             .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or
                 PlaybackState.ACTION_PLAY_FROM_MEDIA_ID or PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS)
@@ -412,6 +498,9 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("canSaveDrive", !savingDrive && ((recorder.active && recorder.seconds >= 3.0) || recorder.lastDrive != null))
         status.putExtra("savingDrive", savingDrive)
         status.putExtra("lastSavedDrive", lastSavedDrive)
+        status.putExtra("album", album)
+        status.putExtra("myAlbum", myAlbum)
+        status.putExtra("instruments", orchestrations[preset] ?: IntArray(0))
         sendBroadcast(status)
     }
 

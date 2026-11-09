@@ -47,13 +47,17 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import com.drivesoundtrack.app.audio.Albums
+import com.drivesoundtrack.app.audio.Instruments
 import com.drivesoundtrack.app.audio.Soundscapes
 import kotlin.math.roundToInt
 
 private val LAYER_NAMES = listOf("베이스", "드럼", "화음", "아르페지오", "선율", "반짝임")
+private val STAGE_SPEEDS = listOf("항상", "18 km/h~", "38 km/h~", "58 km/h~", "82 km/h~", "105 km/h~")
 
 /**
- * The parked screen. Soundscape choice and demo controls lock while driving
+ * The parked screen. Track, album and instrument choices and the demo controls lock while driving
  * ([restricted] or a live vehicle speed of 5 km/h or more); audio keeps adapting in the background.
  */
 @Composable
@@ -64,8 +68,10 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
     val canConfigure = !restricted && (status.scenarioEnabled || !status.carAvailable || status.kmh < 5)
     val scene = Soundscapes.all[status.preset]
     val accent = accentColor(scene.accent)
+    var editing by rememberSaveable { mutableStateOf(false) }
 
     MaterialTheme(colorScheme = darkColorScheme(primary = accent)) {
+      Box(Modifier.fillMaxSize()) {
         // Landscape (the car display) fits on one screen without scrolling: the stage and the
         // soundscape cards share the height that is left. Portrait falls back to a scrolling page.
         Column(
@@ -85,7 +91,7 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
                         if (canRequestPermission) PermissionPrompt(actions)
                     }
                     Column(Modifier.weight(0.85f).fillMaxHeight()) {
-                        Library(status.preset, canConfigure, landscape = true, actions = actions)
+                        Library(status, canConfigure, landscape = true, actions = actions) { editing = true }
                     }
                 }
             } else {
@@ -97,10 +103,12 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
                     if (canRequestPermission) PermissionPrompt(actions)
                 }
                 Column(Modifier.fillMaxWidth().padding(top = 22.dp)) {
-                    Library(status.preset, canConfigure, landscape = false, actions = actions)
+                    Library(status, canConfigure, landscape = false, actions = actions) { editing = true }
                 }
             }
         }
+        if (editing && canConfigure && status.instruments.size == 6) InstrumentEditor(status, accent, actions) { editing = false }
+      }
     }
 }
 
@@ -174,7 +182,8 @@ private fun Hero(status: PlayerStatus, accent: Color, playing: Boolean, landscap
     Box(modifier) {
         InstrumentStage(status, accent, playing, Modifier.fillMaxSize())
         Column(Modifier.fillMaxWidth().padding(start = 26.dp, top = 22.dp, end = 26.dp)) {
-            Label("NOW PLAYING  /  ORIGINAL SCORE", 11.sp, Palette.Muted, bold = true, spacing = 0.12.em)
+            val source = scene.piece?.let { "${Albums.names[status.album]}  ·  ${it.composer}" } ?: "ORIGINAL SCORE"
+            Label("NOW PLAYING  /  $source", 11.sp, Palette.Muted, bold = true, spacing = 0.12.em)
             Label(scene.name.uppercase(), if (landscape) 43.sp else 36.sp, Color.White, bold = true,
                 modifier = Modifier.padding(top = 7.dp))
             Label(scene.character.uppercase(), 13.sp, Palette.Genre, bold = true, spacing = 0.1.em)
@@ -187,7 +196,9 @@ private fun Hero(status: PlayerStatus, accent: Color, playing: Boolean, landscap
 
 private fun phaseText(s: PlayerStatus): String = when {
     s.bassSolo -> "베이스 솔로 · ${s.kmh.roundToInt()} km/h"
-    s.playing -> LAYER_NAMES.filterIndexed { i, _ -> s.layerMask and (1 shl i) != 0 }.joinToString("  +  ")
+    s.playing -> LAYER_NAMES.indices.filter { s.layerMask and (1 shl it) != 0 }
+        .map { if (s.instruments.size == 6) Instruments.all[s.instruments[it]].label else LAYER_NAMES[it] }
+        .filter { it != "없음" }.joinToString("  +  ")
     else -> "재생 대기"
 }
 
@@ -252,34 +263,113 @@ private fun PermissionPrompt(actions: PlayerActions) {
     Button(actions::requestVehiclePermissions) { Text("차량 속도 연결") }
 }
 
+/** Albums play their tracks one after another; a classical track's instruments can be changed while parked. */
 @Composable
-private fun ColumnScope.Library(selected: Int, enabled: Boolean, landscape: Boolean, actions: PlayerActions) {
-    Label("SOUNDSCAPES", 19.sp, Color.White, bold = true, spacing = 0.08.em)
-    Label("정차 중 음악의 분위기를 선택하세요", 12.sp, Palette.Muted, modifier = Modifier.padding(top = 3.dp, bottom = 10.dp))
-    // In landscape the five cards split the remaining height evenly, so the list always fits.
-    for ((i, scene) in Soundscapes.all.withIndex()) {
+private fun ColumnScope.Library(status: PlayerStatus, enabled: Boolean, landscape: Boolean, actions: PlayerActions, onEdit: () -> Unit) {
+    var viewedChoice by rememberSaveable { mutableStateOf(-1) }
+    val viewed = if (viewedChoice < 0) status.album else viewedChoice
+    Label("ALBUMS", 19.sp, Color.White, bold = true, spacing = 0.08.em)
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((i, name) in Albums.names.withIndex()) {
+            val selected = i == viewed
+            Box(
+                Modifier.weight(1f).height(40.dp)
+                    .background(if (selected) MaterialTheme.colorScheme.primary else Palette.Panel, RoundedCornerShape(12.dp))
+                    .clickable { viewedChoice = i },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text((if (i == status.album) "♪ " else "") + name, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    color = if (selected) Palette.Background else Color.White, maxLines = 1)
+            }
+        }
+    }
+    val tracks = Albums.tracks(viewed, status.myAlbum.toIntArray()).toList()
+    if (tracks.isEmpty()) Label("오리지널·클래식 앨범에서 ＋를 눌러 곡을 담으세요.", 13.sp, Palette.Muted,
+        modifier = Modifier.padding(vertical = 12.dp))
+    for (i in tracks) {
+        val scene = Soundscapes.all[i]
         val accent = accentColor(scene.accent)
         val shape = RoundedCornerShape(17.dp)
+        val selected = i == status.preset && viewed == status.album
         Row(
             Modifier.fillMaxWidth().padding(bottom = 7.dp)
                 .then(if (landscape) Modifier.weight(1f) else Modifier.height(72.dp))
                 .alpha(if (enabled) 1f else 0.55f)
-                .background(if (i == selected) Palette.PanelSelected else Palette.Panel, shape)
-                .border(1.dp, if (i == selected) accent else Palette.PanelStroke, shape)
-                .clickable(enabled = enabled) { actions.selectPreset(i) }
-                .semantics { contentDescription = "${scene.name}, ${scene.character}, 사운드스케이프 선택" }
-                .padding(start = 17.dp, top = 6.dp, end = 16.dp, bottom = 6.dp),
+                .background(if (selected) Palette.PanelSelected else Palette.Panel, shape)
+                .border(1.dp, if (selected) accent else Palette.PanelStroke, shape)
+                .clickable(enabled = enabled) { viewedChoice = viewed; actions.selectTrack(viewed, i) }
+                .semantics { contentDescription = "${scene.name}, ${scene.character}, 곡 선택" }
+                .padding(start = 17.dp, top = 4.dp, end = 6.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(4.dp, 34.dp).background(accent))
+            Box(Modifier.size(4.dp, 30.dp).background(accent))
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Label(scene.name, if (landscape) 23.sp else 18.sp, Color.White, bold = true)
-                Label(scene.character.uppercase(), if (landscape) 12.sp else 11.sp, Palette.Muted, spacing = 0.09.em)
+                Label(scene.name, if (landscape) 21.sp else 18.sp, Color.White, bold = true)
+                Label(scene.character.uppercase(), 12.sp, Palette.Muted, spacing = 0.05.em)
             }
-            if (landscape) SoundscapeGlyph(i, accent, Modifier.width(96.dp).fillMaxHeight())
-            else Label("${scene.baseBpm.roundToInt()} BPM", 11.sp, Palette.Muted)
+            if (selected && scene.piece != null) TextButton(onEdit, enabled = enabled) {
+                Text("악기 편성", fontSize = 14.sp, color = accent, fontWeight = FontWeight.Bold)
+            } else if (landscape) SoundscapeGlyph(i, accent, Modifier.width(64.dp).fillMaxHeight())
+            val inMine = i in status.myAlbum
+            TextButton({ actions.toggleMyAlbum(i) }, enabled = enabled, modifier = Modifier.width(52.dp)) {
+                Text(if (viewed == Albums.MINE) "✕" else if (inMine) "✓" else "＋", fontSize = 18.sp,
+                    color = if (inMine && viewed != Albums.MINE) accent else Palette.Muted)
+            }
         }
     }
-    Label("주행 중에는 모드 선택과 시연 조작이 잠깁니다.", 12.sp, Palette.Muted, modifier = Modifier.padding(top = 4.dp))
+    Label("곡은 약 3분씩 이어서 연주됩니다. ＋ 내 앨범에 담기. 주행 중에는 선택과 편성이 잠깁니다.", 12.sp, Palette.Muted,
+        modifier = Modifier.padding(top = 4.dp))
+}
+
+/** Pick the instrument of each stage for the playing classical track. Changes are heard right away. */
+@Composable
+private fun InstrumentEditor(status: PlayerStatus, accent: Color, actions: PlayerActions, onClose: () -> Unit) {
+    val scene = Soundscapes.all[status.preset]
+    Box(
+        Modifier.fillMaxSize().background(Color(0xDD050B12)).clickable(enabled = false) { },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier.fillMaxWidth(0.94f).background(Palette.Panel, RoundedCornerShape(20.dp))
+                .border(1.dp, accent, RoundedCornerShape(20.dp)).padding(horizontal = 24.dp, vertical = 18.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Label("${scene.name} · 악기 편성", 22.sp, Color.White, bold = true)
+                    Label("속도가 오르면 위에서부터 한 단계씩 합류합니다. 고르면 바로 들립니다.", 12.sp, Palette.Muted)
+                }
+                TextButton(actions::resetInstruments) { Text("기본 편성으로", fontSize = 14.sp, color = Palette.Muted) }
+                Button(onClose, shape = RoundedCornerShape(14.dp)) {
+                    Text("완료", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Palette.Background)
+                }
+            }
+            for (stage in 0..5) {
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.width(150.dp)) {
+                        Label("${stage + 1}단계 · ${Instruments.stageNames[stage]}", 15.sp, Color.White, bold = true)
+                        Label(STAGE_SPEEDS[stage], 11.sp, Palette.Muted)
+                    }
+                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (kind in Instruments.options[stage]) {
+                            val chosen = status.instruments[stage] == kind
+                            Box(
+                                Modifier.weight(1f).height(44.dp)
+                                    .background(if (chosen) accent else Palette.PanelSelected, RoundedCornerShape(12.dp))
+                                    .border(1.dp, if (chosen) accent else Palette.PanelStroke, RoundedCornerShape(12.dp))
+                                    .clickable { actions.setInstrument(stage, kind) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(Instruments.all[kind].label, fontSize = 14.sp, textAlign = TextAlign.Center, maxLines = 1,
+                                    color = if (chosen) Palette.Background else Color.White,
+                                    fontWeight = if (chosen) FontWeight.Bold else FontWeight.Normal)
+                            }
+                        }
+                        // Keep chips the same width on every row.
+                        repeat(6 - Instruments.options[stage].size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+        }
+    }
 }

@@ -119,4 +119,6 @@ internal interface ScoreEngine {
     val bass: Double
     fun step(position: Int, bar: Long, chord: Int, tones: IntArray, scene: Soundscape, rhythmLevel: Int, bpm: Double, wiper: Boolean)
     fun render(speed: Double, accelerator: Double, brake: Double, mixes: DoubleArray, steeringPitch: Double, bpm: Double)
+    /** Called (while silent) when this score starts again, so no old notes hang over. */
+    fun reset() {}
 }

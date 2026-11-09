@@ -25,6 +25,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import com.drivesoundtrack.app.audio.Instruments
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -146,13 +147,16 @@ private class StageScene(
 
     fun tile(index: Int, r: Rect) {
         val x = r.left; val y = r.top; val w = r.width; val h = r.height
+        // A classical track shows the instrument chosen for each stage.
+        fun name(default: String, english: String) =
+            if (s.instruments.size == 6) "$english / ${Instruments.all[s.instruments[index]].label}" else default
         when (index) {
-            0 -> { cell(x, y, w, h, if (s.bassSolo) "BASS SOLO / 베이스" else "BASS / 베이스", "속도 → 저음 음색"); bass(x, y, w, h) }
-            1 -> { cell(x, y, w, h, "DRUMS / 드럼", "18 km/h · 박동"); drums(x, y, w, h) }
-            2 -> { cell(x, y, w, h, "CHORDS / 화음", "38 km/h · 화성"); chords(x, y, w, h) }
-            3 -> { cell(x, y, w, h, "ARP / 아르페지오", "58 km/h · 분산 음"); arpeggio(x, y, w, h) }
-            4 -> { cell(x, y, w, h, "MELODY / 선율", "82 km/h · 조향"); melody(x, y, w, h) }
-            else -> { cell(x, y, w, h, "SHIMMER / 고역", "105 km/h · 반짝임"); shimmer(x, y, w, h) }
+            0 -> { cell(x, y, w, h, if (s.bassSolo) "BASS SOLO / 베이스" else name("BASS / 베이스", "BASS"), "속도 → 저음 음색"); bass(x, y, w, h) }
+            1 -> { cell(x, y, w, h, name("DRUMS / 드럼", "RHYTHM"), "18 km/h · 박동"); drums(x, y, w, h) }
+            2 -> { cell(x, y, w, h, name("CHORDS / 화음", "CHORDS"), "38 km/h · 화성"); chords(x, y, w, h) }
+            3 -> { cell(x, y, w, h, name("ARP / 아르페지오", "ARP"), "58 km/h · 분산 음"); arpeggio(x, y, w, h) }
+            4 -> { cell(x, y, w, h, name("MELODY / 선율", "MELODY"), "82 km/h · 조향"); melody(x, y, w, h) }
+            else -> { cell(x, y, w, h, name("SHIMMER / 고역", "HIGH"), "105 km/h · 반짝임"); shimmer(x, y, w, h) }
         }
     }
 

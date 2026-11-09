@@ -99,7 +99,7 @@ class SoundModel {
     @Synchronized fun targetBpm(): Double {
         val scene = Soundscapes.all[currentPreset]
         val modeOffset = when (currentDriveMode) { 2 -> 2.0; 1 -> -2.0; else -> 0.0 }
-        return scene.baseBpm + min(6.0, targetKmh / 130.0 * 6.0) + modeOffset
+        return scene.baseBpm + targetKmh / 130.0 * scene.tempoRange + modeOffset
     }
 
     @Synchronized fun bpm(): Double = currentBpm
