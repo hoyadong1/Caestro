@@ -1,0 +1,98 @@
+{
+ "format": 1,
+ "type": "instrument",
+ "id": "handpan",
+ "label": "핸드팬",
+ "sound": "designed",
+ "creator": "음색을 디자인한 예시",
+ "license": "CC0 (퍼블릭 도메인)",
+ "stages": [
+  3,
+  4,
+  5
+ ],
+ "sustained": false,
+ "voices": 6,
+ "mono": false,
+ "minMidi": 50,
+ "maxMidi": 88,
+ "gain": 1.9,
+ "attack": 0.002,
+ "release": 0.9,
+ "look": "GLASS",
+ "color": "#7DD8CB",
+ "rate": 24000,
+ "pcm": "handpan.pcm",
+ "notes": [
+  {
+   "root": 146.832,
+   "offset": 0,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 184.997,
+   "offset": 81600,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 233.082,
+   "offset": 163200,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 293.665,
+   "offset": 244800,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 369.994,
+   "offset": 326400,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 466.164,
+   "offset": 408000,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 587.33,
+   "offset": 489600,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 739.989,
+   "offset": 571200,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 932.328,
+   "offset": 652800,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 1174.659,
+   "offset": 734400,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  }
+ ]
+}

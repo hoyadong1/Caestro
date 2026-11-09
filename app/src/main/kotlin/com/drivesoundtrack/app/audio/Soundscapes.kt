@@ -26,16 +26,30 @@ data class Soundscape(
     /** BPM added at 130 km/h. */
     val tempoRange: Double = 6.0,
     val piece: Piece? = null,
+    /** Pack id when the score was downloaded from the cloud; null for the app's own tracks. */
+    val cloudId: String? = null,
 )
 
-private fun classical(piece: Piece, character: String, accent: Int, bpm: Double, tempoRange: Double = 6.0) = Soundscape(
+internal fun classical(piece: Piece, character: String, accent: Int, bpm: Double, tempoRange: Double = 6.0,
+                       cloudId: String? = null) = Soundscape(
     piece.title, character, accent, bpm, midiHz(36 + piece.tonic),
     intArrayOf(0), intArrayOf(0, 2, 4, 5, 7, 9, 11), 0, 0, 0, 0, IntArray(16) { -1 },
-    0.0, 0.0, 0.0, 0.0, tempoRange = tempoRange, piece = piece,
+    0.0, 0.0, 0.0, 0.0, tempoRange = tempoRange, piece = piece, cloudId = cloudId,
 )
 
 object Soundscapes {
-    val all = listOf(
+    /** The app's tracks, then downloaded scores ([addCloud]). Indices never move. */
+    @Volatile var all: List<Soundscape> = builtIn(); private set
+
+    /** Adds a downloaded score; returns its track index. */
+    @Synchronized internal fun addCloud(scene: Soundscape): Int {
+        val known = all.indexOfFirst { it.cloudId != null && it.cloudId == scene.cloudId }
+        if (known >= 0) return known
+        all = all + scene
+        return all.size - 1
+    }
+
+    private fun builtIn() = listOf(
         Soundscape("Pulse", "electro drive", 0x66C9FF, 96.0, 55.0,
             intArrayOf(0, -4, 3, -2), intArrayOf(0, 3, 7, 10, 12),
             0x1111, 0x1010, 0x5555, 0x9191,
@@ -85,14 +99,23 @@ object Albums {
     const val ORIGINAL = 0
     const val CLASSIC = 1
     const val MINE = 2
-    val names = listOf("오리지널", "클래식 드라이브", "내 앨범")
-    val originals: IntArray = Soundscapes.all.indices.filter { Soundscapes.all[it].piece == null }.toIntArray()
-    val classics: IntArray = Soundscapes.all.indices.filter { Soundscapes.all[it].piece != null }.toIntArray()
+    const val DOWNLOADED = 3
+    val names = listOf("오리지널", "클래식 드라이브", "내 앨범", "받은 곡")
+    val originals: IntArray get() = pick { it.piece == null && it.cloudId == null }
+    val classics: IntArray get() = pick { it.piece != null && it.cloudId == null }
+    /** Scores downloaded from the cloud. */
+    val downloaded: IntArray get() = pick { it.cloudId != null }
     val defaultMine: List<String> = listOf("Canon", "Coast", "Gymnopédie", "Ode to Joy")
+
+    private fun pick(test: (Soundscape) -> Boolean): IntArray {
+        val all = Soundscapes.all
+        return all.indices.filter { test(all[it]) }.toIntArray()
+    }
 
     fun tracks(album: Int, mine: IntArray): IntArray = when (album) {
         ORIGINAL -> originals
         CLASSIC -> classics
+        DOWNLOADED -> downloaded
         else -> mine
     }
 }

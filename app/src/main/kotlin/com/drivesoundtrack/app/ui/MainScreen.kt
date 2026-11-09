@@ -65,6 +65,8 @@ import androidx.compose.ui.unit.sp
 import com.drivesoundtrack.app.audio.Albums
 import com.drivesoundtrack.app.audio.Instruments
 import com.drivesoundtrack.app.audio.Soundscapes
+import com.drivesoundtrack.app.library.CloudLibrary
+import androidx.compose.runtime.LaunchedEffect
 import kotlin.math.roundToInt
 
 private val LAYER_NAMES = listOf("베이스", "드럼", "화음", "아르페지오", "선율", "반짝임")
@@ -74,17 +76,19 @@ private const val MAX_KMH = 130f
 private const val TAB_PLAY = 0
 private const val TAB_ALBUMS = 1
 private const val TAB_BAND = 2
+private const val TAB_CLOUD = 3
 
 private const val EDIT_TRACK = 1
 private const val EDIT_BAND = 2
 
 /**
- * The app: a side rail switches between Now playing, Albums and My band. While driving
- * ([restricted] or a live vehicle speed of 5 km/h or more) only Now playing is shown; the rail
- * locks the other two and audio keeps adapting in the background.
+ * The app: a side rail switches between Now playing, Albums, My band and Get (scores and
+ * instruments from the cloud). While driving ([restricted] or a live vehicle speed of 5 km/h or
+ * more) only Now playing is shown; the rail locks the others and audio keeps adapting in the background.
  */
 @Composable
-fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: Boolean, actions: PlayerActions) {
+fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: Boolean, actions: PlayerActions,
+               cloud: CloudState = CloudState()) {
     val config = LocalConfiguration.current
     val landscape = config.screenWidthDp > config.screenHeightDp
     val canConfigure = !restricted && (status.scenarioEnabled || !status.carAvailable || status.kmh < 5)
@@ -102,6 +106,12 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
                 when (shown) {
                     TAB_PLAY -> NowPlaying(status, accent, canConfigure, restricted, canRequestPermission, landscape, actions, editTrack)
                     TAB_ALBUMS -> AlbumsPage(status, actions, editTrack)
+                    TAB_CLOUD -> CloudPage(cloud, landscape, actions,
+                        onPlay = { id ->
+                            val track = Soundscapes.all.indexOfFirst { it.cloudId == id }
+                            if (track >= 0) { actions.selectTrack(Albums.DOWNLOADED, track); tab = TAB_PLAY }
+                        },
+                        onBand = { bandMode = EDIT_BAND; tab = TAB_BAND })
                     else -> BandPage(status, bandMode, accent, landscape, actions) { bandMode = it }
                 }
             }
@@ -123,6 +133,7 @@ private fun NavRail(selected: Int, enabled: Boolean, accent: Color, onSelect: (I
         RailItem("지금 재생", selected == TAB_PLAY, true, accent, { playIcon(it) }) { onSelect(TAB_PLAY) }
         RailItem("앨범", selected == TAB_ALBUMS, enabled, accent, { albumIcon(it) }) { onSelect(TAB_ALBUMS) }
         RailItem("악단", selected == TAB_BAND, enabled, accent, { bandIcon(it) }) { onSelect(TAB_BAND) }
+        RailItem("받기", selected == TAB_CLOUD, enabled, accent, { cloudIcon(it) }) { onSelect(TAB_CLOUD) }
         Spacer(Modifier.weight(1f))
         if (!enabled) Text("주행 중\n선택 잠금", fontSize = 16.sp, lineHeight = 20.sp, color = Palette.DemoSignal,
             fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
@@ -282,7 +293,9 @@ private fun AlbumsPage(status: PlayerStatus, actions: PlayerActions, onEditTrack
             Modifier.padding(top = 16.dp, bottom = 14.dp)) { viewedChoice = it }
         val tracks = Albums.tracks(viewed, status.myAlbum.toIntArray()).toList()
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            if (tracks.isEmpty()) Label("오리지널·클래식 드라이브 앨범에서 ＋ 를 눌러 곡을 담으세요.", 19.sp, Palette.Muted,
+            if (tracks.isEmpty()) Label(
+                if (viewed == Albums.DOWNLOADED) "‘받기’에서 클라우드의 악보를 내려받으면 여기에 나옵니다."
+                else "오리지널·클래식 드라이브 앨범에서 ＋ 를 눌러 곡을 담으세요.", 19.sp, Palette.Muted,
                 modifier = Modifier.padding(vertical = 20.dp))
             for (i in tracks) {
                 val scene = Soundscapes.all[i]
@@ -340,6 +353,106 @@ private fun Segmented(items: List<String>, selected: Int, modifier: Modifier = M
         }
     }
 }
+
+// ------------------------------------------------------------------ get (cloud)
+
+/**
+ * Scores and instruments shared on the cloud. They are made outside the car on the creator
+ * platform; here they are only listed and downloaded (parked), then played from Albums and the band.
+ */
+@Composable
+private fun CloudPage(cloud: CloudState, landscape: Boolean, actions: PlayerActions,
+                      onPlay: (String) -> Unit, onBand: () -> Unit) {
+    LaunchedEffect(Unit) { if (cloud.items.isEmpty() && !cloud.loading) actions.refreshCloud() }
+    Column(Modifier.fillMaxSize()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Label("받기", 34.sp, Color.White, bold = true)
+                Label("악보와 악기는 차 밖의 웹 제작 플랫폼에서 만들어 클라우드에 올립니다. 차에서는 정차 중에 내려받아 앨범과 악단에서 씁니다.",
+                    18.sp, Palette.Muted)
+            }
+            Spacer(Modifier.width(16.dp))
+            TextButton(actions::refreshCloud, enabled = !cloud.loading) {
+                Text(if (cloud.loading) "불러오는 중…" else "↻  새로고침", fontSize = 18.sp, color = Palette.Muted)
+            }
+        }
+        cloud.message?.let { message ->
+            Row(Modifier.fillMaxWidth().padding(top = 14.dp).background(Palette.Panel, RoundedCornerShape(14.dp))
+                .padding(horizontal = 18.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(10.dp).background(if (cloud.failed) Palette.DemoSignal else Palette.LiveSignal, CircleShape))
+                Spacer(Modifier.width(10.dp))
+                Label(message, 18.sp, Color.White)
+            }
+        }
+        val scores = cloud.items.filter { it.isScore }
+        val instruments = cloud.items.filter { !it.isScore }
+        val column: @Composable (String, String, List<CloudLibrary.Item>, Modifier) -> Unit = { title, hint, items, modifier ->
+            Column(modifier) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Label(title, 26.sp, Color.White, bold = true)
+                    Spacer(Modifier.width(12.dp))
+                    Label(hint, 17.sp, Palette.Muted)
+                }
+                Column(Modifier.padding(top = 12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (items.isEmpty()) Label(if (cloud.loading) "클라우드 목록을 불러오는 중입니다." else "올라온 항목이 없습니다.", 18.sp, Palette.Muted)
+                    for (item in items) CloudCard(item, item.id in cloud.installed, cloud.downloading == item.id,
+                        cloud.downloading == null, { actions.download(item.id) }) { if (item.isScore) onPlay(item.id) else onBand() }
+                }
+            }
+        }
+        if (landscape) Row(Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp)) {
+            column("악보", "받으면 앨범의 ‘받은 곡’에", scores, Modifier.weight(1f).fillMaxHeight())
+            Spacer(Modifier.width(26.dp))
+            column("악기", "받으면 악단에서 고르기", instruments, Modifier.weight(1f).fillMaxHeight())
+        } else Column(Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp)) {
+            column("악보", "받으면 앨범의 ‘받은 곡’에", scores, Modifier.fillMaxWidth())
+            Spacer(Modifier.height(20.dp))
+            column("악기", "받으면 악단에서 고르기", instruments, Modifier.fillMaxWidth())
+        }
+        Label("만들기·올리기는 웹 제작 플랫폼에서만 · 차에서는 내려받기만 합니다", 16.sp, Palette.Muted, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+/** One shared score or instrument: what it is, who made it, and get / open. */
+@Composable
+private fun CloudCard(item: CloudLibrary.Item, installed: Boolean, busy: Boolean, canDownload: Boolean,
+                      onGet: () -> Unit, onOpen: () -> Unit) {
+    val color = accentColor(item.color)
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        Modifier.fillMaxWidth().height(140.dp)
+            .background(if (installed) Palette.PanelSelected else Palette.Panel, shape)
+            .border(if (installed) 2.dp else 1.dp, if (installed) color else Palette.PanelStroke, shape)
+            .semantics { contentDescription = "${item.title}, ${item.subtitle}" }
+            .padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (item.isScore) SoundscapeGlyph(item.id.length + 4, color, Modifier.size(84.dp))
+        else InstrumentLook(item.id, animate = false, modifier = Modifier.width(110.dp).height(96.dp))
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Label(item.title, 24.sp, Color.White, bold = true)
+            Label(item.subtitle, 17.sp, Palette.Genre)
+            Label(if (item.isScore) "${item.creator} · ${item.license}"
+                else "${item.stages.joinToString("·") { Instruments.stageNames.getOrElse(it) { "" } }} 단계 · ${item.license}", 15.sp, Palette.Muted)
+            Label(sizeText(item.bytes), 15.sp, Palette.Muted)
+        }
+        Spacer(Modifier.width(10.dp))
+        when {
+            installed -> Column(horizontalAlignment = Alignment.End) {
+                Text("받음 ✓", fontSize = 17.sp, color = color, fontWeight = FontWeight.Bold)
+                TextButton(onOpen) { Text(if (item.isScore) "재생  ›" else "악단에서 고르기  ›", fontSize = 18.sp, color = color) }
+            }
+            busy -> Text("받는 중…", fontSize = 18.sp, color = color, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 12.dp))
+            else -> Button(onGet, enabled = canDownload, modifier = Modifier.height(56.dp), shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Palette.Background)) {
+                Text("↓  받기", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+private fun sizeText(bytes: Long) = if (bytes < 1_000_000) "${(bytes + 999) / 1000} KB" else "%.1f MB".format(bytes / 1e6)
 
 // ------------------------------------------------------------------ band
 
@@ -468,7 +581,7 @@ private fun StageSlot(stage: Int, kind: Int, selected: Boolean, modifier: Modifi
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Label(if (item.id == "none") "쉼" else item.label, 21.sp, if (item.id == "none") Palette.Muted else Color.White, bold = true)
-            Label(when { item.id == "none" -> "이 단계는 연주하지 않음"; item.real -> "실제 악기 녹음"; else -> "신시사이저" }, 15.sp, Palette.Muted)
+            Label(when { item.id == "none" -> "이 단계는 연주하지 않음"; else -> soundKind(item) }, 15.sp, Palette.Muted)
         }
         Text("›", fontSize = 30.sp, color = if (selected) look else Palette.Muted)
     }
@@ -495,7 +608,8 @@ private fun InstrumentCard(kind: Int, chosen: Boolean, modifier: Modifier, onCli
                     Box(Modifier.size(11.dp).then(if (item.real) Modifier.background(look, CircleShape) else Modifier.border(2.dp, look, CircleShape)))
                     Spacer(Modifier.width(7.dp))
                 }
-                Label(when { item.id == "none" -> "이 단계 쉬기"; item.real -> "실제 녹음"; else -> "신시사이저" }, 15.sp, Palette.Muted)
+                Label(when { item.id == "none" -> "이 단계 쉬기"; else -> soundKind(item) }, 15.sp,
+                    if (item.cloud) look else Palette.Muted)
             }
         }
         if (chosen) Box(
@@ -503,6 +617,13 @@ private fun InstrumentCard(kind: Int, chosen: Boolean, modifier: Modifier, onCli
             contentAlignment = Alignment.Center,
         ) { Text("✓", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Palette.Background) }
     }
+}
+
+private fun soundKind(item: Instruments.Kind) = when {
+    item.cloud && item.real -> "받은 악기 · 녹음"
+    item.cloud -> "받은 악기 · 디자인 음색"
+    item.real -> "실제 녹음"
+    else -> "신시사이저"
 }
 
 /** A ready-made ensemble: its name and the colors of its six instruments. */
@@ -606,6 +727,21 @@ private fun DrawScope.albumIcon(c: Color) {
     drawRoundRect(c, Offset(w * 0.22f, w * 0.06f), Size(w * 0.72f, w * 0.72f), CornerRadius(w * 0.08f), style = Stroke(w * 0.07f))
     drawRoundRect(c, Offset(w * 0.06f, w * 0.22f), Size(w * 0.72f, w * 0.72f), CornerRadius(w * 0.08f))
     drawCircle(Palette.Panel, w * 0.16f, Offset(w * 0.42f, w * 0.58f))
+}
+
+/** A filled cloud with an arrow coming down under it. */
+private fun DrawScope.cloudIcon(c: Color) {
+    val w = size.width
+    drawCircle(c, w * 0.17f, Offset(w * 0.27f, w * 0.40f))
+    drawCircle(c, w * 0.23f, Offset(w * 0.52f, w * 0.30f))
+    drawCircle(c, w * 0.15f, Offset(w * 0.77f, w * 0.42f))
+    drawRoundRect(c, Offset(w * 0.10f, w * 0.38f), Size(w * 0.82f, w * 0.20f), CornerRadius(w * 0.10f))
+    val arrow = Path().apply {
+        moveTo(w * 0.42f, w * 0.62f); lineTo(w * 0.58f, w * 0.62f); lineTo(w * 0.58f, w * 0.78f)
+        lineTo(w * 0.70f, w * 0.78f); lineTo(w * 0.50f, w * 0.98f); lineTo(w * 0.30f, w * 0.78f)
+        lineTo(w * 0.42f, w * 0.78f); close()
+    }
+    drawPath(arrow, c)
 }
 
 private fun DrawScope.bandIcon(c: Color) {

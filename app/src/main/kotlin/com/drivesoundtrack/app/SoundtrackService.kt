@@ -5,6 +5,8 @@ import com.drivesoundtrack.app.audio.Instruments
 import com.drivesoundtrack.app.audio.SoundModel
 import com.drivesoundtrack.app.audio.Soundscapes
 import com.drivesoundtrack.app.audio.SynthEngine
+import com.drivesoundtrack.app.library.CloudLibrary
+import java.io.File
 import com.drivesoundtrack.app.vehicle.CarPedalReader
 import com.drivesoundtrack.app.vehicle.CarSpeedReader
 import com.drivesoundtrack.app.vehicle.DriveRestrictionsReader
@@ -52,8 +54,11 @@ class SoundtrackService : MediaBrowserService() {
         const val SKIP = "com.drivesoundtrack.SKIP"
         const val AUDITION = "com.drivesoundtrack.AUDITION"
         const val INSTRUMENT_SET = "com.drivesoundtrack.INSTRUMENT_SET"
+        /** The screen downloaded a score or an instrument from the cloud. */
+        const val LIBRARY_CHANGED = "com.drivesoundtrack.LIBRARY_CHANGED"
         private const val CHANNEL = "drive_soundtrack_playback"
-        private val NAMES = Soundscapes.all.map { it.name }
+        /** Track names, including downloaded scores. */
+        private val NAMES: List<String> get() = Soundscapes.all.map { it.name }
     }
 
     private lateinit var model: SoundModel
@@ -74,7 +79,9 @@ class SoundtrackService : MediaBrowserService() {
     private var myAlbum = IntArray(0)
     /** Instrument per stage for each classical track (null for the original soundscapes). */
     /** A track's own instruments; null when it follows the band (or, without a band, its own suggestion). */
-    private val orchestrations = arrayOfNulls<IntArray>(Soundscapes.all.size)
+    private var orchestrations = arrayOfNulls<IntArray>(0)
+    /** Tracks the audio engine was built with; a downloaded score needs a new engine. */
+    private var engineTracks = 0
     /** "My band": the instruments every classical track uses unless it has its own. Null = each track's suggestion. */
     private var band: IntArray? = null
     private var bassSolo = false
@@ -95,7 +102,9 @@ class SoundtrackService : MediaBrowserService() {
         model = SoundModel()
         // Recorded instruments read their notes from the APK's assets.
         com.drivesoundtrack.app.audio.SampleBank.opener = { name -> assets.open("samples/$name") }
-        engine = SynthEngine(model)
+        // Scores and instruments downloaded earlier join the app's own before anything is restored.
+        CloudLibrary.load(File(filesDir, CloudLibrary.FOLDER))
+        orchestrations = arrayOfNulls(Soundscapes.all.size)
         val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE)
         preset = preferences.getInt("preset", 0).coerceIn(Soundscapes.all.indices)
         if (!preferences.getBoolean("threeScenesMigrated", false)) {
@@ -113,16 +122,9 @@ class SoundtrackService : MediaBrowserService() {
             edit.putBoolean("realInstruments", true).apply()
         }
         band = preferences.getString("band", null)?.let { parseInstruments(it, Instruments.BAND_DEFAULT) }
-        for (i in Soundscapes.all.indices) {
-            val piece = Soundscapes.all[i].piece ?: continue
-            val saved = preferences.getString("instruments_${NAMES[i]}", null) ?: continue
-            orchestrations[i] = parseInstruments(saved, piece.defaults)
-                .takeUnless { it.contentEquals(suggested(i)) } // a choice equal to the suggestion follows the band
-        }
-        applyAll()
+        restoreOrchestrations(0)
         model.setPreset(preset)
-        engine.setPreset(preset)
-        engine.setPlaylist(Albums.tracks(album, myAlbum))
+        buildEngine()
         speedReader = CarSpeedReader()
         connectSpeedReader()
         driveModeReader = PleosDriveModeReader().also { it.start(this, model) }
@@ -218,6 +220,7 @@ class SoundtrackService : MediaBrowserService() {
             AUDITION -> engine.setAudition(if (locked()) -1 else intent.getIntExtra("stage", -1))
             INSTRUMENT_SET -> intent.getIntArrayExtra("instruments")?.let { setInstruments(it, intent.getBooleanExtra("band", false)) }
             SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
+            LIBRARY_CHANGED -> reloadLibrary()
             STATUS_REQUEST -> broadcastStatus()
             RECONNECT_SPEED -> {
                 speedReader.stop()
@@ -301,6 +304,46 @@ class SoundtrackService : MediaBrowserService() {
         getSharedPreferences("soundtrack", MODE_PRIVATE).edit().putInt("preset", preset).apply()
         updateSession()
         if (playing) (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(1, playbackNotification())
+    }
+
+    /** Each classical track's own instruments saved earlier, for tracks [from] onwards. */
+    private fun restoreOrchestrations(from: Int) {
+        val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE)
+        for (i in from until Soundscapes.all.size) {
+            val piece = Soundscapes.all[i].piece ?: continue
+            val saved = preferences.getString("instruments_${NAMES[i]}", null) ?: continue
+            orchestrations[i] = parseInstruments(saved, piece.defaults)
+                .takeUnless { it.contentEquals(suggested(i)) } // a choice equal to the suggestion follows the band
+        }
+    }
+
+    private fun buildEngine() {
+        engine = SynthEngine(model)
+        engineTracks = Soundscapes.all.size
+        applyAll()
+        engine.setPreset(preset)
+        engine.setPlaylist(Albums.tracks(album, myAlbum))
+        if (scenarioEnabled) engine.setDebugSpeedJourney(true)
+    }
+
+    /**
+     * A pack was downloaded. A new instrument is ready at once (stages build their instruments when
+     * chosen); a new score needs an engine that knows the track, so the engine is rebuilt and, if it
+     * was playing, picks up again.
+     */
+    private fun reloadLibrary() {
+        CloudLibrary.load(File(filesDir, CloudLibrary.FOLDER))
+        val tracks = Soundscapes.all.size
+        if (tracks != engineTracks) {
+            val previous = engineTracks
+            orchestrations = orchestrations.copyOf(tracks)
+            restoreOrchestrations(previous)
+            val wasPlaying = playing
+            if (wasPlaying) engine.stop()
+            buildEngine()
+            if (wasPlaying) engine.start { ex -> Log.w("DriveSoundtrack", "Audio output failed", ex); pause() }
+        }
+        broadcastStatus()
     }
 
     private fun parseInstruments(saved: String, defaults: List<String>): IntArray {
@@ -490,7 +533,8 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("myAlbum", myAlbum)
         status.putExtra("instruments", effective(preset) ?: IntArray(0))
         status.putExtra("band", band ?: IntArray(0))
-        status.putExtra("ownInstruments", orchestrations[preset] != null)
+        status.putExtra("ownInstruments", orchestrations.getOrNull(preset) != null)
+        status.putExtra("library", Soundscapes.all.size * 1000 + Instruments.all.size)
         sendBroadcast(status)
     }
 

@@ -1,0 +1,23 @@
+{
+ "format": 1,
+ "type": "score",
+ "id": "largo",
+ "title": "Largo",
+ "character": "드보르자크 · 신세계 교향곡 「라르고」",
+ "composer": "A. Dvořák",
+ "creator": "Drive Soundtrack 예시 악보",
+ "license": "퍼블릭 도메인 (1893)",
+ "color": "#8FD0B8",
+ "bpm": 58,
+ "tempoRange": 4,
+ "beatsPerBar": 4,
+ "tonic": "C",
+ "chords": "C:16 | C:8 F/C:8 | G:8 Em:8 | G:16 | C:16 | C:8 Am:8 | Dm7:8 G7:8 | C:16",
+ "melody": "E5:6 G5:2 G5:8 | E5:6 D5:2 C5:8 | D5:4 E5 G5 E5 | D5:12 r:4 | E5:6 G5:2 G5:8 | E5:6 D5:2 C5:8 | D5:4 E5:4 D5:8 | C5:12 r:4",
+ "bass": "HALVES",
+ "arp": "0 . 2 . 1 . 2 . 0 . 2 . 1 . 2 .",
+ "comp": "x . . . . . . . x . . . . . . .",
+ "high": "BELLS",
+ "canonBars": 0,
+ "defaults": ["cello", "orchperc", "strings", "harp", "horn", "glasspad"]
+}

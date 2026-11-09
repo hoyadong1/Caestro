@@ -38,8 +38,12 @@ internal object SampleBank {
     @Volatile var opener: ((String) -> InputStream)? = null
 
     private val sets: Map<String, Set> by lazy { load() }
+    /** Downloaded instruments' notes, in the same layout as the app's own bank. */
+    @Volatile private var downloaded: Map<String, Set> = emptyMap()
 
-    fun set(id: String): Set? = sets[id]
+    fun set(id: String): Set? = sets[id] ?: downloaded[id]
+
+    @Synchronized fun register(set: Set) { downloaded = downloaded + (set.id to set) }
 
     private fun load(): Map<String, Set> = try {
         val open = opener ?: { name: String -> File("src/main/assets/samples", name).inputStream() }

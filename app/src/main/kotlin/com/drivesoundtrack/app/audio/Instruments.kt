@@ -37,15 +37,37 @@ object Instruments {
         internal val gain: Double = 1.0,
         internal val kit: Int = -1,
         internal val sampleKit: Int = -1,
+        /** Downloaded from the cloud (made on the creator platform), not shipped with the app. */
+        val cloud: Boolean = false,
         internal val voice: (() -> Voice)? = null,
     )
+
+    internal fun sampled(id: String, label: String, recorded: Boolean, sustained: Boolean, voices: Int, mono: Boolean,
+                         min: Int, max: Int, gain: Double, attack: Double, release: Double) =
+        Kind(id, label, real = recorded, sustained = sustained, voices = voices, mono = mono, minMidi = min, maxMidi = max,
+            gain = gain, cloud = true) { SampleVoice(id, attack, release) }
 
     private fun real(id: String, label: String, sample: String = id, sustained: Boolean, voices: Int, min: Int, max: Int,
                      gain: Double, attack: Double, release: Double, mono: Boolean = false) =
         Kind(id, label, real = true, sustained = sustained, voices = voices, mono = mono, minMidi = min, maxMidi = max,
             gain = gain) { SampleVoice(sample, attack, release) }
 
-    val all: List<Kind> = listOf(
+    /** Everything that can be played: the app's own instruments, then downloaded ones ([addCloud]). */
+    @Volatile var all: List<Kind> = builtIn(); private set
+    /** Stages each downloaded instrument may play on, by its index in [all]. */
+    @Volatile private var cloudStages: Map<Int, List<Int>> = emptyMap()
+
+    /** Adds a downloaded instrument for the given stages; returns its index. Indices never move. */
+    @Synchronized internal fun addCloud(kind: Kind, stages: List<Int>): Int {
+        val known = all.indexOfFirst { it.id == kind.id }
+        if (known >= 0) return known
+        all = all + kind
+        cloudStages = cloudStages + ((all.size - 1) to stages.filter { it in 0..5 && it != RHYTHM })
+        optionsCache = null
+        return all.size - 1
+    }
+
+    private fun builtIn(): List<Kind> = listOf(
         // Recorded orchestra.
         real("cello", "첼로", sustained = true, voices = 2, min = 36, max = 72, gain = 3.0, attack = 0.08, release = 0.3),
         real("pizz", "콘트라베이스", sample = "contrabass", sustained = false, voices = 3, min = 28, max = 60, gain = 2.55, attack = 0.002, release = 0.35),
@@ -89,8 +111,17 @@ object Instruments {
 
     private fun ids(vararg names: String) = names.map { indexOf(it) }
 
-    /** What each stage may use, in display order: recorded instruments first. */
-    val options: List<List<Int>> by lazy {
+    /** What each stage may use, in display order: recorded instruments first, downloaded ones before "none". */
+    val options: List<List<Int>> get() = optionsCache ?: buildOptions().also { optionsCache = it }
+    @Volatile private var optionsCache: List<List<Int>>? = null
+
+    private fun buildOptions(): List<List<Int>> = baseOptions.mapIndexed { stage, base ->
+        val extra = cloudStages.filterValues { stage in it }.keys.sorted()
+        val none = indexOf("none")
+        if (base.lastOrNull() == none) base.dropLast(1) + extra + none else base + extra
+    }
+
+    private val baseOptions: List<List<Int>> by lazy {
         listOf(
             ids("cello", "pizz", "bassoon", "piano", "organ", "horn", "synthbass"),
             ids("orchperc", "latin", "timpani", "softkit", "shaker", "electro", "none"),

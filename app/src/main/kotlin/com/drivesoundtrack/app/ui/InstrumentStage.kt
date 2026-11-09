@@ -585,7 +585,15 @@ internal object InstrumentLooks {
         "synthlead" to Look(Shape.SYNTH, Color(0xffff8fb1)),
     )
     private val rest = Look(Shape.REST, Color(0xff5c6f7c))
-    fun of(id: String): Look = looks[id] ?: rest
+    /** Downloaded instruments bring their own shape and color. */
+    @Volatile private var downloaded: Map<String, Look> = emptyMap()
+    fun of(id: String): Look = looks[id] ?: downloaded[id] ?: rest
+
+    @Synchronized fun register(id: String, shape: String, rgb: Int) {
+        if (id in looks) return
+        val s = Shape.entries.firstOrNull { it.name == shape && it != Shape.REST } ?: Shape.GLASS
+        downloaded = downloaded + (id to Look(s, Color(0xff000000.toInt() or rgb)))
+    }
 }
 
 /** One instrument drawn on its own (no tile frame): the band screen's slots and cards. */

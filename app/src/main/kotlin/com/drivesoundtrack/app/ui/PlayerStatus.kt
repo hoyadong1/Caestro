@@ -28,6 +28,8 @@ data class PlayerStatus(
     val band: List<Int> = emptyList(),
     /** The playing track has instruments of its own instead of following the band. */
     val ownInstruments: Boolean = false,
+    /** Changes when downloaded scores or instruments were added, so the screen redraws its lists. */
+    val library: Int = 0,
 ) {
     companion object {
         fun from(intent: Intent): PlayerStatus {
@@ -53,10 +55,22 @@ data class PlayerStatus(
                 instruments = intent.getIntArrayExtra("instruments")?.toList() ?: emptyList(),
                 band = intent.getIntArrayExtra("band")?.toList() ?: emptyList(),
                 ownInstruments = intent.getBooleanExtra("ownInstruments", false),
+                library = intent.getIntExtra("library", 0),
             )
         }
     }
 }
+
+/** The "Get" tab: what the cloud offers and what this car has downloaded. */
+data class CloudState(
+    val items: List<com.drivesoundtrack.app.library.CloudLibrary.Item> = emptyList(),
+    val installed: Set<String> = emptySet(),
+    val loading: Boolean = false,
+    /** Id of the pack being downloaded. */
+    val downloading: String? = null,
+    val message: String? = null,
+    val failed: Boolean = false,
+)
 
 /** UI actions the screen can request from the host activity. */
 interface PlayerActions {
@@ -79,4 +93,8 @@ interface PlayerActions {
     fun demoLeftTurn(active: Boolean)
     fun demoWiper(active: Boolean)
     fun requestVehiclePermissions()
+    /** Ask the cloud what it offers. */
+    fun refreshCloud() {}
+    /** Download one pack (parked only); it then shows up in Albums or the band. */
+    fun download(id: String) {}
 }

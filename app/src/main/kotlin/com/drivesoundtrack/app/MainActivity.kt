@@ -4,8 +4,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
+import com.drivesoundtrack.app.library.CloudLibrary
+import com.drivesoundtrack.app.ui.CloudState
+import java.io.File
+import java.util.concurrent.Executors
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +30,9 @@ class MainActivity : ComponentActivity(), PlayerActions {
     }
 
     private var status by mutableStateOf(PlayerStatus())
+    private var cloud by mutableStateOf(CloudState())
+    private val network = Executors.newSingleThreadExecutor()
+    private val libraryRoot get() = File(filesDir, CloudLibrary.FOLDER)
     private var restricted by mutableStateOf(false)
     private var restrictionsKnown by mutableStateOf(false)
     private var permissionsChanged by mutableStateOf(0)
@@ -36,9 +44,15 @@ class MainActivity : ComponentActivity(), PlayerActions {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        // Debug builds may point at another copy of the cloud (for example a branch on GitHub).
+        if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) intent.getStringExtra("cloudBase")?.let { base ->
+            getSharedPreferences("soundtrack", MODE_PRIVATE).edit().putString("cloudBase", base).apply()
+        }
+        CloudLibrary.load(libraryRoot)
+        cloud = cloud.copy(installed = CloudLibrary.installed(libraryRoot))
         setContent {
             permissionsChanged // Re-evaluate the prompt after a permission result.
-            MainScreen(status, restricted, canRequestPermission(), this)
+            MainScreen(status, restricted, canRequestPermission(), this, cloud)
         }
         // Opening the app connects the soundtrack right away; the button then only disconnects.
         if (state == null) send(SoundtrackService.PLAY) else startService(Intent(this, SoundtrackService::class.java))
@@ -108,6 +122,49 @@ class MainActivity : ComponentActivity(), PlayerActions {
         val requested = mutableListOf(SPEED_PERMISSION)
         if (pedalPermissionSupported()) requested += PEDAL_PERMISSION
         permissionRequest.launch(requested.toTypedArray())
+    }
+
+    private fun cloudBase() = getSharedPreferences("soundtrack", MODE_PRIVATE).getString("cloudBase", null) ?: CloudLibrary.BASE
+
+    override fun refreshCloud() {
+        if (cloud.loading) return
+        cloud = cloud.copy(loading = true, message = null, failed = false)
+        val base = cloudBase()
+        network.execute {
+            val result = runCatching { CloudLibrary.fetchCatalog(base) }
+            runOnUiThread {
+                cloud = result.fold(
+                    { cloud.copy(items = it, loading = false) },
+                    { cloud.copy(loading = false, failed = true, message = "클라우드에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.") })
+            }
+        }
+    }
+
+    override fun download(id: String) {
+        val item = cloud.items.firstOrNull { it.id == id } ?: return
+        // Downloads happen parked: the tab is locked while driving, and this checks again.
+        if (cloud.downloading != null || restricted || (status.carAvailable && status.kmh >= 5)) return
+        cloud = cloud.copy(downloading = id, message = null, failed = false)
+        val base = cloudBase()
+        val root = libraryRoot
+        network.execute {
+            val result = runCatching { CloudLibrary.download(item, root, base); CloudLibrary.load(root) }
+            runOnUiThread {
+                cloud = result.fold(
+                    {
+                        send(SoundtrackService.LIBRARY_CHANGED)
+                        cloud.copy(downloading = null, installed = CloudLibrary.installed(root),
+                            message = if (item.isScore) "「${item.title}」을 받았습니다. 앨범의 ‘받은 곡’에 있어요."
+                            else "「${item.title}」을 받았습니다. 악단에서 고를 수 있어요.")
+                    },
+                    { cloud.copy(downloading = null, failed = true, message = "「${item.title}」을 받지 못했습니다. 다시 시도해 주세요.") })
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        network.shutdown()
+        super.onDestroy()
     }
 
     private fun band(instrument: String, extras: Intent.() -> Unit) {

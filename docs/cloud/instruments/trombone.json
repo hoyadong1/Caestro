@@ -1,0 +1,98 @@
+{
+ "format": 1,
+ "type": "instrument",
+ "id": "trombone",
+ "label": "트롬본",
+ "sound": "recorded",
+ "creator": "VSCO 2 CE 녹음을 올린 예시",
+ "license": "CC0 (퍼블릭 도메인)",
+ "stages": [
+  0,
+  2,
+  4
+ ],
+ "sustained": true,
+ "voices": 3,
+ "mono": false,
+ "minMidi": 40,
+ "maxMidi": 72,
+ "gain": 2.3,
+ "attack": 0.07,
+ "release": 0.32,
+ "look": "BRASS",
+ "color": "#E3A857",
+ "rate": 24000,
+ "pcm": "trombone.pcm",
+ "notes": [
+  {
+   "root": 69.296,
+   "offset": 0,
+   "length": 37098,
+   "loopStart": 13200,
+   "loopEnd": 37098
+  },
+  {
+   "root": 77.692,
+   "offset": 37098,
+   "length": 36986,
+   "loopStart": 50298,
+   "loopEnd": 74084
+  },
+  {
+   "root": 87.206,
+   "offset": 74084,
+   "length": 37143,
+   "loopStart": 87284,
+   "loopEnd": 111227
+  },
+  {
+   "root": 116.541,
+   "offset": 111227,
+   "length": 37089,
+   "loopStart": 124427,
+   "loopEnd": 148316
+  },
+  {
+   "root": 146.832,
+   "offset": 148316,
+   "length": 37064,
+   "loopStart": 161516,
+   "loopEnd": 185380
+  },
+  {
+   "root": 174.413,
+   "offset": 185380,
+   "length": 37143,
+   "loopStart": 198580,
+   "loopEnd": 222523
+  },
+  {
+   "root": 261.626,
+   "offset": 222523,
+   "length": 37143,
+   "loopStart": 235723,
+   "loopEnd": 259666
+  },
+  {
+   "root": 277.183,
+   "offset": 259666,
+   "length": 37184,
+   "loopStart": 272866,
+   "loopEnd": 296850
+  },
+  {
+   "root": 311.127,
+   "offset": 296850,
+   "length": 37190,
+   "loopStart": 310050,
+   "loopEnd": 334040
+  },
+  {
+   "root": 349.228,
+   "offset": 334040,
+   "length": 37184,
+   "loopStart": 347240,
+   "loopEnd": 371224
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "format": 1,
+ "name": "Drive Soundtrack 클라우드 (예시)",
+ "items": [
+  {
+   "id": "largo",
+   "type": "score",
+   "title": "Largo",
+   "subtitle": "드보르자크 · 신세계 교향곡 「라르고」",
+   "creator": "Drive Soundtrack 예시 악보",
+   "license": "퍼블릭 도메인 (1893)",
+   "look": "",
+   "color": "#8FD0B8",
+   "stages": [],
+   "files": [
+    "scores/largo.json"
+   ],
+   "bytes": 783
+  },
+  {
+   "id": "handpan",
+   "type": "instrument",
+   "title": "핸드팬",
+   "subtitle": "디자인한 음색",
+   "creator": "음색을 디자인한 예시",
+   "license": "CC0 (퍼블릭 도메인)",
+   "look": "GLASS",
+   "color": "#7DD8CB",
+   "stages": [
+    3,
+    4,
+    5
+   ],
+   "files": [
+    "instruments/handpan.json",
+    "instruments/handpan.pcm"
+   ],
+   "bytes": 1633605
+  },
+  {
+   "id": "trombone",
+   "type": "instrument",
+   "title": "트롬본",
+   "subtitle": "녹음한 악기",
+   "creator": "VSCO 2 CE 녹음을 올린 예시",
+   "license": "CC0 (퍼블릭 도메인)",
+   "look": "BRASS",
+   "color": "#E3A857",
+   "stages": [
+    0,
+    2,
+    4
+   ],
+   "files": [
+    "instruments/trombone.json",
+    "instruments/trombone.pcm"
+   ],
+   "bytes": 744129
+  }
+ ]
+}
