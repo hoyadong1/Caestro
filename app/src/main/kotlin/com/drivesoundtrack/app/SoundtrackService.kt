@@ -158,7 +158,7 @@ class SoundtrackService : MediaBrowserService() {
         sessionToken = session.sessionToken
         updateSession()
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
-            .createNotificationChannel(NotificationChannel(CHANNEL, "Drive Soundtrack", NotificationManager.IMPORTANCE_LOW))
+            .createNotificationChannel(NotificationChannel(CHANNEL, "카에스트로", NotificationManager.IMPORTANCE_LOW))
     }
 
     override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot = BrowserRoot("presets", null)
@@ -170,7 +170,7 @@ class SoundtrackService : MediaBrowserService() {
                 val metadata = MediaMetadata.Builder()
                     .putString(MediaMetadata.METADATA_KEY_MEDIA_ID, i.toString())
                     .putString(MediaMetadata.METADATA_KEY_TITLE, NAMES[i])
-                    .putString(MediaMetadata.METADATA_KEY_ARTIST, "Drive Soundtrack").build()
+                    .putString(MediaMetadata.METADATA_KEY_ARTIST, "카에스트로").build()
                 items += MediaBrowser.MediaItem(metadata.description, MediaBrowser.MediaItem.FLAG_PLAYABLE)
             }
         }
@@ -247,7 +247,7 @@ class SoundtrackService : MediaBrowserService() {
     }
 
     private fun playbackNotification(): Notification = Notification.Builder(this, CHANNEL)
-        .setContentTitle("Drive Soundtrack")
+        .setContentTitle("카에스트로")
         .setContentText("${NAMES[preset]} 재생 중")
         .setSmallIcon(android.R.drawable.ic_media_play)
         .setVisibility(Notification.VISIBILITY_PUBLIC).build()
@@ -495,7 +495,7 @@ class SoundtrackService : MediaBrowserService() {
     private fun updateSession() {
         session.setMetadata(MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, NAMES[preset])
-            .putString(MediaMetadata.METADATA_KEY_ARTIST, Soundscapes.all[preset].piece?.composer ?: "Drive Soundtrack")
+            .putString(MediaMetadata.METADATA_KEY_ARTIST, Soundscapes.all[preset].piece?.composer ?: "카에스트로")
             .putString(MediaMetadata.METADATA_KEY_ALBUM, Albums.names[album]).build())
         session.setPlaybackState(PlaybackState.Builder()
             .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_STOP or

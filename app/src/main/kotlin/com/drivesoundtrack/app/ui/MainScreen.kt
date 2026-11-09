@@ -131,12 +131,12 @@ private fun NavRail(selected: Int, enabled: Boolean, accent: Color, onSelect: (I
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Canvas(Modifier.size(46.dp)) { logo(accent) }
-        Text("DRIVE\nSOUNDTRACK", fontSize = 13.sp, lineHeight = 18.sp, color = Palette.Muted, fontWeight = FontWeight.Bold,
+        Text("CAESTRO", fontSize = 14.sp, lineHeight = 18.sp, color = Palette.Muted, fontWeight = FontWeight.Bold,
             letterSpacing = 0.06.em, modifier = Modifier.padding(top = 8.dp, bottom = 26.dp))
         RailItem("지금 재생", selected == TAB_PLAY, true, accent, { playIcon(it) }) { onSelect(TAB_PLAY) }
         RailItem("앨범", selected == TAB_ALBUMS, enabled, accent, { albumIcon(it) }) { onSelect(TAB_ALBUMS) }
         RailItem("악단", selected == TAB_BAND, enabled, accent, { bandIcon(it) }) { onSelect(TAB_BAND) }
-        RailItem("받기", selected == TAB_CLOUD, enabled, accent, { cloudIcon(it) }) { onSelect(TAB_CLOUD) }
+        RailItem("클라우드", selected == TAB_CLOUD, enabled, accent, { cloudIcon(it) }) { onSelect(TAB_CLOUD) }
         Spacer(Modifier.weight(1f))
         if (!enabled) Text("주행 중\n선택 잠금", fontSize = 18.sp, lineHeight = 20.sp, color = Palette.DemoSignal,
             fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
@@ -171,7 +171,7 @@ private fun NowPlaying(status: PlayerStatus, accent: Color, canConfigure: Boolea
     Column(Modifier.fillMaxSize().then(if (landscape) Modifier else Modifier.verticalScroll(rememberScrollState()))) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Label(scene.piece?.let { "${Albums.names[status.album]}  ·  ${it.composer}" } ?: "${Albums.names[status.album]}  ·  Drive Soundtrack",
+                Label(scene.piece?.let { "${Albums.names[status.album]}  ·  ${it.composer}" } ?: "${Albums.names[status.album]}  ·  카에스트로",
                     18.sp, Palette.Muted, bold = true)
                 Label(scene.name, 46.sp, Color.White, bold = true, modifier = Modifier.padding(top = 2.dp))
                 Label(scene.character, 20.sp, Palette.Genre)
@@ -297,7 +297,7 @@ private fun AlbumsPage(status: PlayerStatus, actions: PlayerActions, onEditTrack
         val tracks = Albums.tracks(viewed, status.myAlbum.toIntArray()).toList()
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             if (tracks.isEmpty()) Label(
-                if (viewed == Albums.DOWNLOADED) "‘받기’에서 클라우드의 악보를 내려받으면 여기에 나옵니다."
+                if (viewed == Albums.DOWNLOADED) "‘클라우드’에서 악보를 내려받으면 여기에 나옵니다."
                 else "오리지널·클래식 드라이브 앨범에서 ＋를 눌러 곡을 담으세요.", 19.sp, Palette.Muted,
                 modifier = Modifier.padding(vertical = 20.dp))
             for (i in tracks) {
@@ -370,7 +370,7 @@ private fun CloudPage(cloud: CloudState, landscape: Boolean, actions: PlayerActi
     Column(Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Label("받기", 34.sp, Color.White, bold = true)
+                Label("클라우드", 34.sp, Color.White, bold = true)
                 Label("악보와 악기는 차 밖의 웹 제작 플랫폼에서 만들어 클라우드에 올립니다. 차에서는 정차 중에 내려받아 앨범과 악단에서 씁니다.",
                     18.sp, Palette.Muted)
             }
@@ -404,13 +404,13 @@ private fun CloudPage(cloud: CloudState, landscape: Boolean, actions: PlayerActi
             }
         }
         if (landscape) Row(Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp)) {
-            column("악보", "받으면 앨범의 ‘받은 곡’에", scores, Modifier.weight(1f).fillMaxHeight())
+            column("악보", "앨범 ‘클라우드 곡’에 들어갑니다", scores, Modifier.weight(1f).fillMaxHeight())
             Spacer(Modifier.width(26.dp))
-            column("악기", "받으면 악단에서 고르기", instruments, Modifier.weight(1f).fillMaxHeight())
+            column("악기", "악단에서 고를 수 있습니다", instruments, Modifier.weight(1f).fillMaxHeight())
         } else Column(Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp)) {
-            column("악보", "받으면 앨범의 ‘받은 곡’에", scores, Modifier.fillMaxWidth())
+            column("악보", "앨범 ‘클라우드 곡’에 들어갑니다", scores, Modifier.fillMaxWidth())
             Spacer(Modifier.height(20.dp))
-            column("악기", "받으면 악단에서 고르기", instruments, Modifier.fillMaxWidth())
+            column("악기", "악단에서 고를 수 있습니다", instruments, Modifier.fillMaxWidth())
         }
         Label("만들기와 올리기는 웹 제작 플랫폼에서 하고, 차에서는 내려받기만 합니다", 18.sp, Palette.Muted, modifier = Modifier.padding(top = 8.dp))
     }
@@ -443,13 +443,13 @@ private fun CloudCard(item: CloudLibrary.Item, installed: Boolean, busy: Boolean
         Spacer(Modifier.width(10.dp))
         when {
             installed -> Column(horizontalAlignment = Alignment.End) {
-                Text("받음 ✓", fontSize = 19.sp, color = color, fontWeight = FontWeight.Bold)
+                Text("저장됨 ✓", fontSize = 19.sp, color = color, fontWeight = FontWeight.Bold)
                 TextButton(onOpen) { Text(if (item.isScore) "재생  ›" else "악단에서 고르기  ›", fontSize = 18.sp, color = color) }
             }
-            busy -> Text("받는 중…", fontSize = 18.sp, color = color, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 12.dp))
+            busy -> Text("내려받는 중…", fontSize = 18.sp, color = color, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 12.dp))
             else -> Button(onGet, enabled = canDownload, modifier = Modifier.height(56.dp), shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Palette.Background)) {
-                Text("↓  받기", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("↓  내려받기", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -659,8 +659,8 @@ private fun InstrumentCard(kind: Int, chosen: Boolean, modifier: Modifier, onCli
 }
 
 private fun soundKind(item: Instruments.Kind) = when {
-    item.cloud && item.real -> "받은 악기 · 녹음"
-    item.cloud -> "받은 악기 · 디자인 음색"
+    item.cloud && item.real -> "클라우드 악기 · 녹음"
+    item.cloud -> "클라우드 악기 · 디자인 음색"
     item.real -> "실제 녹음"
     else -> "신시사이저"
 }

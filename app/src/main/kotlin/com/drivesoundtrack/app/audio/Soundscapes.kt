@@ -100,7 +100,7 @@ object Albums {
     const val CLASSIC = 1
     const val MINE = 2
     const val DOWNLOADED = 3
-    val names = listOf("오리지널", "클래식 드라이브", "내 앨범", "받은 곡")
+    val names = listOf("오리지널", "클래식 드라이브", "내 앨범", "클라우드 곡")
     val originals: IntArray get() = pick { it.piece == null && it.cloudId == null }
     val classics: IntArray get() = pick { it.piece != null && it.cloudId == null }
     /** Scores downloaded from the cloud. */

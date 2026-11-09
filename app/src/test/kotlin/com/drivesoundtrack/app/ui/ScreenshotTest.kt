@@ -111,14 +111,14 @@ class ScreenshotTest {
         var cloud by mutableStateOf(CloudState(items = items))
         var status by mutableStateOf(parked)
         compose.setContent { MainScreen(status, restricted = false, canRequestPermission = false, actions = NoActions, cloud = cloud) }
-        tap("받기")
+        tap("클라우드")
         shoot("7-get")
         cloud = cloud.copy(downloading = "largo")
         shoot("8-get-downloading")
         for (item in items) CloudLibrary.download(item, root, base)
         CloudLibrary.load(root)
         cloud = cloud.copy(downloading = null, installed = CloudLibrary.installed(root),
-            message = "「Largo」 받기 완료. 앨범의 ‘받은 곡’에 있습니다.")
+            message = "「Largo」 내려받기 완료. 앨범 ‘클라우드 곡’에 있습니다.")
         shoot("9-get-downloaded")
 
         val largo = Soundscapes.all.indexOfFirst { it.cloudId == "largo" }

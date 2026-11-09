@@ -1,13 +1,13 @@
 {
  "format": 1,
- "name": "Drive Soundtrack 클라우드 (예시)",
+ "name": "카에스트로 클라우드 (예시)",
  "items": [
   {
    "id": "largo",
    "type": "score",
    "title": "Largo",
    "subtitle": "드보르자크 · 신세계 교향곡 「라르고」",
-   "creator": "Drive Soundtrack 예시 악보",
+   "creator": "카에스트로 예시 악보",
    "license": "퍼블릭 도메인 (1893)",
    "look": "",
    "color": "#8FD0B8",
@@ -15,7 +15,7 @@
    "files": [
     "scores/largo.json"
    ],
-   "bytes": 783
+   "bytes": 782
   },
   {
    "id": "handpan",

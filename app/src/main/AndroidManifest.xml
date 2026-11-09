@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <application android:label="Drive Soundtrack" android:theme="@android:style/Theme.Material.NoActionBar" android:appCategory="audio" android:usesCleartextTraffic="false">
+    <application android:label="카에스트로" android:theme="@android:style/Theme.Material.NoActionBar" android:appCategory="audio" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">
             <meta-data android:name="distractionOptimized" android:value="true" />
             <intent-filter>

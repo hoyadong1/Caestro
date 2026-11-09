@@ -238,7 +238,7 @@ def catalog():
             }
             items.append(item)
     with open(os.path.join(CLOUD, 'catalog.json'), 'w', encoding='utf-8') as f:
-        json.dump({'format': 1, 'name': 'Drive Soundtrack 클라우드 (예시)', 'items': items}, f, ensure_ascii=False, indent=1)
+        json.dump({'format': 1, 'name': '카에스트로 클라우드 (예시)', 'items': items}, f, ensure_ascii=False, indent=1)
     print('catalog', [i['id'] for i in items], file=sys.stderr)
 
 
