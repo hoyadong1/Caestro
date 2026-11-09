@@ -18,7 +18,6 @@ class SynthEngine(model: SoundModel) {
     private var worker: Thread? = null
     @Volatile private var captureFile: File? = null
     /** Keeps the music of the current drive; fed with exactly what was played. */
-    @Volatile var recorder: DriveRecorder? = null
 
     fun setPreset(preset: Int) = renderer.setPreset(preset)
     fun setPlaylist(tracks: IntArray) = renderer.setPlaylist(tracks)
@@ -49,13 +48,15 @@ class SynthEngine(model: SoundModel) {
         var current: AudioTrack? = null
         var capture: PcmCapture? = null
         try {
+            // Audio priority keeps the synth ahead of UI drawing when the head unit's CPUs are busy.
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO)
             // The emulator's audio policy service can block these calls during startup.
             val minimum = AudioTrack.getMinBufferSize(SoundRenderer.RATE, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT)
             if (!isCurrent(value)) return
             current = AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
                 .setAudioFormat(AudioFormat.Builder().setSampleRate(SoundRenderer.RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build())
-                .setBufferSizeInBytes(maxOf(minimum, 16384)).setTransferMode(AudioTrack.MODE_STREAM).build()
+                .setBufferSizeInBytes(maxOf(minimum, 44100)).setTransferMode(AudioTrack.MODE_STREAM).build()
             if (!isCurrent(value)) return
             current.play()
             capture = captureFile?.let { PcmCapture(it) }
@@ -68,7 +69,6 @@ class SynthEngine(model: SoundModel) {
                     val n = current.write(pcm, offset, pcm.size - offset)
                     if (n <= 0) throw IllegalStateException("AudioTrack write failed: $n")
                     capture?.write(pcm, offset, n)
-                    recorder?.offer(pcm, offset, n)
                     offset += n
                 }
             }

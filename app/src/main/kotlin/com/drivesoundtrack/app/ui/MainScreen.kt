@@ -148,31 +148,12 @@ private fun ColumnScope.Transport(status: PlayerStatus, actions: PlayerActions) 
                 containerColor = if (playing) Palette.ScenarioButton else MaterialTheme.colorScheme.primary,
                 contentColor = if (playing) Color.White else Palette.Background),
         ) { Text(if (playing) "■  사운드 연결 끊기" else "▶  차량 사운드 연결", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
-        // Keep this drive's music: one tap, no typing, so it is safe while driving.
-        Button(
-            onClick = actions::saveDrive,
-            enabled = status.canSaveDrive,
-            modifier = Modifier.weight(1f).height(52.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Palette.ScenarioButton, contentColor = Color.White,
-                disabledContainerColor = Palette.Panel, disabledContentColor = Palette.Muted),
-        ) {
-            val seconds = status.recordSeconds.toInt()
-            Text(when {
-                status.savingDrive -> "저장 중…"
-                seconds > 0 -> "●  이번 드라이브 저장  %d:%02d".format(seconds / 60, seconds % 60)
-                else -> "●  지난 드라이브 저장"
-            }, fontSize = 15.sp)
-        }
         if (status.scenarioAvailable || status.scenarioEnabled) Button(
             onClick = actions::toggleScenario,
             modifier = Modifier.weight(1f).height(52.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Palette.ScenarioButton, contentColor = Color.White),
         ) { Text(if (status.scenarioEnabled) "■  시연 시나리오 종료" else "◷  시연 시나리오 (0→130 km/h)", fontSize = 15.sp) }
-    }
-    status.lastSavedDrive?.let {
-        Label("저장됨 · 음악 › DriveSoundtrack › $it", 12.sp, Palette.LiveSignal, modifier = Modifier.padding(top = 6.dp))
     }
 }
 

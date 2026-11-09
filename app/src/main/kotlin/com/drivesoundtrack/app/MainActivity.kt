@@ -83,7 +83,6 @@ class MainActivity : ComponentActivity(), PlayerActions {
         status.playing -> SoundtrackService.PAUSE
         else -> SoundtrackService.PLAY
     })
-    override fun saveDrive() = send(SoundtrackService.SAVE_DRIVE)
     override fun toggleScenario() = send(SoundtrackService.SCENARIO_TOGGLE)
     override fun selectTrack(album: Int, index: Int) = send(SoundtrackService.PRESET) { putExtra("album", album); putExtra("preset", index) }
     override fun setInstrument(stage: Int, instrument: Int) =
