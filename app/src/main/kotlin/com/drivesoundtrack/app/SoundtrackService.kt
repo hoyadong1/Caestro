@@ -1,5 +1,6 @@
 package com.drivesoundtrack.app
 
+import com.drivesoundtrack.app.audio.DriveRecorder
 import com.drivesoundtrack.app.audio.SoundModel
 import com.drivesoundtrack.app.audio.Soundscapes
 import com.drivesoundtrack.app.audio.SynthEngine
@@ -13,6 +14,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.pm.ApplicationInfo
+import android.content.ContentValues
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -25,6 +27,12 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.service.media.MediaBrowserService
 import android.util.Log
 
@@ -44,6 +52,7 @@ class SoundtrackService : MediaBrowserService() {
         const val DEBUG_SPEED_HOLD = "com.drivesoundtrack.DEBUG_SPEED_HOLD"
         const val DEBUG_PRESET = "com.drivesoundtrack.DEBUG_PRESET"
         const val SCENARIO_TOGGLE = "com.drivesoundtrack.SCENARIO_TOGGLE"
+        const val SAVE_DRIVE = "com.drivesoundtrack.SAVE_DRIVE"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
     }
@@ -69,6 +78,9 @@ class SoundtrackService : MediaBrowserService() {
     private var loggedVehicleKmh = Int.MIN_VALUE
     private val pleosEmulator by lazy { Build.PRODUCT.contains("crp_avd", ignoreCase = true) }
     private val handler = Handler(Looper.getMainLooper())
+    private lateinit var recorder: DriveRecorder
+    @Volatile private var savingDrive = false
+    private var lastSavedDrive: String? = null
     private val statusTicker = object : Runnable {
         override fun run() {
             if (playing) { bandReader.pollWiperSwitch(model); broadcastStatus(); handler.postDelayed(this, 800) }
@@ -79,6 +91,8 @@ class SoundtrackService : MediaBrowserService() {
         super.onCreate()
         model = SoundModel()
         engine = SynthEngine(model)
+        recorder = DriveRecorder(File(cacheDir, "drives"))
+        engine.recorder = recorder
         val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE)
         preset = preferences.getInt("preset", 0).coerceIn(Soundscapes.all.indices)
         if (!preferences.getBoolean("threeScenesMigrated", false)) {
@@ -173,6 +187,7 @@ class SoundtrackService : MediaBrowserService() {
             PRESET -> setPreset(intent.getIntExtra("preset", 0))
             SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
             STATUS_REQUEST -> broadcastStatus()
+            SAVE_DRIVE -> saveDrive()
             RECONNECT_SPEED -> {
                 speedReader.stop()
                 connectSpeedReader()
@@ -256,6 +271,7 @@ class SoundtrackService : MediaBrowserService() {
             broadcastStatus()
             return
         }
+        recorder.begin()
         engine.start { ex ->
             Log.w("DriveSoundtrack", "Audio output failed", ex)
             pause()
@@ -270,6 +286,7 @@ class SoundtrackService : MediaBrowserService() {
         playing = false
         handler.removeCallbacks(statusTicker)
         engine.stop()
+        recorder.end()
         audioManager.abandonAudioFocusRequest(focusRequest)
         stopForeground(STOP_FOREGROUND_REMOVE)
         updateSession()
@@ -303,6 +320,55 @@ class SoundtrackService : MediaBrowserService() {
         engine.setDebugSpeedJourney(false)
         model.setSpeed(vehicleKmh)
         broadcastStatus()
+    }
+
+    /**
+     * Keeps the music of this drive: closes the current recording (a new one starts right away if
+     * the music is still playing) and copies it to Music/DriveSoundtrack, where music apps and a
+     * connected phone can find it.
+     */
+    private fun saveDrive() {
+        if (savingDrive) return
+        savingDrive = true
+        broadcastStatus()
+        val sceneName = NAMES[preset]
+        Thread({
+            val wasRecording = recorder.active
+            val file = recorder.end()
+            if (wasRecording) handler.post { if (playing) recorder.begin() }
+            val name = file?.let { exportDrive(it, sceneName) }
+            handler.post {
+                savingDrive = false
+                if (name != null) lastSavedDrive = name
+                broadcastStatus()
+            }
+        }, "drive-save").start()
+    }
+
+    private fun exportDrive(file: File, sceneName: String): String? = try {
+        val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+        val name = "DriveSoundtrack_${stamp}_$sceneName.m4a"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Audio.Media.DISPLAY_NAME, name)
+                put(MediaStore.Audio.Media.MIME_TYPE, "audio/mp4")
+                put(MediaStore.Audio.Media.TITLE, "Drive Soundtrack · $sceneName · $stamp")
+                put(MediaStore.Audio.Media.ARTIST, "Drive Soundtrack")
+                put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/DriveSoundtrack")
+                put(MediaStore.Audio.Media.IS_PENDING, 1)
+            }
+            val uri = contentResolver.insert(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values)
+                ?: error("MediaStore refused the file")
+            contentResolver.openOutputStream(uri)!!.use { out -> file.inputStream().use { it.copyTo(out) } }
+            contentResolver.update(uri, ContentValues().apply { put(MediaStore.Audio.Media.IS_PENDING, 0) }, null, null)
+        } else {
+            val dir = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "DriveSoundtrack").apply { mkdirs() }
+            file.copyTo(File(dir, name), overwrite = true)
+        }
+        name
+    } catch (ex: Exception) {
+        Log.w("DriveSoundtrack", "Saving the drive failed", ex)
+        null
     }
 
     private fun updateSession() {
@@ -342,6 +408,10 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("turnAvailable", model.turnAvailable())
         status.putExtra("wiper", model.wiper())
         status.putExtra("wiperAvailable", model.wiperAvailable())
+        status.putExtra("recordSeconds", if (recorder.active) recorder.seconds else 0.0)
+        status.putExtra("canSaveDrive", !savingDrive && ((recorder.active && recorder.seconds >= 3.0) || recorder.lastDrive != null))
+        status.putExtra("savingDrive", savingDrive)
+        status.putExtra("lastSavedDrive", lastSavedDrive)
         sendBroadcast(status)
     }
 

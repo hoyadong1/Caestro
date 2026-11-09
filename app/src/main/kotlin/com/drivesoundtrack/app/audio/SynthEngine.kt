@@ -17,6 +17,8 @@ class SynthEngine(model: SoundModel) {
     @Volatile private var generation = 0L
     private var worker: Thread? = null
     @Volatile private var captureFile: File? = null
+    /** Keeps the music of the current drive; fed with exactly what was played. */
+    @Volatile var recorder: DriveRecorder? = null
 
     fun setPreset(preset: Int) = renderer.setPreset(preset)
     fun setBassSolo(enabled: Boolean) = renderer.setBassSolo(enabled)
@@ -62,6 +64,7 @@ class SynthEngine(model: SoundModel) {
                     val n = current.write(pcm, offset, pcm.size - offset)
                     if (n <= 0) throw IllegalStateException("AudioTrack write failed: $n")
                     capture?.write(pcm, offset, n)
+                    recorder?.offer(pcm, offset, n)
                     offset += n
                 }
             }

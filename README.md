@@ -4,7 +4,7 @@
 
 **차량의 주행 신호가 여섯 악기를 연주하는 Android Automotive 음악 앱입니다.**
 
-속도가 오르면 베이스에 드럼·화음·아르페지오·선율·고역 질감이 차례로 합류하고, 가속·제동·조향·방향지시등이 각 악기의 연주를 바꿉니다. 모든 차가 가진 신호만 쓰므로 내연기관·전기차 어디서나 동작하며, 엔진 소리가 사라지는 전기차가 늘수록 그 가치가 커집니다. 음원 파일 없이 Kotlin으로 실시간 합성합니다.
+속도가 오르면 베이스에 드럼·화음·아르페지오·선율·고역 질감이 차례로 합류하고, 가속·제동·조향·방향지시등이 각 악기의 연주를 바꿉니다. 모든 차가 가진 신호만 쓰므로 내연기관·전기차 어디서나 동작하며, 엔진 소리가 사라지는 전기차가 늘수록 그 가치가 커집니다. 음원 파일 없이 Kotlin으로 실시간 합성합니다. 주행이 만든 곡은 버튼 한 번으로 음악 폴더에 저장할 수 있습니다.
 
 **[쇼케이스](https://hoyadong1.github.io/DriveSoundtrack/)** · **[D단 주행 영상](https://hoyadong1.github.io/DriveSoundtrack/console-d-drive-app.mp4)** · **[APK](apk/홍원택_DriveSoundtrack_release.apk)** · **[📖 위키](https://github.com/hoyadong1/DriveSoundtrack/wiki)**
 

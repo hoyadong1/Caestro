@@ -20,6 +20,10 @@ data class PlayerStatus(
     val steering: Double = 0.0,
     val turn: Int = 0,
     val wiper: Boolean = false,
+    val recordSeconds: Double = 0.0,
+    val canSaveDrive: Boolean = false,
+    val savingDrive: Boolean = false,
+    val lastSavedDrive: String? = null,
 ) {
     companion object {
         fun from(intent: Intent): PlayerStatus {
@@ -40,6 +44,10 @@ data class PlayerStatus(
                 steering = intent.getDoubleExtra("steering", 0.0),
                 turn = intent.getIntExtra("turn", 0),
                 wiper = intent.getBooleanExtra("wiper", false),
+                recordSeconds = intent.getDoubleExtra("recordSeconds", 0.0),
+                canSaveDrive = intent.getBooleanExtra("canSaveDrive", false),
+                savingDrive = intent.getBooleanExtra("savingDrive", false),
+                lastSavedDrive = intent.getStringExtra("lastSavedDrive"),
             )
         }
     }
@@ -48,6 +56,7 @@ data class PlayerStatus(
 /** UI actions the screen can request from the host activity. */
 interface PlayerActions {
     fun togglePlay()
+    fun saveDrive()
     fun toggleScenario()
     fun selectPreset(index: Int)
     fun demoSpeed(kmh: Double)
