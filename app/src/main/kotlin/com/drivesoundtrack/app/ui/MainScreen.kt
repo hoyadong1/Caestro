@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,7 +68,6 @@ import kotlin.math.roundToInt
 
 private val LAYER_NAMES = listOf("베이스", "드럼", "화음", "아르페지오", "선율", "반짝임")
 private val STAGE_KMH = listOf(0, 18, 38, 58, 82, 105)
-private val STAGE_SPEEDS = listOf("항상", "18 km/h~", "38 km/h~", "58 km/h~", "82 km/h~", "105 km/h~")
 private const val MAX_KMH = 130f
 
 private const val TAB_PLAY = 0
@@ -343,9 +343,10 @@ private fun Segmented(items: List<String>, selected: Int, modifier: Modifier = M
 // ------------------------------------------------------------------ band
 
 /**
- * Pick the instrument of each stage, for "my band" (every classical track without its own choice)
- * or for the playing track only. Changes are heard right away, and the stage on the left shows how
- * each chosen instrument looks on the driving screen.
+ * The band: six stage slots on the left (what joins at which speed), the instruments for the
+ * selected slot on the right. The selected stage plays right away, even when parked, so every
+ * choice can be heard; quick presets set all six at once. "My band" plays every classical track
+ * that has no instruments of its own; "this track only" changes the playing track.
  */
 @Composable
 private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, landscape: Boolean, actions: PlayerActions,
@@ -356,87 +357,164 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
     val band = mode == EDIT_BAND
     val chosenIds = if (band) status.band.takeIf { it.size == 6 } ?: Instruments.BAND_DEFAULT.map { Instruments.indexOf(it) }
     else status.instruments
-    val preview = status.copy(layerMask = 0b111111, layers = 6, bassSolo = false, instruments = chosenIds, turn = 0, steering = 0.0)
+    var stage by rememberSaveable { mutableStateOf(0) }
+    // Hear the stage being chosen: the bass always plays, any other stage is brought in.
+    DisposableEffect(stage) {
+        actions.audition(if (stage >= 1) stage else -1)
+        onDispose { actions.audition(-1) }
+    }
+
     Column(Modifier.fillMaxSize().then(if (landscape) Modifier else Modifier.verticalScroll(rememberScrollState()))) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Label("악단", 34.sp, Color.White, bold = true)
-            Spacer(Modifier.width(24.dp))
-            Segmented(listOf("나만의 악단 · 모든 클래식 곡", if (trackPossible) "이 곡만 · ${scene.name}" else "이 곡만 (클래식 곡에서)"),
-                if (band) 0 else 1, Modifier.weight(1f), enabled = { it == 0 || trackPossible }) { onMode(if (it == 0) EDIT_BAND else EDIT_TRACK) }
-            Spacer(Modifier.width(12.dp))
-            TextButton({ actions.resetInstruments(band) }, enabled = if (band) status.band.size == 6 else status.ownInstruments) {
-                Text(if (band) "추천 편성으로" else "악단 따르기", fontSize = 18.sp, color = Palette.Muted)
+            Column(Modifier.weight(1f)) {
+                Label("악단", 34.sp, Color.White, bold = true)
+                Label(when {
+                    band -> "모든 클래식 곡이 이 악단으로 연주됩니다. 곡마다 따로 바꾼 곡은 그대로 둡니다."
+                    status.ownInstruments -> "${scene.name}만 따로 편성했습니다."
+                    status.band.size == 6 -> "${scene.name}은 지금 나만의 악단을 따릅니다. 바꾸면 이 곡만 달라집니다."
+                    else -> "${scene.name}은 지금 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
+                }, 18.sp, Palette.Muted)
             }
+            Segmented(listOf("나만의 악단", if (trackPossible) "이 곡만" else "이 곡만 (클래식)"), if (band) 0 else 1,
+                Modifier.width(420.dp), enabled = { it == 0 || trackPossible }) { onMode(if (it == 0) EDIT_BAND else EDIT_TRACK) }
         }
-        Label(when {
-            band -> "모든 클래식 곡이 이 악단으로 연주됩니다. 따로 바꾼 곡은 그대로 둡니다."
-            status.ownInstruments -> "이 곡만 따로 편성했습니다."
-            status.band.size == 6 -> "지금은 나만의 악단을 따릅니다. 바꾸면 이 곡만 달라집니다."
-            else -> "지금은 이 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
-        }, 18.sp, Palette.Muted, modifier = Modifier.padding(top = 8.dp))
-        val previewPane: @Composable (Modifier) -> Unit = { modifier ->
-            Column(modifier) {
-                Label("주행 화면 미리보기", 19.sp, Color.White, bold = true)
-                Label("속도가 오르면 1단계부터 차례로 나타납니다.", 17.sp, Palette.Muted, modifier = Modifier.padding(bottom = 8.dp))
-                InstrumentStage(preview, accent, playing = true, titleSpace = false,
-                    modifier = if (landscape) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(420.dp))
-            }
-        }
-        val choices: @Composable (Modifier) -> Unit = { modifier ->
-            Column(modifier) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(13.dp).background(Palette.Muted, CircleShape)); Spacer(Modifier.width(8.dp))
-                    Label("실제 악기 녹음", 17.sp, Palette.Muted); Spacer(Modifier.width(22.dp))
-                    Box(Modifier.size(13.dp).border(2.dp, Palette.Muted, CircleShape)); Spacer(Modifier.width(8.dp))
-                    Label("신시사이저", 17.sp, Palette.Muted)
+        Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Label("빠른 편성", 18.sp, Palette.Muted, bold = true)
+            Spacer(Modifier.width(14.dp))
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                for ((name, ids) in Instruments.PRESETS) PresetPill(name, ids) {
+                    actions.setInstruments(ids.map { Instruments.indexOf(it) }.toIntArray(), band)
                 }
-                for (stage in 0..5) {
-                    Row(Modifier.padding(top = 14.dp), verticalAlignment = Alignment.Bottom) {
-                        Label("${stage + 1}단계  ${Instruments.stageNames[stage]}", 20.sp, Color.White, bold = true)
-                        Spacer(Modifier.width(10.dp))
-                        Label(STAGE_SPEEDS[stage], 17.sp, Palette.Muted)
+            }
+            TextButton({ actions.resetInstruments(band) }, enabled = if (band) status.band.size == 6 else status.ownInstruments) {
+                Text(if (band) "↺  곡별 추천으로" else "↺  악단 따르기", fontSize = 18.sp, color = Palette.Muted)
+            }
+        }
+        val slots: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                for (s in 0..5) StageSlot(s, chosenIds.getOrElse(s) { 0 }, s == stage,
+                    if (landscape) Modifier.weight(1f) else Modifier.height(88.dp)) { stage = s }
+            }
+        }
+        val picker: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier) {
+                val current = Instruments.all[chosenIds.getOrElse(stage) { 0 }]
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Label("${stage + 1}단계  ${Instruments.stageNames[stage]}", 26.sp, Color.White, bold = true)
+                    Spacer(Modifier.width(12.dp))
+                    Label(if (stage == 0) "항상 연주" else "${STAGE_KMH[stage]} km/h부터 합류", 18.sp, Palette.Muted)
+                }
+                Row(Modifier.padding(top = 4.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (status.playing) {
+                        Box(Modifier.size(10.dp).background(accent, CircleShape)); Spacer(Modifier.width(8.dp))
+                        Label(if (stage == 0) "베이스는 늘 들립니다. 고르면 바로 바뀝니다." else "지금 이 단계를 미리 들려주고 있어요. 고르면 바로 바뀝니다.",
+                            17.sp, accent)
+                    } else {
+                        Label("재생을 켜면 고르는 악기를 바로 들을 수 있어요.", 17.sp, Palette.Muted, modifier = Modifier.weight(1f, fill = false))
+                        Spacer(Modifier.width(12.dp))
+                        Button(actions::togglePlay, shape = RoundedCornerShape(12.dp)) { Text("▶  재생", fontSize = 17.sp, color = Palette.Background) }
                     }
-                    Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        for (kind in Instruments.options[stage]) InstrumentChip(kind, chosenIds.getOrNull(stage) == kind) {
+                }
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    for (row in Instruments.options[stage].chunked(3)) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        for (kind in row) InstrumentCard(kind, kind == chosenIds.getOrElse(stage) { 0 }, Modifier.weight(1f)) {
                             actions.setInstrument(stage, kind, band)
                         }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
         }
         if (landscape) {
-            Row(Modifier.fillMaxWidth().weight(1f).padding(top = 14.dp)) {
-                previewPane(Modifier.weight(1f).fillMaxHeight().padding(end = 24.dp))
-                choices(Modifier.weight(1.1f).fillMaxHeight().verticalScroll(rememberScrollState()))
+            Row(Modifier.fillMaxWidth().weight(1f).padding(top = 18.dp)) {
+                slots(Modifier.weight(0.92f).fillMaxHeight())
+                Spacer(Modifier.width(26.dp))
+                picker(Modifier.weight(1.3f).fillMaxHeight())
             }
         } else {
-            previewPane(Modifier.fillMaxWidth().padding(top = 14.dp))
-            choices(Modifier.fillMaxWidth().padding(top = 14.dp))
+            slots(Modifier.fillMaxWidth().padding(top = 18.dp))
+            picker(Modifier.fillMaxWidth().height(640.dp).padding(top = 18.dp))
         }
     }
 }
 
+/** One stage of the band: number, when it joins, and its instrument drawn small. */
 @Composable
-private fun InstrumentChip(kind: Int, chosen: Boolean, onClick: () -> Unit) {
+private fun StageSlot(stage: Int, kind: Int, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val item = Instruments.all[kind]
     val look = InstrumentLooks.of(item.id).color
+    val shape = RoundedCornerShape(16.dp)
     Row(
-        Modifier.height(56.dp)
-            .background(if (chosen) look else Palette.PanelSelected, RoundedCornerShape(14.dp))
-            .border(1.dp, if (chosen) look else Palette.PanelStroke, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
+        modifier.fillMaxWidth()
+            .background(if (selected) Palette.PanelSelected else Palette.Panel, shape)
+            .border(if (selected) 2.dp else 1.dp, if (selected) look else Palette.PanelStroke, shape)
+            .clickable(role = Role.Tab, onClick = onClick)
+            .semantics { contentDescription = "${stage + 1}단계 ${Instruments.stageNames[stage]}, ${item.label}" }
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Filled dot: a recording of the real instrument. Ring: a synthesiser.
-        val dot = if (chosen) Palette.Background else look
-        if (item.id != "none") {
-            Box(Modifier.size(13.dp).then(if (item.real) Modifier.background(dot, CircleShape) else Modifier.border(2.dp, dot, CircleShape)))
-            Spacer(Modifier.width(10.dp))
+        Box(Modifier.size(40.dp).background(if (selected) look else Palette.PanelSelected, CircleShape), contentAlignment = Alignment.Center) {
+            Text("${stage + 1}", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = if (selected) Palette.Background else Color.White)
         }
-        Text(item.label, fontSize = 18.sp, maxLines = 1, color = if (chosen) Palette.Background else Color.White,
-            fontWeight = if (chosen) FontWeight.Bold else FontWeight.Normal)
+        Column(Modifier.width(118.dp).padding(start = 14.dp)) {
+            Label(Instruments.stageNames[stage], 18.sp, Color.White, bold = true)
+            Label(if (stage == 0) "항상" else "${STAGE_KMH[stage]} km/h~", 16.sp, Palette.Muted)
+        }
+        InstrumentLook(item.id, animate = selected, modifier = Modifier.width(110.dp).fillMaxHeight().padding(vertical = 8.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Label(if (item.id == "none") "쉼" else item.label, 21.sp, if (item.id == "none") Palette.Muted else Color.White, bold = true)
+            Label(when { item.id == "none" -> "이 단계는 연주하지 않음"; item.real -> "실제 악기 녹음"; else -> "신시사이저" }, 15.sp, Palette.Muted)
+        }
+        Text("›", fontSize = 30.sp, color = if (selected) look else Palette.Muted)
+    }
+}
+
+/** An instrument to pick: its drawing, name and whether it is a real recording. */
+@Composable
+private fun InstrumentCard(kind: Int, chosen: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val item = Instruments.all[kind]
+    val look = InstrumentLooks.of(item.id).color
+    val shape = RoundedCornerShape(18.dp)
+    Box(
+        modifier.height(164.dp)
+            .background(if (chosen) Palette.PanelSelected else Palette.Panel, shape)
+            .border(if (chosen) 3.dp else 1.dp, if (chosen) look else Palette.PanelStroke, shape)
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .semantics { contentDescription = item.label },
+    ) {
+        Column(Modifier.fillMaxSize().padding(14.dp)) {
+            InstrumentLook(item.id, animate = chosen, modifier = Modifier.fillMaxWidth().weight(1f))
+            Label(if (item.id == "none") "쉼" else item.label, 20.sp, Color.White, bold = true, modifier = Modifier.padding(top = 6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (item.id != "none") {
+                    Box(Modifier.size(11.dp).then(if (item.real) Modifier.background(look, CircleShape) else Modifier.border(2.dp, look, CircleShape)))
+                    Spacer(Modifier.width(7.dp))
+                }
+                Label(when { item.id == "none" -> "이 단계 쉬기"; item.real -> "실제 녹음"; else -> "신시사이저" }, 15.sp, Palette.Muted)
+            }
+        }
+        if (chosen) Box(
+            Modifier.align(Alignment.TopEnd).padding(10.dp).size(32.dp).background(look, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) { Text("✓", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Palette.Background) }
+    }
+}
+
+/** A ready-made ensemble: its name and the colors of its six instruments. */
+@Composable
+private fun PresetPill(name: String, ids: List<String>, onClick: () -> Unit) {
+    Row(
+        Modifier.height(52.dp).background(Palette.Panel, RoundedCornerShape(26.dp))
+            .border(1.dp, Palette.PanelStroke, RoundedCornerShape(26.dp))
+            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(name, fontSize = 18.sp, color = Color.White, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.width(10.dp))
+        for (id in ids) if (id != "none") {
+            Box(Modifier.padding(end = 4.dp).size(10.dp).background(InstrumentLooks.of(id).color, CircleShape))
+        }
     }
 }
 

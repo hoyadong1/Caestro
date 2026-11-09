@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -285,14 +286,21 @@ private class StageScene(
         cell(x, y, w, h, "${STAGE_EN[index]} · ${kind.label}", STAGE_HINT[index], color)
         val top = y + dp(56f)
         val bodyH = max(dp(10f), y + h - top - dp(10f))
+        look(kind.id, x, top, w, bodyH)
+    }
+
+    /** Draws instrument [id] in its own shape and color inside the given box. */
+    fun look(id: String, x: Float, top: Float, w: Float, bodyH: Float) {
+        val look = InstrumentLooks.of(id)
+        val color = look.color
         when (look.shape) {
-            Shape.BOWED -> bowed(x, top, w, bodyH, color, low = kind.id == "cello" || kind.id == "pizz",
-                bows = when (kind.id) { "strings", "synthstrings" -> 3; "viola" -> 2; "pizz" -> 0; else -> 1 })
+            Shape.BOWED -> bowed(x, top, w, bodyH, color, low = id == "cello" || id == "pizz",
+                bows = when (id) { "strings", "synthstrings" -> 3; "viola" -> 2; "pizz" -> 0; else -> 1 })
             Shape.KEYS -> keys(x, top, w, bodyH, color)
             Shape.ORGAN -> organ(x, top, w, bodyH, color)
             Shape.HARP -> harp(x, top, w, bodyH, color)
             Shape.PLUCKED -> plucked(x, top, w, bodyH, color)
-            Shape.WIND -> wind(x, top, w, bodyH, color, kind.id == "bassoon")
+            Shape.WIND -> wind(x, top, w, bodyH, color, id == "bassoon")
             Shape.BRASS -> brass(x, top, w, bodyH, color)
             Shape.MALLET -> mallet(x, top, w, bodyH, color)
             Shape.VOICE -> voice(x, top, w, bodyH, color)
@@ -300,9 +308,9 @@ private class StageScene(
             Shape.ORCHESTRA -> orchestraPerc(x, top, w, bodyH, color)
             Shape.LATIN -> latin(x, top, w, bodyH, color)
             Shape.TIMPANI -> timpani(x, top, w, bodyH, color)
-            Shape.KIT -> drums(x, y, w, h, color)
+            Shape.KIT -> drums(x, top - bodyH * 0.25f, w, bodyH * 1.2f, color)
             Shape.SYNTH -> synth(x, top, w, bodyH, color)
-            Shape.REST -> label("쉬는 중", x + dp(14f), top + bodyH * 0.5f, 16f, Color(0xff9fb4c2))
+            Shape.REST -> label("쉼", x + w * 0.5f - dp(9f), top + bodyH * 0.6f, 20f, Color(0xff9fb4c2), bold = true)
         }
     }
 
@@ -564,4 +572,21 @@ internal object InstrumentLooks {
     )
     private val rest = Look(Shape.REST, Color(0xff5c6f7c))
     fun of(id: String): Look = looks[id] ?: rest
+}
+
+/** One instrument drawn on its own (no tile frame): the band screen's slots and cards. */
+@Composable
+fun InstrumentLook(id: String, animate: Boolean, modifier: Modifier = Modifier) {
+    val text = rememberTextMeasurer()
+    var phase by remember { mutableStateOf(0.0) }
+    if (animate) LaunchedEffect(id) {
+        var last = 0L
+        while (true) withFrameNanos { now ->
+            if (last != 0L) phase += PHASE_PER_FRAME * ((now - last) / 1e9) / FRAME_SECONDS
+            last = now
+        }
+    }
+    Canvas(modifier) {
+        StageScene(this, text, PlayerStatus(), Color.White, animate, phase).look(id, 0f, 0f, size.width, size.height)
+    }
 }

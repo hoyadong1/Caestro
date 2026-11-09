@@ -50,6 +50,8 @@ class SoundtrackService : MediaBrowserService() {
         const val RESET_INSTRUMENTS = "com.drivesoundtrack.RESET_INSTRUMENTS"
         const val MY_ALBUM_TOGGLE = "com.drivesoundtrack.MY_ALBUM_TOGGLE"
         const val SKIP = "com.drivesoundtrack.SKIP"
+        const val AUDITION = "com.drivesoundtrack.AUDITION"
+        const val INSTRUMENT_SET = "com.drivesoundtrack.INSTRUMENT_SET"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
     }
@@ -213,6 +215,8 @@ class SoundtrackService : MediaBrowserService() {
             RESET_INSTRUMENTS -> resetInstruments(intent.getBooleanExtra("band", false))
             MY_ALBUM_TOGGLE -> toggleMyAlbum(intent.getIntExtra("preset", -1))
             SKIP -> skip(if (intent.getIntExtra("direction", 1) < 0) -1 else 1)
+            AUDITION -> engine.setAudition(if (locked()) -1 else intent.getIntExtra("stage", -1))
+            INSTRUMENT_SET -> intent.getIntArrayExtra("instruments")?.let { setInstruments(it, intent.getBooleanExtra("band", false)) }
             SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
             STATUS_REQUEST -> broadcastStatus()
             RECONNECT_SPEED -> {
@@ -339,6 +343,17 @@ class SoundtrackService : MediaBrowserService() {
         preferences.apply()
         applyAll()
         broadcastStatus()
+    }
+
+    /** A whole ensemble at once (a preset), for the band or the playing track. */
+    private fun setInstruments(ids: IntArray, forBand: Boolean) {
+        if (ids.size != 6) return
+        for (stage in 0..5) if (ids[stage] !in Instruments.options[stage]) return
+        val current = if (forBand) band ?: IntArray(6) { Instruments.indexOf(Instruments.BAND_DEFAULT[it]) } else effective(preset) ?: return
+        for (stage in 0..5) if (current[stage] != ids[stage]) {
+            // Reuse the single-stage path so saving and locking behave the same.
+            setInstrument(stage, ids[stage], forBand)
+        }
     }
 
     /** Band: back to each track's suggestion. Track: back to following the band. */

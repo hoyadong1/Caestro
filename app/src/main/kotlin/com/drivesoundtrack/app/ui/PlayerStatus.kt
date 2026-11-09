@@ -69,6 +69,10 @@ interface PlayerActions {
     fun toggleMyAlbum(index: Int)
     /** Previous (-1) or next (1) track of the album, like the steering-wheel media buttons. */
     fun skip(direction: Int)
+    /** Let one stage (1..5) play while its instrument is being chosen; -1 ends it. */
+    fun audition(stage: Int)
+    /** Set all six stages at once (a preset ensemble). */
+    fun setInstruments(ids: IntArray, band: Boolean)
     fun demoSpeed(kmh: Double)
     fun demoAccelerator(percent: Double)
     fun demoBrake(active: Boolean)

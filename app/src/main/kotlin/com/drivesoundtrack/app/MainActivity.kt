@@ -91,6 +91,9 @@ class MainActivity : ComponentActivity(), PlayerActions {
     override fun resetInstruments(band: Boolean) = send(SoundtrackService.RESET_INSTRUMENTS) { putExtra("band", band) }
     override fun toggleMyAlbum(index: Int) = send(SoundtrackService.MY_ALBUM_TOGGLE) { putExtra("preset", index) }
     override fun skip(direction: Int) = send(SoundtrackService.SKIP) { putExtra("direction", direction) }
+    override fun audition(stage: Int) = send(SoundtrackService.AUDITION) { putExtra("stage", stage) }
+    override fun setInstruments(ids: IntArray, band: Boolean) =
+        send(SoundtrackService.INSTRUMENT_SET) { putExtra("instruments", ids); putExtra("band", band) }
     override fun demoSpeed(kmh: Double) {
         if (!status.carAvailable) send(SoundtrackService.DEMO_SPEED) { putExtra("kmh", kmh) }
     }

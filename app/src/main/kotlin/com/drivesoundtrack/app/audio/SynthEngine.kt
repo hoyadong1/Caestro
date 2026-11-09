@@ -24,6 +24,7 @@ class SynthEngine(model: SoundModel) {
     /** The track playing now (the renderer moves through the album on its own). */
     fun track(): Int = renderer.track()
     fun setBassSolo(enabled: Boolean) = renderer.setBassSolo(enabled)
+    fun setAudition(stage: Int) = renderer.setAudition(stage)
     fun setDebugSpeedJourney(enabled: Boolean) = renderer.setDebugSpeedJourney(enabled)
     fun armCapture(file: File) { captureFile = file }
 

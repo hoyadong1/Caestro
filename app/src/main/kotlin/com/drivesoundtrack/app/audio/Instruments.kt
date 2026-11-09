@@ -101,6 +101,16 @@ object Instruments {
         )
     }
 
+    /** Ready-made ensembles for the band screen: name and one instrument per stage. */
+    val PRESETS: List<Pair<String, List<String>>> = listOf(
+        "실내악" to listOf("cello", "orchperc", "viola", "harp", "violin", "flute"),
+        "오케스트라" to listOf("pizz", "timpani", "strings", "harp", "horn", "glock"),
+        "피아노 트리오" to listOf("cello", "shaker", "piano", "piano", "violin", "none"),
+        "목관 앙상블" to listOf("bassoon", "orchperc", "horn", "marimba", "clarinet", "flute"),
+        "라틴 카페" to listOf("pizz", "latin", "piano", "marimba", "trumpet", "xylophone"),
+        "일렉트로닉" to listOf("synthbass", "electro", "synthstrings", "synthpluck", "synthlead", "glasspad"),
+    )
+
     /** The band a listener starts from: a small chamber orchestra. */
     val BAND_DEFAULT = listOf("cello", "orchperc", "strings", "harp", "violin", "flute")
 

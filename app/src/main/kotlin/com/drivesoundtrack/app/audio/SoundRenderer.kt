@@ -54,6 +54,9 @@ class SoundRenderer(private val model: SoundModel) {
     private var barsInTrack = 0
     private var fadeStep = 1.0 / TRANSITION_SAMPLES
     @Volatile private var bassSolo = false
+    /** A stage the band screen is choosing an instrument for: it plays even below its speed. */
+    @Volatile private var auditionStage = -1
+    private var lastAudition = -1
     @Volatile private var debugSpeedJourney = false
     private var journeyFrames = 0L
     private var activePreset = 0
@@ -127,6 +130,7 @@ class SoundRenderer(private val model: SoundModel) {
         (engines.getOrNull(preset) as? PieceEngine)?.setOrchestration(instruments)
     }
     fun setBassSolo(enabled: Boolean) { bassSolo = enabled }
+    fun setAudition(stage: Int) { auditionStage = stage }
     fun setDebugSpeedJourney(enabled: Boolean) {
         debugSpeedJourney = enabled
         journeyFrames = 0L
@@ -149,6 +153,11 @@ class SoundRenderer(private val model: SoundModel) {
         val speedLevel = model.speedLevel()
         val rhythmLevel = model.rhythmLevel()
         val layerMask = model.layerMask()
+        // Auditioning brings one stage in at once; when it ends the stage follows the speed again.
+        val audition = auditionStage
+        if (audition != lastAudition && lastAudition in 1..5)
+            layerTargets[lastAudition] = if (layerMask and (1 shl lastAudition) != 0) 1.0 else 0.0
+        lastAudition = audition
         val brake = model.brake()
         val steering = model.steering()
         val turn = model.turn()
@@ -182,7 +191,7 @@ class SoundRenderer(private val model: SoundModel) {
             val step = floor(beat * 4.0).toLong()
             if (step != lastStep) {
                 if (step % stepsPerBar == 0L) {
-                    for (layer in 1..5) layerTargets[layer] = if (layerMask and (1 shl layer) != 0) 1.0 else 0.0
+                    for (layer in 1..5) layerTargets[layer] = if (layerMask and (1 shl layer) != 0 || layer == audition) 1.0 else 0.0
                     model.setAudibleLayerMask(layerMask)
                     barsInTrack++
                 }
@@ -197,6 +206,7 @@ class SoundRenderer(private val model: SoundModel) {
                 triggerStep(scene, step, energy, steering, rhythmLevel, turn)
                 lastStep = step
             }
+            if (audition in 1..5) layerTargets[audition] = 1.0
             val layerStep = 1.0 / (RATE * 1.15)
             for (layer in 1..5) layerMixes[layer] +=
                 (layerTargets[layer] - layerMixes[layer]).coerceIn(-layerStep, layerStep)
