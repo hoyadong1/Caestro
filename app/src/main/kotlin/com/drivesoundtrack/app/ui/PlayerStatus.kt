@@ -24,6 +24,10 @@ data class PlayerStatus(
     val myAlbum: List<Int> = emptyList(),
     /** Instrument per stage for a classical track; empty for the original soundscapes. */
     val instruments: List<Int> = emptyList(),
+    /** "My band" per stage; empty while each track uses its own suggestion. */
+    val band: List<Int> = emptyList(),
+    /** The playing track has instruments of its own instead of following the band. */
+    val ownInstruments: Boolean = false,
 ) {
     companion object {
         fun from(intent: Intent): PlayerStatus {
@@ -47,6 +51,8 @@ data class PlayerStatus(
                 album = intent.getIntExtra("album", 0),
                 myAlbum = intent.getIntArrayExtra("myAlbum")?.toList() ?: emptyList(),
                 instruments = intent.getIntArrayExtra("instruments")?.toList() ?: emptyList(),
+                band = intent.getIntArrayExtra("band")?.toList() ?: emptyList(),
+                ownInstruments = intent.getBooleanExtra("ownInstruments", false),
             )
         }
     }
@@ -57,8 +63,9 @@ interface PlayerActions {
     fun togglePlay()
     fun toggleScenario()
     fun selectTrack(album: Int, index: Int)
-    fun setInstrument(stage: Int, instrument: Int)
-    fun resetInstruments()
+    /** [band]: change "my band" (every track without its own choice) instead of the playing track. */
+    fun setInstrument(stage: Int, instrument: Int, band: Boolean)
+    fun resetInstruments(band: Boolean)
     fun toggleMyAlbum(index: Int)
     fun demoSpeed(kmh: Double)
     fun demoAccelerator(percent: Double)

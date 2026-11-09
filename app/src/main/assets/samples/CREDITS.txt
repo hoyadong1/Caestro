@@ -1,0 +1,5 @@
+Recorded instrument samples: VSCO 2 Community Edition by Versilian Studios LLC
+https://github.com/sgossner/VSCO-2-CE  -  CC0 1.0 (public domain dedication)
+Upright Piano sampled by Simon Dalzell of Ivy Audio (redistribution granted by Versilian Studios LLC).
+
+The notes were trimmed, resampled to 24 kHz mono and given sustain loops for Drive Soundtrack.

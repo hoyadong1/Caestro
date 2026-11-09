@@ -8,9 +8,10 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * The instrument library the classical pieces are played with. Every instrument is synthesised
- * here (no samples): a [Voice] makes one note, a [Poly] holds a few voices, and a [Kit] is a
- * rhythm section. [Instruments] lists what each of the six stages can use.
+ * The instrument library the classical pieces are played with. Orchestral instruments are recorded
+ * notes of real instruments ([SampleVoice], VSCO 2 Community Edition, public domain); the rest are
+ * synthesised here: a [Voice] makes one note, a [Poly] holds a few voices, and a [Kit] or
+ * [SampleKit] is a rhythm section. [Instruments] lists what each of the six stages can use.
  */
 object Instruments {
     const val BASS = 0
@@ -26,6 +27,8 @@ object Instruments {
     class Kind internal constructor(
         val id: String,
         val label: String,
+        /** A recording of the real instrument rather than a synthesised sound. */
+        val real: Boolean = false,
         internal val sustained: Boolean = false,
         internal val voices: Int = 4,
         internal val mono: Boolean = false,
@@ -33,32 +36,46 @@ object Instruments {
         internal val maxMidi: Int = 100,
         internal val gain: Double = 1.0,
         internal val kit: Int = -1,
+        internal val sampleKit: Int = -1,
         internal val voice: (() -> Voice)? = null,
     )
 
+    private fun real(id: String, label: String, sample: String = id, sustained: Boolean, voices: Int, min: Int, max: Int,
+                     gain: Double, attack: Double, release: Double, mono: Boolean = false) =
+        Kind(id, label, real = true, sustained = sustained, voices = voices, mono = mono, minMidi = min, maxMidi = max,
+            gain = gain) { SampleVoice(sample, attack, release) }
+
     val all: List<Kind> = listOf(
-        Kind("cello", "첼로", sustained = true, voices = 2, minMidi = 33, maxMidi = 64, gain = 0.88) { BowedVoice(3.2, 0.004, false, Adsr(0.06, 0.4, 0.85, 0.25)) },
+        // Recorded orchestra.
+        real("cello", "첼로", sustained = true, voices = 2, min = 36, max = 72, gain = 3.0, attack = 0.08, release = 0.3),
+        real("pizz", "콘트라베이스", sample = "contrabass", sustained = false, voices = 3, min = 28, max = 60, gain = 2.55, attack = 0.002, release = 0.35),
+        real("bassoon", "바순", sustained = true, voices = 2, min = 34, max = 72, gain = 2.42, attack = 0.05, release = 0.25),
+        real("piano", "피아노", sustained = false, voices = 6, min = 29, max = 105, gain = 3.12, attack = 0.002, release = 0.45),
+        real("organ", "파이프 오르간", sustained = true, voices = 5, min = 36, max = 96, gain = 2.26, attack = 0.03, release = 0.25),
+        real("strings", "바이올린 합주", sustained = true, voices = 5, min = 55, max = 88, gain = 2.89, attack = 0.3, release = 0.6),
+        real("viola", "비올라 합주", sustained = true, voices = 4, min = 48, max = 86, gain = 2.38, attack = 0.25, release = 0.5),
+        real("horn", "호른", sustained = true, voices = 4, min = 36, max = 72, gain = 2.12, attack = 0.08, release = 0.35),
+        real("harp", "하프", sustained = false, voices = 6, min = 35, max = 96, gain = 1.76, attack = 0.002, release = 1.2),
+        real("marimba", "마림바", sustained = false, voices = 4, min = 41, max = 96, gain = 2.2, attack = 0.002, release = 0.4),
+        real("xylophone", "실로폰", sustained = false, voices = 4, min = 67, max = 108, gain = 3.4, attack = 0.002, release = 0.3),
+        real("violin", "바이올린", sustained = true, voices = 1, mono = true, min = 55, max = 98, gain = 3.61, attack = 0.06, release = 0.25),
+        real("flute", "플루트", sustained = true, voices = 1, mono = true, min = 60, max = 96, gain = 2.38, attack = 0.05, release = 0.25),
+        real("clarinet", "클라리넷", sustained = true, voices = 1, mono = true, min = 50, max = 89, gain = 2.32, attack = 0.05, release = 0.25),
+        real("oboe", "오보에", sustained = true, voices = 1, mono = true, min = 58, max = 89, gain = 2.87, attack = 0.05, release = 0.25),
+        real("trumpet", "트럼펫", sustained = true, voices = 1, mono = true, min = 52, max = 84, gain = 2.75, attack = 0.04, release = 0.25),
+        real("glock", "글로켄슈필", sustained = false, voices = 4, min = 79, max = 108, gain = 4.1, attack = 0.002, release = 0.6),
+        Kind("orchperc", "오케스트라 타악기", real = true, gain = 0.66, sampleKit = SampleKit.ORCHESTRA),
+        Kind("latin", "라틴 퍼커션", real = true, gain = 0.48, sampleKit = SampleKit.LATIN),
+        // Synthesised.
         Kind("synthbass", "신스 베이스", voices = 2, maxMidi = 60, gain = 1.09) { SynthBassVoice() },
-        Kind("pizz", "피치카토", voices = 3, maxMidi = 60, gain = 3.8) { PluckVoice(0.9, 0.08) },
-        Kind("piano", "피아노", voices = 6, gain = 1.05) { PianoVoice() },
-        Kind("organ", "오르간", sustained = true, voices = 5, gain = 0.52) { OrganVoice() },
-        Kind("strings", "현악 합주", sustained = true, voices = 5, minMidi = 43, gain = 0.99) { BowedVoice(4.5, 0.003, true, Adsr(0.35, 0.6, 0.85, 0.7)) },
+        Kind("synthstrings", "신스 스트링", sustained = true, voices = 5, minMidi = 43, gain = 0.99) { BowedVoice(4.5, 0.003, true, Adsr(0.35, 0.6, 0.85, 0.7)) },
         Kind("epiano", "전자 피아노", voices = 6, gain = 0.84) { EPianoVoice() },
         Kind("choir", "합창", sustained = true, voices = 4, minMidi = 48, maxMidi = 81, gain = 0.37) { ChoirVoice() },
-        Kind("harp", "하프", voices = 6, minMidi = 36, gain = 1.5) { PluckVoice(2.4, 0.45) },
         Kind("kalimba", "칼림바", voices = 4, minMidi = 60, maxMidi = 96, gain = 0.98) {
             PartialVoice(doubleArrayOf(1.0, 4.02), doubleArrayOf(1.0, 0.28), doubleArrayOf(0.31, 0.033))
         },
         Kind("synthpluck", "신스 플럭", voices = 4, gain = 1.09) { SynthPluckVoice() },
-        Kind("violin", "바이올린", sustained = true, voices = 1, mono = true, minMidi = 55, maxMidi = 100, gain = 1.07) {
-            BowedVoice(5.5, 0.0065, false, Adsr(0.07, 0.4, 0.85, 0.22))
-        },
-        Kind("flute", "플루트", sustained = true, voices = 1, mono = true, minMidi = 60, maxMidi = 96, gain = 0.82) { FluteVoice() },
-        Kind("clarinet", "클라리넷", sustained = true, voices = 1, mono = true, minMidi = 50, maxMidi = 91, gain = 0.64) { ReedVoice() },
         Kind("synthlead", "신스 리드", voices = 2, minMidi = 55, gain = 0.93) { SynthLeadVoice() },
-        Kind("glock", "글로켄슈필", voices = 4, minMidi = 79, maxMidi = 108, gain = 0.83) {
-            PartialVoice(doubleArrayOf(1.0, 2.76, 5.40, 8.93), doubleArrayOf(1.0, 0.45, 0.2, 0.08), doubleArrayOf(1.3, 0.45, 0.15, 0.07))
-        },
         Kind("musicbox", "뮤직박스", voices = 4, minMidi = 72, maxMidi = 103, gain = 0.97) {
             PartialVoice(doubleArrayOf(1.0, 3.0, 5.98), doubleArrayOf(1.0, 0.22, 0.07), doubleArrayOf(0.85, 0.28, 0.1))
         },
@@ -72,23 +89,27 @@ object Instruments {
 
     private fun ids(vararg names: String) = names.map { indexOf(it) }
 
-    /** What each stage may use, in display order. */
+    /** What each stage may use, in display order: recorded instruments first. */
     val options: List<List<Int>> by lazy {
         listOf(
-            ids("cello", "synthbass", "pizz", "piano", "organ"),
-            ids("timpani", "softkit", "electro", "shaker", "none"),
-            ids("strings", "piano", "epiano", "organ", "choir", "none"),
-            ids("harp", "piano", "kalimba", "synthpluck", "none"),
-            ids("violin", "flute", "clarinet", "piano", "synthlead", "none"),
-            ids("glock", "musicbox", "glasspad", "violin", "flute", "none"),
+            ids("cello", "pizz", "bassoon", "piano", "organ", "horn", "synthbass"),
+            ids("orchperc", "latin", "timpani", "softkit", "shaker", "electro", "none"),
+            ids("strings", "viola", "horn", "organ", "piano", "epiano", "choir", "synthstrings", "none"),
+            ids("harp", "piano", "marimba", "xylophone", "kalimba", "synthpluck", "none"),
+            ids("violin", "flute", "clarinet", "oboe", "bassoon", "trumpet", "horn", "piano", "synthlead", "none"),
+            ids("glock", "xylophone", "flute", "violin", "strings", "musicbox", "glasspad", "none"),
         )
     }
+
+    /** The band a listener starts from: a small chamber orchestra. */
+    val BAND_DEFAULT = listOf("cello", "orchperc", "strings", "harp", "violin", "flute")
 
     fun indexOf(id: String): Int = all.indexOfFirst { it.id == id }.also { require(it >= 0) { "unknown instrument $id" } }
 
     internal fun build(kind: Int, stage: Int): Part? {
         val k = all[kind]
         if (k.kit >= 0) return Kit(k.kit)
+        if (k.sampleKit >= 0) return SampleKit(k.sampleKit)
         val make = k.voice ?: return null
         val voices = Array(k.voices) { make().also { it.bendable = stage == MELODY } }
         val spread = when (stage) { HARMONY -> 0.32; HIGH -> 0.45; ARP -> 0.0; else -> 0.0 }
@@ -536,12 +557,13 @@ internal class Kit(private val style: Int) : Part {
             mono += sin(kickPhase) * exp(-kickAge * (if (style == ELECTRO) 10.0 else 6.0)) * 0.20 * kickLevel
         }
         var timp = 0.0
+        // The thump filter keeps running between strokes so a new stroke never starts from a stale value.
+        thumpFilter.process(n)
         if (timpAge < 2.0) {
             timpPhase = frac(timpPhase + timpHz * (1.0 + 0.04 * exp(-timpAge * 20.0)) * frame)
-            thumpFilter.process(n)
             timp = (Wave.sin(timpPhase) + Wave.sin(frac(timpPhase * 1.505)) * 0.35 + Wave.sin(frac(timpPhase * 1.99)) * 0.12) *
                 exp(-timpAge * 2.2) * (1.0 - exp(-timpAge * 700.0)) * 0.17 * timpLevel +
-                thumpFilter.low * exp(-timpAge * 35.0) * 0.5 * timpLevel
+                thumpFilter.low * exp(-timpAge * 35.0) * (1.0 - exp(-timpAge * 700.0)) * 0.5 * timpLevel
         }
         timpLast = timp
         mono += timp + timpDeclick

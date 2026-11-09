@@ -70,7 +70,10 @@ class SoundtrackService : MediaBrowserService() {
     private var album = Albums.ORIGINAL
     private var myAlbum = IntArray(0)
     /** Instrument per stage for each classical track (null for the original soundscapes). */
+    /** A track's own instruments; null when it follows the band (or, without a band, its own suggestion). */
     private val orchestrations = arrayOfNulls<IntArray>(Soundscapes.all.size)
+    /** "My band": the instruments every classical track uses unless it has its own. Null = each track's suggestion. */
+    private var band: IntArray? = null
     private var bassSolo = false
     private var debugJourneyEnabled = false
     private var scenarioEnabled = false
@@ -87,6 +90,8 @@ class SoundtrackService : MediaBrowserService() {
     override fun onCreate() {
         super.onCreate()
         model = SoundModel()
+        // Recorded instruments read their notes from the APK's assets.
+        com.drivesoundtrack.app.audio.SampleBank.opener = { name -> assets.open("samples/$name") }
         engine = SynthEngine(model)
         val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE)
         preset = preferences.getInt("preset", 0).coerceIn(Soundscapes.all.indices)
@@ -98,15 +103,20 @@ class SoundtrackService : MediaBrowserService() {
         album = preferences.getInt("album", Albums.ORIGINAL).coerceIn(Albums.names.indices)
         myAlbum = (preferences.getString("myAlbum", null)?.split('|') ?: Albums.defaultMine)
             .mapNotNull { name -> NAMES.indexOf(name).takeIf { it >= 0 } }.toIntArray()
+        // 0.12.0 moved to recorded instruments and new suggestions: earlier per-track choices start over.
+        if (!preferences.getBoolean("realInstruments", false)) {
+            val edit = preferences.edit()
+            for (key in preferences.all.keys) if (key.startsWith("instruments_")) edit.remove(key)
+            edit.putBoolean("realInstruments", true).apply()
+        }
+        band = preferences.getString("band", null)?.let { parseInstruments(it, Instruments.BAND_DEFAULT) }
         for (i in Soundscapes.all.indices) {
             val piece = Soundscapes.all[i].piece ?: continue
-            val saved = preferences.getString("instruments_${NAMES[i]}", null)?.split('|')
-            orchestrations[i] = IntArray(6) { stage ->
-                val id = saved?.getOrNull(stage) ?: piece.defaults[stage]
-                Instruments.all.indexOfFirst { it.id == id }.takeIf { it in Instruments.options[stage] }
-                    ?: Instruments.indexOf(piece.defaults[stage])
-            }.also { engine.setOrchestration(i, it) }
+            val saved = preferences.getString("instruments_${NAMES[i]}", null) ?: continue
+            orchestrations[i] = parseInstruments(saved, piece.defaults)
+                .takeUnless { it.contentEquals(suggested(i)) } // a choice equal to the suggestion follows the band
         }
+        applyAll()
         model.setPreset(preset)
         engine.setPreset(preset)
         engine.setPlaylist(Albums.tracks(album, myAlbum))
@@ -197,8 +207,9 @@ class SoundtrackService : MediaBrowserService() {
                 if (chosenAlbum in Albums.names.indices && !locked()) setAlbum(chosenAlbum)
                 setPreset(intent.getIntExtra("preset", 0))
             }
-            INSTRUMENT -> setInstrument(intent.getIntExtra("stage", -1), intent.getIntExtra("instrument", -1))
-            RESET_INSTRUMENTS -> resetInstruments()
+            INSTRUMENT -> setInstrument(intent.getIntExtra("stage", -1), intent.getIntExtra("instrument", -1),
+                intent.getBooleanExtra("band", false))
+            RESET_INSTRUMENTS -> resetInstruments(intent.getBooleanExtra("band", false))
             MY_ALBUM_TOGGLE -> toggleMyAlbum(intent.getIntExtra("preset", -1))
             SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
             STATUS_REQUEST -> broadcastStatus()
@@ -286,25 +297,56 @@ class SoundtrackService : MediaBrowserService() {
         if (playing) (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(1, playbackNotification())
     }
 
-    private fun setInstrument(stage: Int, instrument: Int) {
-        val current = orchestrations.getOrNull(preset) ?: return
+    private fun parseInstruments(saved: String, defaults: List<String>): IntArray {
+        val ids = saved.split('|')
+        return IntArray(6) { stage ->
+            Instruments.all.indexOfFirst { it.id == ids.getOrNull(stage) }.takeIf { it in Instruments.options[stage] }
+                ?: Instruments.indexOf(defaults[stage])
+        }
+    }
+
+    private fun idsOf(instruments: IntArray) = instruments.joinToString("|") { Instruments.all[it].id }
+
+    /** What a track plays when it has no instruments of its own: the band, or the track's suggestion. */
+    private fun suggested(track: Int): IntArray =
+        band?.copyOf() ?: IntArray(6) { Instruments.indexOf(Soundscapes.all[track].piece!!.defaults[it]) }
+
+    private fun effective(track: Int): IntArray? =
+        if (Soundscapes.all[track].piece == null) null else orchestrations[track]?.copyOf() ?: suggested(track)
+
+    private fun applyAll() {
+        for (i in Soundscapes.all.indices) effective(i)?.let { engine.setOrchestration(i, it) }
+    }
+
+    /** Changes one stage of the band (every track without its own choice) or of the playing track only. */
+    private fun setInstrument(stage: Int, instrument: Int, forBand: Boolean) {
         if (locked() || stage !in 0..5 || instrument !in Instruments.options[stage]) return
-        current[stage] = instrument
-        applyInstruments()
+        val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE).edit()
+        if (forBand) {
+            val next = (band ?: IntArray(6) { Instruments.indexOf(Instruments.BAND_DEFAULT[it]) }).copyOf()
+            next[stage] = instrument
+            band = next
+            preferences.putString("band", idsOf(next))
+        } else {
+            val current = effective(preset) ?: return
+            current[stage] = instrument
+            orchestrations[preset] = current.takeUnless { it.contentEquals(suggested(preset)) }
+            if (orchestrations[preset] == null) preferences.remove("instruments_${NAMES[preset]}")
+            else preferences.putString("instruments_${NAMES[preset]}", idsOf(current))
+        }
+        preferences.apply()
+        applyAll()
+        broadcastStatus()
     }
 
-    private fun resetInstruments() {
-        val piece = Soundscapes.all[preset].piece ?: return
+    /** Band: back to each track's suggestion. Track: back to following the band. */
+    private fun resetInstruments(forBand: Boolean) {
         if (locked()) return
-        orchestrations[preset] = IntArray(6) { Instruments.indexOf(piece.defaults[it]) }
-        applyInstruments()
-    }
-
-    private fun applyInstruments() {
-        val current = orchestrations[preset] ?: return
-        engine.setOrchestration(preset, current)
-        getSharedPreferences("soundtrack", MODE_PRIVATE).edit()
-            .putString("instruments_${NAMES[preset]}", current.joinToString("|") { Instruments.all[it].id }).apply()
+        val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE).edit()
+        if (forBand) { band = null; preferences.remove("band") }
+        else { orchestrations[preset] = null; preferences.remove("instruments_${NAMES[preset]}") }
+        preferences.apply()
+        applyAll()
         broadcastStatus()
     }
 
@@ -429,7 +471,9 @@ class SoundtrackService : MediaBrowserService() {
         status.putExtra("wiperAvailable", model.wiperAvailable())
         status.putExtra("album", album)
         status.putExtra("myAlbum", myAlbum)
-        status.putExtra("instruments", orchestrations[preset] ?: IntArray(0))
+        status.putExtra("instruments", effective(preset) ?: IntArray(0))
+        status.putExtra("band", band ?: IntArray(0))
+        status.putExtra("ownInstruments", orchestrations[preset] != null)
         sendBroadcast(status)
     }
 

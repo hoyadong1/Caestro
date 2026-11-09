@@ -39,8 +39,8 @@ class PieceCheckTest {
         for (stage in 0..5) for (kind in Instruments.options[stage]) {
             val rms = stageRms(piece, stage, kind)
             val label = Instruments.all[kind].label
-            if (Instruments.all[kind].id == "none") check(rms == 0.0) else check(rms > 0.004) { "$label silent on stage $stage" }
             println("stage $stage %-8s rms %.4f".format(label, rms))
+            if (Instruments.all[kind].id == "none") check(rms == 0.0) else check(rms > 0.004) { "$label silent on stage $stage" }
         }
     }
 

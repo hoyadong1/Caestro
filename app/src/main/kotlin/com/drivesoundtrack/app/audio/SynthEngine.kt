@@ -17,7 +17,6 @@ class SynthEngine(model: SoundModel) {
     @Volatile private var generation = 0L
     private var worker: Thread? = null
     @Volatile private var captureFile: File? = null
-    /** Keeps the music of the current drive; fed with exactly what was played. */
 
     fun setPreset(preset: Int) = renderer.setPreset(preset)
     fun setPlaylist(tracks: IntArray) = renderer.setPlaylist(tracks)

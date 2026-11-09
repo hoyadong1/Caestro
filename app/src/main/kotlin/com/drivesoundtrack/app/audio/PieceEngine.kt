@@ -55,6 +55,7 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
 
         piece.bassAt(s)?.let { play(Instruments.BASS, it.midi, it.length, 0.95) }
         (parts[Instruments.RHYTHM] as? Kit)?.step(position, spb, bar, rhythmLevel, wiper, tonicHz, stepSamples)
+        (parts[Instruments.RHYTHM] as? SampleKit)?.step(position, spb, rhythmLevel, wiper)
 
         if (Instruments.all[kinds[Instruments.HARMONY]].sustained) {
             if (span.start == s) for (m in span.harmony) play(Instruments.HARMONY, m, span.length, 0.8)

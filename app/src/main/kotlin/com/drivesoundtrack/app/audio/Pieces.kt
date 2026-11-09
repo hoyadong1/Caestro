@@ -199,7 +199,7 @@ internal object Pieces {
             Score.pattern("3 . 1 . 4 . 2 . 3 . 1 . 4 . 2 ."),
             Score.hits("x . . . x . . . x . . . x . . ."),
             HighLine.CANON, 2,
-            listOf("cello", "shaker", "strings", "harp", "violin", "flute"))
+            listOf("cello", "orchperc", "strings", "harp", "violin", "flute"))
     }
 
     /** Bach, Prelude in C major (BWV 846): the broken chords are the arpeggio; the top voice becomes the melody. */
@@ -217,7 +217,7 @@ internal object Pieces {
             Score.pattern("0 1 2 3 4 2 3 4 0 1 2 3 4 2 3 4"),
             Score.hits("x . . . . . . . x . . . . . . ."),
             HighLine.BELLS, 0,
-            listOf("cello", "softkit", "strings", "piano", "flute", "glasspad"))
+            listOf("cello", "orchperc", "viola", "piano", "flute", "glasspad"))
     }
 
     /** Satie, Gymnopédie No. 1: the swaying G and D major-seventh bars with the slow melody over them. */
@@ -233,7 +233,7 @@ internal object Pieces {
             Score.pattern(". . . . 1 . 2 . 3 . 2 ."),
             Score.hits(". . . . x . . . x . . ."),
             HighLine.BELLS, 0,
-            listOf("piano", "shaker", "piano", "harp", "flute", "glasspad"))
+            listOf("piano", "orchperc", "viola", "harp", "oboe", "glasspad"))
     }
 
     /** Beethoven, "Ode to Joy" from the Ninth Symphony: the theme, with the high stage doubling it an octave up. */
@@ -253,7 +253,7 @@ internal object Pieces {
             Score.pattern("0 . 2 . 1 . 2 . 0 . 2 . 1 . 2 ."),
             Score.hits("x . . . . . . . x . . . . . . ."),
             HighLine.OCTAVE, 0,
-            listOf("cello", "softkit", "strings", "harp", "clarinet", "glock"))
+            listOf("cello", "orchperc", "strings", "harp", "clarinet", "glock"))
     }
 
     /** Grieg, "In the Hall of the Mountain King": the creeping theme in B minor, then on the dominant. Tempo rises with speed. */
@@ -269,6 +269,6 @@ internal object Pieces {
             Score.pattern("0 . 2 . 3 . 2 . 0 . 2 . 3 . 2 ."),
             Score.hits("x . . . x . . . x . . . x . . ."),
             HighLine.OCTAVE, 0,
-            listOf("pizz", "timpani", "strings", "synthpluck", "clarinet", "violin"))
+            listOf("pizz", "timpani", "strings", "marimba", "bassoon", "flute"))
     }
 }
