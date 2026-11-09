@@ -81,10 +81,10 @@ class SoundtrackService : MediaBrowserService() {
         engine = SynthEngine(model)
         val preferences = getSharedPreferences("soundtrack", MODE_PRIVATE)
         preset = preferences.getInt("preset", 0).coerceIn(Soundscapes.all.indices)
-        if (!preferences.getBoolean("blueDefaultMigrated", false)) {
-            // Earlier demo installs stored Circuit as the selected scene.
-            if (preset == 4) preset = 0
-            preferences.edit().putInt("preset", preset).putBoolean("blueDefaultMigrated", true).apply()
+        if (!preferences.getBoolean("threeScenesMigrated", false)) {
+            // 0.9.0 went from six soundscapes to three, so an index saved earlier may point elsewhere.
+            preset = 0
+            preferences.edit().putInt("preset", preset).putBoolean("threeScenesMigrated", true).apply()
         }
         model.setPreset(preset)
         engine.setPreset(preset)

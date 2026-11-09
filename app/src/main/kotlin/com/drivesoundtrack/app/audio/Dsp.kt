@@ -88,3 +88,35 @@ internal class Noise(seed: Long = 0x5DEECE66DL) {
         return (state ushr 11).toDouble() / (1L shl 53).toDouble() * 2.0 - 1.0
     }
 }
+
+/** Attack/decay/release envelope whose level never jumps, so retriggers cannot click. */
+internal class Env(attack: Double, decay: Double, private val sustain: Double, release: Double) {
+    private val attackStep = 1.0 - Dsp.decay(attack)
+    private val releaseStep = 1.0 - Dsp.decay(release)
+    private val decayStep = 1.0 - Dsp.decay(decay)
+    private var stage = 3 // 0 attack, 1 decay, 2 release, 3 idle
+    var level = 0.0; private set
+    fun gate() { stage = 0 }
+    fun release() { if (stage < 2) stage = 2 }
+    fun next(): Double {
+        when (stage) {
+            0 -> { level += (1.08 - level) * attackStep; if (level >= 1.0) { level = 1.0; stage = 1 } }
+            1 -> level += (sustain - level) * decayStep
+            2 -> { level -= level * releaseStep; if (level < 1e-5) { level = 0.0; stage = 3 } }
+        }
+        return level
+    }
+}
+
+/**
+ * A soundscape with its own instruments. [SoundRenderer] calls [step] on every sixteenth note and
+ * [render] once per sample, then mixes [left]/[right] and the centred [bass] like its shared voices.
+ * [mixes] holds the layer fades 1..5 (index 0 unused; the bass always plays).
+ */
+internal interface ScoreEngine {
+    val left: Double
+    val right: Double
+    val bass: Double
+    fun step(position: Int, bar: Long, chord: Int, tones: IntArray, scene: Soundscape, rhythmLevel: Int, bpm: Double, wiper: Boolean)
+    fun render(speed: Double, accelerator: Double, brake: Double, mixes: DoubleArray, steeringPitch: Double, bpm: Double)
+}

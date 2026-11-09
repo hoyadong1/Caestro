@@ -18,7 +18,6 @@ class SoundRenderer(private val model: SoundModel) {
         const val CHANNELS = 2
         private const val TWO_PI = 2.0 * PI
         private const val TRANSITION_SAMPLES = RATE * 0.35
-        private const val NEON = 5
         /** Per-sample decay of a cut note's leftover value: about a 3 ms time constant. */
         private val DECLICK = kotlin.math.exp(-1.0 / (0.003 * RATE))
         private const val SWELL_IN = 1.0 / (0.6 * RATE)
@@ -73,8 +72,14 @@ class SoundRenderer(private val model: SoundModel) {
     private var leadDeclick = 0.0; private var lastLead = 0.0
     private var arpDeclick = 0.0; private var lastArp = 0.0
     private var shimmerDeclick = 0.0; private var lastShimmer = 0.0
-    /** Neon has its own electro instruments; the other soundscapes use the shared voices below. */
-    private val neon = NeonEngine()
+    /** Coast and Neon have their own instruments; Pulse uses the shared voices below. */
+    private val engines: Array<ScoreEngine?> = Array(Soundscapes.all.size) { index ->
+        when (Soundscapes.all[index].name) {
+            "Coast" -> CoastEngine()
+            "Neon" -> NeonEngine()
+            else -> null
+        }
+    }
     private var currentBpm = 96.0
     private var currentWiper = false
     // Curve strings: one bowed section that swells while the wheel is turned and settles when
@@ -83,8 +88,6 @@ class SoundRenderer(private val model: SoundModel) {
     private val stringPhase = DoubleArray(6)
     private var curveSwell = 0.0
     private var vibratoPhase = 0.0
-    private var driveBassPhase = 0.0
-    private var driveBassHz = 55.0
     private var leadPhase = 0.0
     private var arpPhase = 0.0
     private var shimmerPhase = 0.0
@@ -177,33 +180,17 @@ class SoundRenderer(private val model: SoundModel) {
                 (0.012 + speedLevel * 0.035 + energy * 0.012) else 0.0
 
             bassPhase += TWO_PI * bassFrequency * frameTime
-            val bassWave = when (activePreset) {
-                1 -> sin(bassPhase) * 0.92 + sin(bassPhase * 3.0) * (0.05 + accelerator * 0.07)
-                2 -> sin(bassPhase) * 0.70 + sin(bassPhase * 2.0) * (0.10 + accelerator * 0.13)
-                3 -> sin(bassPhase) * 0.78 + sin(bassPhase * 2.0) * (0.16 + accelerator * 0.18) + sin(bassPhase * 3.0) * 0.09
-                // Root, octave and double octave are the same musical note.
-                // Move the weight toward the octaves as speed rises; no chromatic pitch sweep.
-                4 -> sin(bassPhase) * (0.76 - speedLevel * 0.53) +
-                    sin(bassPhase * 2.0) * (0.12 + speedLevel * 0.57) +
-                    sin(bassPhase * 4.0) * (0.03 + speedLevel * 0.14)
-                // Speed changes the existing note's harmonic color continuously.
-                else -> sin(bassPhase) * (0.90 - speedLevel * 0.20) +
-                    sin(bassPhase * 2.0) * (0.08 + speedLevel * 0.35 + accelerator * 0.10) +
-                    sin(bassPhase * 3.0) * speedLevel * 0.05
-            }
-            val bassDecay = if (activePreset == 4) 3.8 - speedLevel * 0.55 + accelerator * 0.7
-                else 3.4 - speedLevel * 0.8 + accelerator * 1.3
-            val bassDrive = if (activePreset == 4) 0.75 + accelerator * 0.22 + speedLevel * 0.13
-                else 0.68 + accelerator * 0.32 + speedLevel * 0.45
+            // Speed changes the existing note's harmonic color continuously.
+            val bassWave = sin(bassPhase) * (0.90 - speedLevel * 0.20) +
+                sin(bassPhase * 2.0) * (0.08 + speedLevel * 0.35 + accelerator * 0.10) +
+                sin(bassPhase * 3.0) * speedLevel * 0.05
+            val bassDecay = 3.4 - speedLevel * 0.8 + accelerator * 1.3
+            val bassDrive = 0.68 + accelerator * 0.32 + speedLevel * 0.45
             val bass = (if (bassAge < 1.4) bassWave * onset(bassAge) * exp(-bassAge * bassDecay) *
                 scene.bassGain * bassDrive * release(bassAge, 1.4) else 0.0) + bassDeclick
             bassDeclick *= DECLICK
             lastBass = bass
-            driveBassPhase += TWO_PI * driveBassHz * frameTime
-            val driveBass = if (activePreset == 4) scene.bassGain * 0.22 *
-                (sin(driveBassPhase) * 0.94 + sin(driveBassPhase * 2.0) * 0.06)
-                else 0.0
-            val bassStem = (bass + driveBass) * (1.0 - brake * 0.18)
+            val bassStem = bass * (1.0 - brake * 0.18)
 
             for (voice in padPhase.indices) padPhase[voice] += TWO_PI * padFrequency[voice] * frameTime
             val padEnvelope = (0.84 + energy * 0.16) * scene.padGain * (1.0 - 0.20 * exp(-kickAge * 12.0)) *
@@ -213,13 +200,7 @@ class SoundRenderer(private val model: SoundModel) {
                 sin(padPhase[2] + 1.05) * 0.24) * padEnvelope
 
             leadPhase += TWO_PI * leadFrequency * steeringPitch * frameTime
-            val leadWave = when (activePreset) {
-                1 -> sin(leadPhase) * 0.85 + sin(leadPhase * 2.01) * 0.12
-                2 -> sin(leadPhase) * (0.92 + sin(beat * TWO_PI / 8.0) * 0.06)
-                3 -> sin(leadPhase) * 0.76 + sin(leadPhase * 2.0) * 0.20 + sin(leadPhase * 3.0) * 0.08
-                4 -> sin(leadPhase) * 0.82 + sin(leadPhase * 2.0) * 0.14 + sin(leadPhase * 4.0) * 0.04
-                else -> sin(leadPhase) + sin(leadPhase * 2.0) * scene.brightness * 0.28
-            }
+            val leadWave = sin(leadPhase) + sin(leadPhase * 2.0) * scene.brightness * 0.28
             val lead = (if (leadAge < 1.0) (leadWave + sin(leadPhase * 2.0) * abs(steering) * 0.08) *
                 onset(leadAge) * exp(-leadAge * 5.0) * scene.leadGain *
                 (0.55 + energy * 0.45) * release(leadAge, 1.0) else 0.0) + leadDeclick
@@ -281,13 +262,13 @@ class SoundRenderer(private val model: SoundModel) {
             // Lean the mix into the turn: the far side drops by up to 60 %, strings pan with it.
             val leanLeft = 1.0 - max(0.0, steering) * 0.60
             val leanRight = 1.0 - max(0.0, -steering) * 0.60
-            val electro = activePreset == NEON
-            if (electro) neon.render(speedLevel, accelerator, brake, layerMixes, steeringPitch, bpm)
+            val engine = engines[activePreset]
+            engine?.render(speedLevel, accelerator, brake, layerMixes, steeringPitch, bpm)
             val turnLeft = turnVoice * (0.60 - turnPan * 0.35)
             val turnRight = turnVoice * (0.60 + turnPan * 0.35)
-            val stemBass = if (electro) neon.bass else bassStem
-            val restLeft = if (electro) neon.left + turnLeft else fullLeft - bassStem
-            val restRight = if (electro) neon.right + turnRight else fullRight - bassStem
+            val stemBass = engine?.bass ?: bassStem
+            val restLeft = if (engine != null) engine.left + turnLeft else fullLeft - bassStem
+            val restRight = if (engine != null) engine.right + turnRight else fullRight - bassStem
             val mixLeft = restLeft * leanLeft + stemBass + strings * (0.5 - steering * 0.45)
             val mixRight = restRight * leanRight + stemBass + strings * (0.5 + steering * 0.45)
             val left = tanh((if (bassSolo) stemBass else mixLeft) * 1.75) * 0.78 * transition
@@ -315,13 +296,11 @@ class SoundRenderer(private val model: SoundModel) {
         val tones = scene.chordTones?.get(chordIndex) ?: scene.scale
         if (position == 0) {
             val root = scene.rootHz * 2.0 * ratio(chord)
-            driveBassHz = scene.rootHz * ratio(chord)
             padFrequency[0] = root
             padFrequency[1] = root * ratio(tones[if (scene.chordTones == null) 2 else 1])
             padFrequency[2] = root * ratio(tones[if (scene.chordTones == null) 4 else 2])
         }
-        if ((scene.kick.hasStep(position) && (rhythmLevel >= 1 || position == 0 || position == 8)) ||
-            (activePreset == 4 && rhythmLevel == 2 && position == 14)) {
+        if (scene.kick.hasStep(position) && (rhythmLevel >= 1 || position == 0 || position == 8)) {
             kickAge = 0.0
             kickPhase = 0.0
         }
@@ -350,7 +329,7 @@ class SoundRenderer(private val model: SoundModel) {
             shimmerPhase = 0.0
         }
         val note = scene.melody[position]
-        if (note >= 0 && energy >= (if (activePreset == 4) 0.16 else 0.24) &&
+        if (note >= 0 && energy >= 0.24 &&
             (bar % 4 != 3L || position % 4 == 0)) {
             val octave = if ((bar / 4) % 2 == 1L) 12 else 0
             val directed = (note + if (steering > 0.16) 1 else if (steering < -0.16) -1 else 0)
@@ -371,7 +350,7 @@ class SoundRenderer(private val model: SoundModel) {
             turnPhase = 0.0
         }
         if (bar % 8 == 7L && position == 14 && energy >= 0.48) snareAge = 0.0
-        neon.step(position, bar, chord, tones, scene, rhythmLevel, currentBpm, currentWiper)
+        engines[activePreset]?.step(position, bar, chord, tones, scene, rhythmLevel, currentBpm, currentWiper)
     }
 
     /** ~3 ms fade-in so a note never starts at full level. */

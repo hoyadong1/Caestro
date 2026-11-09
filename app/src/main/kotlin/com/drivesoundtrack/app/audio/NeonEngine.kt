@@ -15,32 +15,13 @@ import kotlin.math.tanh
  * Layers (same speed thresholds as every soundscape):
  *   0 bass (always) · 1 drums · 2 chord stabs · 3 square arpeggio · 4 gliding lead · 5 noise riser
  */
-internal class NeonEngine {
+internal class NeonEngine : ScoreEngine {
     // Output of the last [render] call. The bass is kept apart so the steering lean can leave it centred.
-    var left = 0.0; private set
-    var right = 0.0; private set
-    var bass = 0.0; private set
+    override var left = 0.0; private set
+    override var right = 0.0; private set
+    override var bass = 0.0; private set
 
     private val noise = Noise(0x1F2E3D4C5BL)
-
-    /** Attack/decay/release envelope whose level never jumps, so retriggers cannot click. */
-    private class Env(attack: Double, private val decay: Double, private val sustain: Double, release: Double) {
-        private val attackStep = 1.0 - Dsp.decay(attack)
-        private val releaseStep = 1.0 - Dsp.decay(release)
-        private val decayStep = 1.0 - Dsp.decay(decay)
-        private var stage = 3 // 0 attack, 1 decay, 2 release, 3 idle
-        var level = 0.0; private set
-        fun gate() { stage = 0 }
-        fun release() { if (stage < 2) stage = 2 }
-        fun next(): Double {
-            when (stage) {
-                0 -> { level += (1.08 - level) * attackStep; if (level >= 1.0) { level = 1.0; stage = 1 } }
-                1 -> level += (sustain - level) * decayStep
-                2 -> { level -= level * releaseStep; if (level < 1e-5) { level = 0.0; stage = 3 } }
-            }
-            return level
-        }
-    }
 
     // --- Drums
     private var kickAge = 10.0
@@ -101,7 +82,7 @@ internal class NeonEngine {
 
     private var stepSamples = 5000
 
-    fun step(position: Int, bar: Long, chord: Int, tones: IntArray, scene: Soundscape, rhythmLevel: Int, bpm: Double, wiper: Boolean) {
+    override fun step(position: Int, bar: Long, chord: Int, tones: IntArray, scene: Soundscape, rhythmLevel: Int, bpm: Double, wiper: Boolean) {
         if (wiper) shakerAge = 0.0
         stepSamples = (60.0 / bpm / 4.0 * Dsp.RATE).toInt()
         val root = scene.rootHz * Dsp.semitones(chord.toDouble())
@@ -150,7 +131,7 @@ internal class NeonEngine {
      * One stereo sample. [mixes] are the layer fades 1..5 (index 0 unused, bass is always on).
      * [speed] 0..1, [accelerator] 0..1, [brake] 0..1.
      */
-    fun render(speed: Double, accelerator: Double, brake: Double, mixes: DoubleArray, steeringPitch: Double, bpm: Double) {
+    override fun render(speed: Double, accelerator: Double, brake: Double, mixes: DoubleArray, steeringPitch: Double, bpm: Double) {
         // Parked, the bass filter barely opens on each note: a soft, round pulse. It sharpens with speed.
         val pluck = 0.2 + 0.8 * speed.pow(1.5)
         val frame = 1.0 / Dsp.RATE
