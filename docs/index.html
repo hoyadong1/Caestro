@@ -83,7 +83,7 @@
         <p class="eyebrow">Any powertrain · Adaptive music</p>
         <h1>어떤 차든,<br><span class="accent">주행이 곧 연주</span><span class="hero-tail">가 됩니다.</span></h1>
         <p class="lead">Drive Soundtrack은 차량 움직임으로 오케스트라를 지휘합니다. 속도가 오르면 첼로 베이스 위에 타악기·현악·하프·바이올린·플루트가 하나씩 합류하고, 감속하면 다시 차분한 소리로 돌아옵니다. 「캐논」부터 「산왕의 궁전에서」까지 클래식 명곡을 실제 악기 소리로, 내가 꾸린 악단으로 연주합니다. 모든 차가 가진 신호만 쓰므로 내연기관·전기차 어디서나 동작합니다.</p>
-        <div class="actions"><a class="button primary" href="#demo">영상과 소리 보기 ↓</a><a class="button" href="#download">앱 설치</a></div>
+        <div class="actions"><a class="button primary" href="#cloud">영상과 소리 보기 ↓</a><a class="button" href="#download">앱 설치</a></div>
       </div>
       <div class="hero-card" aria-label="속도에 따라 합류하는 여섯 악기">
         <p>One drive · Six stages · My band</p>
@@ -91,9 +91,15 @@
       </div>
     </div>
 
-    <section id="demo">
-      <div class="section-head"><div><p class="eyebrow">D gear · Real vehicle speed signal</p><h2>차가 달리면, 악기가 하나씩 합류합니다</h2></div><p class="muted">Pleos Virtual Console의 가속·브레이크 페달로 0→130→0 km/h를 주행했습니다. 앱은 시나리오 없이 차량 속도 신호를 받아 베토벤 「환희의 송가」에 악기를 더하고 뺍니다.</p></div>
-      <div class="video-shell"><video controls playsinline preload="metadata" poster="console-d-drive-app-poster.png" aria-label="D단 주행 중 Pleos 화면의 앱과 Virtual Console을 나란히 녹화한 약 105초 영상, 곡은 환희의 송가"><source src="console-d-drive-app.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
+    <section id="cloud">
+      <div class="section-head"><div><p class="eyebrow">Cloud · Scores and instruments</p><h2>밖에서 만든 악보와 악기를, 차에서는 받아서 연주합니다</h2></div><p class="muted">악보와 악기는 차 밖의 웹 제작 플랫폼에서 만들어 클라우드에 올립니다. 차 앱은 정차 중 ‘받기’ 탭에서 내려받기만 하고, 받은 악보는 앨범의 ‘받은 곡’에, 받은 악기는 악단에 들어갑니다.</p></div>
+      <div class="video-shell"><video controls playsinline preload="metadata" poster="cloud-demo-poster.png" aria-label="받기 탭에서 악보 「라르고」와 트롬본·핸드팬을 내려받고, 악단에 넣어 앱 시연 주행 0→130→0 km/h로 연주하는 약 2분 30초 영상"><source src="cloud-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
+      <p class="recording-note">Pleos Connect 에뮬레이터에서 실제로 내려받고 고른 과정을 녹화했습니다. 곡은 받은 악보 「라르고」, 선율은 받은 트롬본, 분산음은 받은 핸드팬이며 뒷부분은 앱의 시연 주행(0→130→0 km/h)입니다. 소리는 같은 재생 중 앱이 출력한 PCM이고, 앞부분(받기·악단·앨범)은 소리가 없습니다. 예시 클라우드는 이 페이지와 같은 GitHub Pages의 <a href="cloud/catalog.json">cloud/catalog.json</a>입니다: 드보르자크 「라르고」 악보, VSCO 2 CE 녹음을 올려 만든 트롬본, 음색을 디자인한 핸드팬.</p>
+    </section>
+
+    <section class="section" id="demo">
+      <div class="section-head"><div><p class="eyebrow">D gear · Real vehicle speed signal</p><h2>차가 달리면, 악기가 하나씩 합류합니다</h2></div><p class="muted">Pleos Virtual Console의 가속·브레이크 페달로 0→130→0 km/h를 주행했습니다. 앱은 시나리오 없이 차량 속도 신호를 받아 그리그 「산왕의 궁전에서」에 악기를 더하고 뺍니다. 이 곡은 속도가 오를수록 템포도 80에서 120 BPM까지 빨라집니다.</p></div>
+      <div class="video-shell"><video controls playsinline preload="metadata" poster="console-d-drive-app-poster.png" aria-label="D단 주행 중 Pleos 화면의 앱과 Virtual Console을 나란히 녹화한 약 105초 영상, 곡은 산왕의 궁전에서"><source src="console-d-drive-app.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
       <p class="recording-note">왼쪽은 Pleos 화면(계기판 속도와 앱), 오른쪽은 Virtual Console입니다. 소리는 같은 재생 중 앱이 AudioTrack에 전달한 PCM이고, 화면은 에뮬레이터 밖에서 30fps로 녹화해 소리 시각에 맞췄습니다. 0.12 화면입니다. 실제 도로 주행은 아닙니다.</p>
     </section>
 
@@ -105,7 +111,7 @@
         <div class="instrument"><span class="number">03 · FROM 38 KM/H</span><h3>화음</h3><p>곡의 화음을 채웁니다. 바이올린·비올라 합주, 호른, 오르간 등.</p></div>
         <div class="instrument"><span class="number">04 · FROM 58 KM/H</span><h3>분산음</h3><p>화음을 한 음씩 풀어 연주합니다. 하프·마림바·실로폰·피아노 등.</p></div>
         <div class="instrument"><span class="number">05 · FROM 82 KM/H</span><h3>선율</h3><p>곡의 주선율. 바이올린·플루트·클라리넷·오보에·트럼펫 등.</p></div>
-        <div class="instrument"><span class="number">06 · FROM 105 KM/H</span><h3>고음 · 대선율</h3><p>선율을 한 옥타브 위에서, 「캐논」에선 돌림노래로. 글로켄슈필·플루트 등.</p></div>
+        <div class="instrument"><span class="number">06 · FROM 105 KM/H</span><h3>고음</h3><p>선율을 한 옥타브 위에서, 「캐논」에선 돌림노래로. 글로켄슈필·플루트 등.</p></div>
       </div>
     </section>
 
@@ -125,22 +131,17 @@
       <div class="section-head"><div><p class="eyebrow">Beyond speed · Steering</p><h2>핸들을 꺾으면 소리도 따라 기웁니다</h2></div><p class="muted">D단 60 km/h를 유지한 채 핸들 각도만 바꿨습니다. 커브에서는 현악이 부풀어 오르고, 소리 전체가 꺾는 쪽 스피커로 기웁니다. 직선으로 돌아오면 가운데로 돌아옵니다.</p></div>
       <div class="video-shell"><video controls playsinline preload="metadata" poster="steering-drive-poster.png" aria-label="D단 60 km/h에서 왼쪽 차선 변경, 왼쪽 커브, 오른쪽 커브를 차례로 주행한 약 70초 영상"><source src="steering-drive.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
       <p class="recording-note">Pleos Virtual Console로 핸들 각도를 넣고, 앱은 Pleos SDK의 조향각을 받아 연주합니다. 아래쪽 막대는 왼쪽(L)·오른쪽(R) 스피커의 음량입니다. 스테레오 스피커나 헤드폰으로 들어 보세요. 실제 도로 주행은 아닙니다.</p>
-      <div class="signal-panel"><div><h3>연주에 쓰는 신호</h3><p>속도는 악기 수와 음색을, 가속과 제동은 소리의 강약을 바꿉니다. 핸들은 현악과 좌우 기울기로, 방향지시등은 서로 다른 두 음의 응답으로 연결됩니다. 와이퍼도 리듬 질감에 영향을 줍니다.</p></div><div><h3>네 앨범</h3><p><b>오리지널</b>은 Pulse·Coast·Neon, <b>클래식 드라이브</b>는 다섯 명곡, <b>내 앨범</b>은 직접 담은 곡, <b>받은 곡</b>은 클라우드에서 내려받은 악보입니다. 클래식 곡과 받은 곡은 나만의 악단으로 연주됩니다. 이 영상은 오리지널 곡 Pulse입니다.</p><div class="modes"><span>오리지널</span><span>클래식 드라이브</span><span>내 앨범</span><span>받은 곡</span></div></div></div>
+      <div class="signal-panel"><div><h3>연주에 쓰는 신호</h3><p>속도는 악기 수와 음색을, 가속과 제동은 소리의 강약을 바꿉니다. 핸들은 현악과 좌우 기울기로, 방향지시등은 서로 다른 두 음의 응답으로 연결됩니다. 와이퍼도 리듬 질감에 영향을 줍니다.</p></div><div><h3>네 앨범</h3><p><b>오리지널</b>은 Pulse·Coast·Neon, <b>클래식 드라이브</b>는 다섯 명곡, <b>내 앨범</b>은 직접 담은 곡, <b>받은 곡</b>은 클라우드에서 내려받은 악보입니다. 클래식 곡과 받은 곡은 나만의 악단으로 연주됩니다. 핸들 영상은 오리지널 곡 Coast입니다.</p><div class="modes"><span>오리지널</span><span>클래식 드라이브</span><span>내 앨범</span><span>받은 곡</span></div></div></div>
     </section>
 
     <section class="section" id="scenario">
-      <div class="section-head"><div><p class="eyebrow">In-app demo · About 100 seconds</p><h2>정차 중에 미리 들어 보는 시연 주행</h2></div><p class="muted">앱의 시연 버튼으로 0→30→50→70→95→130→0 km/h를 재생합니다. 아래 버튼으로 속도 구간을 바로 들어 볼 수 있습니다.</p></div>
+      <div class="section-head"><div><p class="eyebrow">In-app demo · About 100 seconds</p><h2>정차 중에 미리 들어 보는 시연 주행</h2></div><p class="muted">앱의 시연 버튼으로 0→30→50→70→95→130→0 km/h를 재생합니다. 곡은 파헬벨 「캐논」입니다. 아래 버튼으로 속도 구간을 바로 들어 볼 수 있습니다.</p></div>
       <div class="video-shell"><video id="demoVideo" controls playsinline preload="metadata" poster="pulse-harmony-live-poster.png" aria-label="실제 앱 화면과 같은 테이크의 앱 소리로 만든 약 100초 시연 영상"><source src="pulse-harmony-live-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
       <nav class="chapters" aria-label="영상 구간 바로 보기"><button data-seek="0">정차 · 베이스</button><button data-seek="14">30 km/h</button><button data-seek="26">50 km/h</button><button data-seek="38">70 km/h</button><button data-seek="50">95 km/h</button><button data-seek="62">130 km/h</button><button data-seek="80">감속 중간</button><button data-seek="98">다시 정차</button></nav>
       <p class="recording-note">Pleos Connect 전체 화면을 녹화한 뒤 오른쪽 앱 영역만 잘랐습니다. 원본의 왼쪽 3D 차량은 정차·P 상태입니다. 소리는 같은 재생 중 앱이 AudioTrack에 전달한 PCM이며, 속도는 앱 내부 시연 입력입니다. 실제 도로 주행은 아닙니다.</p>
       <details class="source-view"><summary>Pleos 전체 화면 원본 보기</summary><img src="pleos-full-screen-context.png" loading="lazy" alt="왼쪽은 정차·P 상태의 Pleos 3D 차량, 오른쪽은 주행 시연 속도를 표시한 Drive Soundtrack 앱"><p>한 화면을 녹화한 뒤 오른쪽 앱 부분을 잘라 본편에 사용했습니다. 왼쪽 차량 표시는 앱 내부 시연 속도와 연동되지 않습니다.</p></details>
     </section>
 
-    <section class="section" id="cloud">
-      <div class="section-head"><div><p class="eyebrow">Cloud · Scores and instruments</p><h2>밖에서 만든 악보와 악기를, 차에서는 받아서 연주합니다</h2></div><p class="muted">악보와 악기는 차 밖의 웹 제작 플랫폼에서 만들어 클라우드에 올립니다. 차 앱은 정차 중 ‘받기’ 탭에서 내려받기만 하고, 받은 악보는 앨범의 ‘받은 곡’에, 받은 악기는 악단에 들어갑니다.</p></div>
-      <div class="video-shell"><video controls playsinline preload="metadata" poster="cloud-demo-poster.png" aria-label="받기 탭에서 악보 「라르고」와 트롬본·핸드팬을 내려받고, 악단에 넣어 0에서 118 km/h까지 주행하며 연주하는 약 100초 영상"><source src="cloud-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
-      <p class="recording-note">Pleos Connect 에뮬레이터에서 실제로 내려받고 고른 과정을 녹화했습니다. 곡은 받은 악보 「라르고」, 선율은 받은 트롬본, 분산음은 받은 핸드팬이며 뒷부분은 앱의 시연 주행(0→130→0 km/h)입니다. 소리는 같은 재생 중 앱이 출력한 PCM이고, 앞부분(받기·악단·앨범)은 소리가 없습니다. 예시 클라우드는 이 페이지와 같은 GitHub Pages의 <a href="cloud/catalog.json">cloud/catalog.json</a>입니다: 드보르자크 「라르고」 악보, VSCO 2 CE 녹음을 올려 만든 트롬본, 음색을 디자인한 핸드팬.</p>
-    </section>
 
     <section class="section" id="community">
       <div class="section-head"><div><p class="eyebrow">Roadmap</p><h2>주행이 곡을 고르고, 함께 만드는 음악으로</h2></div><p class="muted">차에서 받아 쓰는 쪽은 준비됐습니다. 다음은 주행이 음악을 더 깊이 지휘하고, 누구나 악보와 악기를 만들어 나누는 제작 플랫폼입니다.</p></div>
