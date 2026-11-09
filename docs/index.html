@@ -125,7 +125,7 @@
       <div class="section-head"><div><p class="eyebrow">Beyond speed · Steering</p><h2>핸들을 꺾으면 소리도 따라 기웁니다</h2></div><p class="muted">D단 60 km/h를 유지한 채 핸들 각도만 바꿨습니다. 커브에서는 현악이 부풀어 오르고, 소리 전체가 꺾는 쪽 스피커로 기웁니다. 직선으로 돌아오면 가운데로 돌아옵니다.</p></div>
       <div class="video-shell"><video controls playsinline preload="metadata" poster="steering-drive-poster.png" aria-label="D단 60 km/h에서 왼쪽 차선 변경, 왼쪽 커브, 오른쪽 커브를 차례로 주행한 약 70초 영상"><source src="steering-drive.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
       <p class="recording-note">Pleos Virtual Console로 핸들 각도를 넣고, 앱은 Pleos SDK의 조향각을 받아 연주합니다. 아래쪽 막대는 왼쪽(L)·오른쪽(R) 스피커의 음량입니다. 스테레오 스피커나 헤드폰으로 들어 보세요. 실제 도로 주행은 아닙니다.</p>
-      <div class="signal-panel"><div><h3>연주에 쓰는 신호</h3><p>속도는 악기 수와 음색을, 가속과 제동은 소리의 강약을 바꿉니다. 핸들은 현악과 좌우 기울기로, 방향지시등은 서로 다른 두 음의 응답으로 연결됩니다. 와이퍼도 리듬 질감에 영향을 줍니다.</p></div><div><h3>세 앨범</h3><p><b>오리지널</b>은 Pulse·Coast·Neon, <b>클래식 드라이브</b>는 다섯 명곡, <b>내 앨범</b>은 직접 담은 곡입니다. 클래식 곡은 나만의 악단으로 연주됩니다. 이 영상은 오리지널 곡 Pulse입니다.</p><div class="modes"><span>오리지널</span><span>클래식 드라이브</span><span>내 앨범</span></div></div></div>
+      <div class="signal-panel"><div><h3>연주에 쓰는 신호</h3><p>속도는 악기 수와 음색을, 가속과 제동은 소리의 강약을 바꿉니다. 핸들은 현악과 좌우 기울기로, 방향지시등은 서로 다른 두 음의 응답으로 연결됩니다. 와이퍼도 리듬 질감에 영향을 줍니다.</p></div><div><h3>네 앨범</h3><p><b>오리지널</b>은 Pulse·Coast·Neon, <b>클래식 드라이브</b>는 다섯 명곡, <b>내 앨범</b>은 직접 담은 곡, <b>받은 곡</b>은 클라우드에서 내려받은 악보입니다. 클래식 곡과 받은 곡은 나만의 악단으로 연주됩니다. 이 영상은 오리지널 곡 Pulse입니다.</p><div class="modes"><span>오리지널</span><span>클래식 드라이브</span><span>내 앨범</span><span>받은 곡</span></div></div></div>
     </section>
 
     <section class="section" id="scenario">
@@ -136,18 +136,24 @@
       <details class="source-view"><summary>Pleos 전체 화면 원본 보기</summary><img src="pleos-full-screen-context.png" loading="lazy" alt="왼쪽은 정차·P 상태의 Pleos 3D 차량, 오른쪽은 주행 시연 속도를 표시한 Drive Soundtrack 앱"><p>한 화면을 녹화한 뒤 오른쪽 앱 부분을 잘라 본편에 사용했습니다. 왼쪽 차량 표시는 앱 내부 시연 속도와 연동되지 않습니다.</p></details>
     </section>
 
+    <section class="section" id="cloud">
+      <div class="section-head"><div><p class="eyebrow">Cloud · Scores and instruments</p><h2>밖에서 만든 악보와 악기를, 차에서는 받아서 연주합니다</h2></div><p class="muted">악보와 악기는 차 밖의 웹 제작 플랫폼에서 만들어 클라우드에 올립니다. 차 앱은 정차 중 ‘받기’ 탭에서 내려받기만 하고, 받은 악보는 앨범의 ‘받은 곡’에, 받은 악기는 악단에 들어갑니다.</p></div>
+      <div class="video-shell"><video controls playsinline preload="metadata" poster="cloud-demo-poster.png" aria-label="받기 탭에서 악보 「라르고」와 트롬본·핸드팬을 내려받고, 악단에 넣어 0에서 118 km/h까지 주행하며 연주하는 약 100초 영상"><source src="cloud-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
+      <p class="recording-note">이 영상은 에뮬레이터 녹화가 아닙니다. 화면은 앱의 Compose UI를 JVM(Robolectric)에서 그린 것이고, 소리는 같은 속도 곡선으로 앱 오디오 엔진이 만든 실제 출력입니다. 앞부분(받기·앨범·악단)은 소리가 없습니다. 예시 클라우드는 이 페이지와 같은 GitHub Pages의 <a href="cloud/catalog.json">cloud/catalog.json</a>입니다: 드보르자크 「라르고」 악보, VSCO 2 CE 녹음을 올려 만든 트롬본, 음색을 디자인한 핸드팬.</p>
+    </section>
+
     <section class="section" id="community">
-      <div class="section-head"><div><p class="eyebrow">Roadmap</p><h2>주행이 곡을 고르고, 함께 만드는 음악으로</h2></div><p class="muted">다음 단계는 주행이 음악을 더 깊이 지휘하고, 운전자와 작곡가가 곡과 악단을 나누는 것입니다.</p></div>
+      <div class="section-head"><div><p class="eyebrow">Roadmap</p><h2>주행이 곡을 고르고, 함께 만드는 음악으로</h2></div><p class="muted">차에서 받아 쓰는 쪽은 준비됐습니다. 다음은 주행이 음악을 더 깊이 지휘하고, 누구나 악보와 악기를 만들어 나누는 제작 플랫폼입니다.</p></div>
       <div class="instrument-grid">
         <div class="instrument"><span class="number">NEXT · 지휘</span><h3>주행이 곡을 고르고 이끕니다</h3><p>고속도로·도심·야간 같은 상황에 맞는 곡을 자동으로 고르고, 가속·정체의 흐름이 곡의 절정과 잦아듦을 이끕니다.</p></div>
-        <div class="instrument"><span class="number">NEXT · 공유</span><h3>악단과 악보 공유</h3><p>내가 꾸린 악단 편성을 나누고, 작곡가가 자기 곡을 악보(MIDI)로 올리면 내 주행에 맞춰 연주됩니다. 본인 창작물과 저작권이 끝난 곡만 받습니다.</p></div>
-        <div class="instrument"><span class="number">MODEL</span><h3>무료 + 곡·악기 팩</h3><p>기본 곡과 악기는 무료, 프리미엄 곡·악기 팩과 시즌·브랜드 협업, 작곡가 수익 배분. 업로드와 탐색은 정차 중이나 휴대폰에서만 합니다.</p></div>
+        <div class="instrument"><span class="number">NEXT · 제작 플랫폼</span><h3>악보·악기를 웹에서 만들고 공유</h3><p>음표를 찍거나 MIDI를 가져와 악보를 쓰고, 녹음을 올리거나 음색을 디자인해 악기를 만들어 계정으로 공유합니다. 본인 창작물과 저작권이 끝난 곡만 받습니다.</p></div>
+        <div class="instrument"><span class="number">MODEL</span><h3>무료 + 곡·악기 팩</h3><p>기본 곡과 악기는 무료, 프리미엄 곡·악기 팩과 시즌·브랜드 협업, 작곡가·악기 제작자 수익 배분. 제작과 업로드는 웹에서만, 차에서는 정차 중 내려받기만 합니다.</p></div>
       </div>
     </section>
 
     <section class="download" id="download"><div><p class="eyebrow">Try the app</p><h2>차 안의 움직임을 음악으로</h2><p>Android Automotive용 Kotlin 앱입니다. 저장소에서 구현과 검증 자료를 확인할 수 있습니다.</p></div><div class="actions"><a class="button primary" href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/apk/%ED%99%8D%EC%9B%90%ED%83%9D_DriveSoundtrack_release.apk">APK 다운로드</a><a class="button" href="https://github.com/hoyadong1/DriveSoundtrack">GitHub 저장소</a></div></section>
   </main>
-  <footer class="wrap">© Drive Soundtrack · 모든 시연은 Pleos Connect 에뮬레이터에서 녹화했습니다. 주행·핸들 영상은 Virtual Console 입력을, 정차 시연은 앱 내부 시연 입력을 사용합니다. 실제 차량 적용과 주행 중 UX는 별도 검증이 필요합니다.</footer>
+  <footer class="wrap">© Drive Soundtrack · 주행·핸들·정차 시연은 Pleos Connect 에뮬레이터에서 녹화했습니다. 주행·핸들 영상은 Virtual Console 입력을, 정차 시연은 앱 내부 시연 입력을 사용합니다. 클라우드 받기 영상은 JVM에서 그린 앱 화면과 앱 오디오 엔진 출력으로 만들었습니다. 실제 차량 적용과 주행 중 UX는 별도 검증이 필요합니다.</footer>
   <script>
     const video = document.getElementById('demoVideo');
     document.querySelectorAll('[data-seek]').forEach(button => button.addEventListener('click', () => {
