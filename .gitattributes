@@ -1,0 +1,3 @@
+# Cloud packs are served byte for byte; catalog.json lists their exact sizes.
+docs/cloud/** -text
+*.pcm binary
