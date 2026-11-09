@@ -92,13 +92,13 @@
     </div>
 
     <section id="demo">
-      <div class="section-head"><div><p class="eyebrow">D gear · Real vehicle speed signal</p><h2>차가 달리면, 악기가 하나씩 합류합니다</h2></div><p class="muted">Pleos Virtual Console의 가속·브레이크 페달로 같은 속도 곡선을 주행했습니다. 앱은 시나리오 없이 차량 속도 신호를 받아 악기를 더하고 뺍니다.</p></div>
-      <div class="video-shell"><video controls playsinline preload="metadata" poster="console-d-drive-app-poster.png" aria-label="D단 주행 중 Pleos 화면의 앱과 Virtual Console을 나란히 녹화한 약 90초 영상"><source src="console-d-drive-app.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
-      <p class="recording-note">왼쪽은 Pleos 화면(계기판 속도와 앱), 오른쪽은 Virtual Console입니다. 소리는 같은 재생 중 앱이 AudioTrack에 전달한 PCM입니다. 에뮬레이터가 오디오를 실시간보다 느리게 만들어 화면을 소리에 맞췄기 때문에 화면이 실제보다 약 1.6배 빠르게 흐릅니다. 실제 도로 주행은 아닙니다.</p>
+      <div class="section-head"><div><p class="eyebrow">D gear · Real vehicle speed signal</p><h2>차가 달리면, 악기가 하나씩 합류합니다</h2></div><p class="muted">Pleos Virtual Console의 가속·브레이크 페달로 0→130→0 km/h를 주행했습니다. 앱은 시나리오 없이 차량 속도 신호를 받아 베토벤 「환희의 송가」에 악기를 더하고 뺍니다.</p></div>
+      <div class="video-shell"><video controls playsinline preload="metadata" poster="console-d-drive-app-poster.png" aria-label="D단 주행 중 Pleos 화면의 앱과 Virtual Console을 나란히 녹화한 약 105초 영상, 곡은 환희의 송가"><source src="console-d-drive-app.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
+      <p class="recording-note">왼쪽은 Pleos 화면(계기판 속도와 앱), 오른쪽은 Virtual Console입니다. 소리는 같은 재생 중 앱이 AudioTrack에 전달한 PCM이고, 화면은 에뮬레이터 밖에서 30fps로 녹화해 소리 시각에 맞췄습니다. 0.12 화면입니다. 실제 도로 주행은 아닙니다.</p>
     </section>
 
     <section class="section" id="instruments">
-      <div class="section-head"><div><p class="eyebrow">The arrangement</p><h2>속도가 악기를 더합니다</h2></div><p class="muted">여섯 단계는 마디 시작에서 자연스럽게 들어오고 감속하면 반대 순서로 빠집니다. 화면의 속도 사다리가 어느 속도에서 어떤 악기가 들어오는지 보여 줍니다.</p></div>
+      <div class="section-head"><div><p class="eyebrow">The arrangement</p><h2>속도가 악기를 더합니다</h2></div><p class="muted">여섯 단계는 화면에 보이는 속도에 맞춰 박자 단위로 들어오고 감속하면 반대 순서로 빠집니다. 화면의 속도 사다리가 어느 속도에서 어떤 악기가 들어오는지 보여 줍니다.</p></div>
       <div class="instrument-grid">
         <div class="instrument"><span class="number">01 · ALWAYS ON</span><h3>베이스</h3><p>곡의 바탕. 첼로·콘트라베이스·바순·피아노·오르간 등.</p></div>
         <div class="instrument"><span class="number">02 · FROM 18 KM/H</span><h3>리듬</h3><p>주행이 시작되면 박동을 더합니다. 오케스트라·라틴 타악기, 팀파니 등.</p></div>
@@ -139,7 +139,7 @@
     <section class="section" id="cloud">
       <div class="section-head"><div><p class="eyebrow">Cloud · Scores and instruments</p><h2>밖에서 만든 악보와 악기를, 차에서는 받아서 연주합니다</h2></div><p class="muted">악보와 악기는 차 밖의 웹 제작 플랫폼에서 만들어 클라우드에 올립니다. 차 앱은 정차 중 ‘받기’ 탭에서 내려받기만 하고, 받은 악보는 앨범의 ‘받은 곡’에, 받은 악기는 악단에 들어갑니다.</p></div>
       <div class="video-shell"><video controls playsinline preload="metadata" poster="cloud-demo-poster.png" aria-label="받기 탭에서 악보 「라르고」와 트롬본·핸드팬을 내려받고, 악단에 넣어 0에서 118 km/h까지 주행하며 연주하는 약 100초 영상"><source src="cloud-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
-      <p class="recording-note">이 영상은 에뮬레이터 녹화가 아닙니다. 화면은 앱의 Compose UI를 JVM(Robolectric)에서 그린 것이고, 소리는 같은 속도 곡선으로 앱 오디오 엔진이 만든 실제 출력입니다. 앞부분(받기·앨범·악단)은 소리가 없습니다. 예시 클라우드는 이 페이지와 같은 GitHub Pages의 <a href="cloud/catalog.json">cloud/catalog.json</a>입니다: 드보르자크 「라르고」 악보, VSCO 2 CE 녹음을 올려 만든 트롬본, 음색을 디자인한 핸드팬.</p>
+      <p class="recording-note">Pleos Connect 에뮬레이터에서 실제로 내려받고 고른 과정을 녹화했습니다. 곡은 받은 악보 「라르고」, 선율은 받은 트롬본, 분산음은 받은 핸드팬이며 뒷부분은 앱의 시연 주행(0→130→0 km/h)입니다. 소리는 같은 재생 중 앱이 출력한 PCM이고, 앞부분(받기·악단·앨범)은 소리가 없습니다. 예시 클라우드는 이 페이지와 같은 GitHub Pages의 <a href="cloud/catalog.json">cloud/catalog.json</a>입니다: 드보르자크 「라르고」 악보, VSCO 2 CE 녹음을 올려 만든 트롬본, 음색을 디자인한 핸드팬.</p>
     </section>
 
     <section class="section" id="community">
@@ -153,7 +153,7 @@
 
     <section class="download" id="download"><div><p class="eyebrow">Try the app</p><h2>차 안의 움직임을 음악으로</h2><p>Android Automotive용 Kotlin 앱입니다. 저장소에서 구현과 검증 자료를 확인할 수 있습니다.</p></div><div class="actions"><a class="button primary" href="https://github.com/hoyadong1/DriveSoundtrack/blob/master/apk/%ED%99%8D%EC%9B%90%ED%83%9D_DriveSoundtrack_release.apk">APK 다운로드</a><a class="button" href="https://github.com/hoyadong1/DriveSoundtrack">GitHub 저장소</a></div></section>
   </main>
-  <footer class="wrap">© Drive Soundtrack · 주행·핸들·정차 시연은 Pleos Connect 에뮬레이터에서 녹화했습니다. 주행·핸들 영상은 Virtual Console 입력을, 정차 시연은 앱 내부 시연 입력을 사용합니다. 클라우드 받기 영상은 JVM에서 그린 앱 화면과 앱 오디오 엔진 출력으로 만들었습니다. 실제 차량 적용과 주행 중 UX는 별도 검증이 필요합니다.</footer>
+  <footer class="wrap">© Drive Soundtrack · 주행·핸들·정차 시연은 Pleos Connect 에뮬레이터에서 녹화했습니다. 주행·핸들 영상은 Virtual Console 입력을, 정차 시연은 앱 내부 시연 입력을 사용합니다. 클라우드 받기 영상은 같은 에뮬레이터에서 실제로 내려받아 녹화했고, 시연 주행 부분은 앱 내부 시연 입력입니다. 실제 차량 적용과 주행 중 UX는 별도 검증이 필요합니다.</footer>
   <script>
     const video = document.getElementById('demoVideo');
     document.querySelectorAll('[data-seek]').forEach(button => button.addEventListener('click', () => {
