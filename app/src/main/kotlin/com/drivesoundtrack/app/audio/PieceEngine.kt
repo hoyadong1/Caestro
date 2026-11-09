@@ -139,7 +139,8 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
 
     private companion object {
         /** Base level per stage before each instrument's own trim. */
-        val STAGE_GAIN = doubleArrayOf(0.085, 1.0, 0.036, 0.054, 0.066, 0.026)
+        // The high stage sat under the band on the emulator ("barely heard"): +3 dB, still the softest stage.
+        val STAGE_GAIN = doubleArrayOf(0.085, 1.0, 0.036, 0.054, 0.066, 0.036)
         val SEND = doubleArrayOf(0.0, 0.0, 0.5, 0.7, 0.6, 0.6)
         val FADE = Dsp.decay(0.06)
     }

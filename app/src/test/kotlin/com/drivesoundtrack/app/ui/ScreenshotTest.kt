@@ -87,6 +87,11 @@ class ScreenshotTest {
         shoot("4-band-rhythm")
         compose.onNodeWithContentDescription("5단계", substring = true).performSemanticsAction(SemanticsActions.OnClick)
         shoot("5-band-melody")
+        tap("악기 카드 작게"); tap("악기 카드 작게")
+        shoot("5b-band-melody-5-columns")
+        tap("악기 카드 크게"); tap("악기 카드 크게"); tap("악기 카드 크게")
+        shoot("5c-band-melody-2-columns")
+        tap("악기 카드 작게")
         // Driving at 47 km/h: the rail locks and only Now playing is shown.
         status = parked.copy(kmh = 47.0, bpm = 68, layers = 3, layerMask = 0b111)
         shoot("6-now-playing-driving")

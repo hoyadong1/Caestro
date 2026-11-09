@@ -7,8 +7,9 @@ import kotlin.math.min
 /** Bounded, smoothed musical controls. Unknown vehicle values stay unknown in the UI. */
 class SoundModel {
     companion object {
+        /** Stages join at the speeds the screen shows and leave 3 km/h below, just enough not to flutter at a steady speed. */
         private val LAYER_ENTER = doubleArrayOf(18.0, 38.0, 58.0, 82.0, 105.0)
-        private val LAYER_LEAVE = doubleArrayOf(12.0, 31.0, 50.0, 73.0, 94.0)
+        private val LAYER_LEAVE = doubleArrayOf(15.0, 35.0, 55.0, 79.0, 102.0)
         private const val STEERING_DEADZONE = 5.0
         private const val STEERING_FULL = 90.0
     }
@@ -88,10 +89,11 @@ class SoundModel {
             1 -> if (smoothedKmh >= 52.0) 2 else if (smoothedKmh < 15.0) 0 else 1
             else -> if (smoothedKmh < 45.0) 1 else 2
         }
+        // Stages follow the speed the screen shows (not the smoothed one), so the ladder and the music agree.
         var nextMask = 1
         for (i in LAYER_ENTER.indices) {
             val bit = 1 shl (i + 1)
-            if (smoothedKmh >= (if (layerMask and bit != 0) LAYER_LEAVE[i] else LAYER_ENTER[i])) nextMask = nextMask or bit
+            if (targetKmh >= (if (layerMask and bit != 0) LAYER_LEAVE[i] else LAYER_ENTER[i])) nextMask = nextMask or bit
         }
         layerMask = nextMask
     }

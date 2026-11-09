@@ -190,11 +190,12 @@ class SoundRenderer(private val model: SoundModel) {
             beat += bpm / (60.0 * RATE)
             val step = floor(beat * 4.0).toLong()
             if (step != lastStep) {
-                if (step % stepsPerBar == 0L) {
+                // Stages come and go on the beat (not only at the bar), so they follow the speed within about a second.
+                if (step % 4 == 0L) {
                     for (layer in 1..5) layerTargets[layer] = if (layerMask and (1 shl layer) != 0 || layer == audition) 1.0 else 0.0
                     model.setAudibleLayerMask(layerMask)
-                    barsInTrack++
                 }
+                if (step % stepsPerBar == 0L) barsInTrack++
                 // On the last beat of a track's final bar, fade into the album's next track.
                 val tracks = playlist
                 if (tracks.size > 1 && !fadingOut && requestedPreset == activePreset &&
@@ -207,7 +208,7 @@ class SoundRenderer(private val model: SoundModel) {
                 lastStep = step
             }
             if (audition in 1..5) layerTargets[audition] = 1.0
-            val layerStep = 1.0 / (RATE * 1.15)
+            val layerStep = 1.0 / (RATE * 0.7)
             for (layer in 1..5) layerMixes[layer] +=
                 (layerTargets[layer] - layerMixes[layer]).coerceIn(-layerStep, layerStep)
 

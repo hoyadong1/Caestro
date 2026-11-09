@@ -17,7 +17,41 @@ import kotlin.math.ln
 internal object SampleBank {
     const val RATE = 24000.0
 
-    class Note(val root: Double, val name: String, val offset: Int, val length: Int, val loopStart: Int, val loopEnd: Int)
+    class Note(val root: Double, val name: String, val offset: Int, val length: Int, val loopStart: Int, val loopEnd: Int) {
+        /** Where playback starts: see [speakingStart]. Found once, on first use. */
+        @Volatile internal var speak = -1
+    }
+
+    /**
+     * Bowed and blown recordings take a while to sound: half their level only after 0.1 s (reeds) to
+     * 0.5 s (string sections), which put them behind the beat next to percussion and harp. Playback
+     * starts 20 ms before the note reaches half its level, so every instrument speaks on the beat.
+     * The voice's own short fade-in keeps the cut from clicking.
+     */
+    fun speakingStart(note: Note, data: ShortArray): Int {
+        if (note.speak >= 0) return note.speak
+        val frame = 240 // 10 ms
+        val scan = minOf(note.length, RATE.toInt()) / frame
+        val env = DoubleArray(scan) { k ->
+            var sum = 0.0
+            val from = note.offset + k * frame
+            for (i in from until from + frame) { val v = data[i].toDouble(); sum += v * v }
+            sum / frame
+        }
+        // A held note is measured against its sustained (looped) level: string sections keep swelling
+        // and trembling, so their first-second peak says little about when they are "there".
+        val steady = if (note.loopEnd > note.loopStart && note.loopStart > note.offset) {
+            var sum = 0.0
+            for (i in note.loopStart until note.loopEnd) { val v = data[i].toDouble(); sum += v * v }
+            sum / (note.loopEnd - note.loopStart)
+        } else env.maxOrNull() ?: 0.0
+        val half = env.indexOfFirst { it >= steady * 0.25 }.let { if (it < 0) 0 else it } // mean square: 0.25 is half the level
+        var start = note.offset + maxOf(0, half * frame - 480)
+        // Some soft bowed notes are still swelling when their loop begins: then playback starts just before the loop.
+        start = if (note.loopEnd > 0) minOf(start, note.loopStart - 240) else minOf(start, note.offset + 1440)
+        note.speak = maxOf(note.offset, start)
+        return note.speak
+    }
 
     class Set(val id: String, val data: ShortArray, val notes: List<Note>) {
         private val byName = notes.associateBy { it.name }
@@ -72,7 +106,7 @@ internal class SamplePlayer {
     fun start(set: SampleBank.Set?, note: SampleBank.Note?) {
         this.data = set?.data
         this.note = note
-        position = (note?.offset ?: 0).toDouble()
+        position = if (note != null && set != null) SampleBank.speakingStart(note, set.data).toDouble() else 0.0
     }
 
     fun stop() { note = null }

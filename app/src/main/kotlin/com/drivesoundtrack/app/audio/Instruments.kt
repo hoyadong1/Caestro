@@ -22,7 +22,7 @@ object Instruments {
     const val HIGH = 5
 
     /** Stage names in speed order (stage 0 always plays). */
-    val stageNames = listOf("베이스", "리듬", "화음", "분산음", "선율", "고음·대선율")
+    val stageNames = listOf("베이스", "리듬", "화음", "분산음", "선율", "고음")
 
     class Kind internal constructor(
         val id: String,
@@ -74,8 +74,9 @@ object Instruments {
         real("bassoon", "바순", sustained = true, voices = 2, min = 34, max = 72, gain = 2.42, attack = 0.05, release = 0.25),
         real("piano", "피아노", sustained = false, voices = 6, min = 29, max = 105, gain = 3.12, attack = 0.002, release = 0.45),
         real("organ", "파이프 오르간", sustained = true, voices = 5, min = 36, max = 96, gain = 2.26, attack = 0.03, release = 0.25),
-        real("strings", "바이올린 합주", sustained = true, voices = 5, min = 55, max = 88, gain = 2.89, attack = 0.3, release = 0.6),
-        real("viola", "비올라 합주", sustained = true, voices = 4, min = 48, max = 86, gain = 2.38, attack = 0.25, release = 0.5),
+        // Sections fade in over 0.08 s (was 0.3 / 0.25 s): together with the slow bow they came in behind the beat.
+        real("strings", "바이올린 합주", sustained = true, voices = 5, min = 55, max = 88, gain = 2.89, attack = 0.08, release = 0.6),
+        real("viola", "비올라 합주", sustained = true, voices = 4, min = 48, max = 86, gain = 2.38, attack = 0.08, release = 0.5),
         real("horn", "호른", sustained = true, voices = 4, min = 36, max = 72, gain = 2.12, attack = 0.08, release = 0.35),
         real("harp", "하프", sustained = false, voices = 6, min = 35, max = 96, gain = 1.76, attack = 0.002, release = 1.2),
         real("marimba", "마림바", sustained = false, voices = 4, min = 41, max = 96, gain = 2.2, attack = 0.002, release = 0.4),

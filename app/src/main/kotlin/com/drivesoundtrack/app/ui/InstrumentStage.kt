@@ -152,14 +152,15 @@ private class StageScene(
         val x = r.left; val y = r.top; val w = r.width; val h = r.height
         // A classical track draws the instrument chosen for each stage in its own look.
         if (s.instruments.size == 6 && !s.bassSolo) { instrumentTile(index, x, y, w, h); return }
-        fun name(default: String, english: String) = default
+        val title = if (index == 0 && s.bassSolo) "베이스 솔로" else STAGE_NAMES[index]
+        cell(x, y, w, h, title, STAGE_HINT[index])
         when (index) {
-            0 -> { cell(x, y, w, h, if (s.bassSolo) "BASS SOLO / 베이스" else name("BASS / 베이스", "BASS"), "속도 → 저음 음색"); bass(x, y, w, h) }
-            1 -> { cell(x, y, w, h, name("DRUMS / 드럼", "RHYTHM"), "18 km/h · 박동"); drums(x, y, w, h) }
-            2 -> { cell(x, y, w, h, name("CHORDS / 화음", "CHORDS"), "38 km/h · 화성"); chords(x, y, w, h) }
-            3 -> { cell(x, y, w, h, name("ARP / 아르페지오", "ARP"), "58 km/h · 분산 음"); arpeggio(x, y, w, h) }
-            4 -> { cell(x, y, w, h, name("MELODY / 선율", "MELODY"), "82 km/h · 조향"); melody(x, y, w, h) }
-            else -> { cell(x, y, w, h, name("SHIMMER / 고역", "HIGH"), "105 km/h · 반짝임"); shimmer(x, y, w, h) }
+            0 -> bass(x, y, w, h)
+            1 -> drums(x, y, w, h)
+            2 -> chords(x, y, w, h)
+            3 -> arpeggio(x, y, w, h)
+            4 -> melody(x, y, w, h)
+            else -> shimmer(x, y, w, h)
         }
     }
 
@@ -177,8 +178,8 @@ private class StageScene(
         d.drawRoundRect(color?.a(170) ?: Color(0xff345264), Offset(x, y), Size(w, h), corner, style = Stroke(dp(if (color != null) 1.6f else 1f)))
         if (color != null) d.drawRoundRect(color, Offset(x + dp(12f), y + dp(10f)), Size(dp(4f), dp(20f)), CornerRadius(dp(2f)))
         val indent = if (color != null) dp(22f) else dp(12f)
-        label(name, x + indent, y + dp(27f), 18f, Color.White, bold = true)
-        label(mapping, x + indent, y + dp(49f), 14f, Color(0xffb9d7dd), bold = true)
+        label(name, x + indent, y + dp(31f), 22f, Color.White, bold = true)
+        label(mapping, x + indent, y + dp(57f), 18f, Color(0xffb9d7dd))
     }
 
     private fun bass(x: Float, y: Float, w: Float, h: Float) {
@@ -283,8 +284,8 @@ private class StageScene(
         val kind = Instruments.all[s.instruments[index]]
         val look = InstrumentLooks.of(kind.id)
         val color = look.color
-        cell(x, y, w, h, "${STAGE_EN[index]} · ${kind.label}", STAGE_HINT[index], color)
-        val top = y + dp(56f)
+        cell(x, y, w, h, "${STAGE_NAMES[index]} · ${kind.label}", STAGE_HINT[index], color)
+        val top = y + dp(68f)
         val bodyH = max(dp(10f), y + h - top - dp(10f))
         look(kind.id, x, top, w, bodyH)
     }
@@ -542,8 +543,9 @@ private class StageScene(
     }
 }
 
-private val STAGE_EN = listOf("BASS", "RHYTHM", "CHORDS", "ARP", "MELODY", "HIGH")
-private val STAGE_HINT = listOf("항상 · 속도 → 저음 음색", "18 km/h~ · 박동", "38 km/h~ · 화성", "58 km/h~ · 분산음", "82 km/h~ · 조향", "105 km/h~ · 대선율")
+/** The same six names everywhere: stage tiles, the speed ladder and the band. */
+internal val STAGE_NAMES = listOf("베이스", "리듬", "화음", "분산음", "선율", "고음")
+private val STAGE_HINT = listOf("항상", "18 km/h부터", "38 km/h부터", "58 km/h부터", "82 km/h부터", "105 km/h부터")
 
 internal enum class Shape { BOWED, KEYS, ORGAN, HARP, PLUCKED, WIND, BRASS, MALLET, VOICE, GLASS, ORCHESTRA, LATIN, TIMPANI, KIT, SYNTH, REST }
 
