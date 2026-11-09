@@ -12,7 +12,7 @@
 
 1. [`apk/홍원택_DriveSoundtrack_release.apk`](apk/홍원택_DriveSoundtrack_release.apk)를 Pleos Connect 또는 Android Automotive 기기에 설치하고, 차량 속도 권한을 허용합니다.
 2. 사운드스케이프를 고르고 재생한 뒤 주행하면 속도에 따라 악기가 더해집니다.
-3. Pleos 에뮬레이터에서는 `.\demo\start-interactive.ps1`로 실행합니다. 앱의 **주행 시나리오 시작** 버튼이나 Virtual Console의 D단 주행으로 확인할 수 있습니다. → [자세히](https://github.com/hoyadong1/DriveSoundtrack/wiki/Running-on-Pleos)
+3. Pleos 에뮬레이터에서는 `.\demo\start-interactive.ps1`로 실행합니다. 앱의 **주행 시나리오 시작** 버튼이나 Virtual Console의 D단 주행으로 확인할 수 있습니다. → [자세히](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development#실행)
 
 ## 테스트 환경
 
@@ -25,18 +25,16 @@
 .\gradlew.bat :app:testDebugUnitTest    # 합성 엔진 단위 테스트
 ```
 
-release APK를 다시 빌드하려면 저장소에 없는 서명키가 필요합니다. → [빌드·테스트와 검증 범위](https://github.com/hoyadong1/DriveSoundtrack/wiki/Verification)
+release APK를 다시 빌드하려면 저장소에 없는 서명키가 필요합니다. → [빌드·테스트와 검증 범위](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development)
 
 ## 더 보기
 
 | | |
 |---|---|
-| [기능](https://github.com/hoyadong1/DriveSoundtrack/wiki/Features) | 세 사운드스케이프(Pulse·Coast·Neon), 악기 합류 속도, 신호별 연주, 안전 처리 |
-| [아키텍처](https://github.com/hoyadong1/DriveSoundtrack/wiki/Architecture) | 차량 신호 → 음악 모델 → 합성 → 화면의 구조 |
-| [폴더 구조](https://github.com/hoyadong1/DriveSoundtrack/wiki/Project-Structure) | 저장소의 폴더와 파일 설명 |
-| [작업 방식](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development-Workflow) | 개발·검증 순서, 에뮬레이터, 시연 영상 제작 |
+| [기능과 사운드 설계](https://github.com/hoyadong1/DriveSoundtrack/wiki/Features) | 세 모드, 속도별 악기, 차량 신호별 연주 방식과 수치 |
+| [아키텍처](https://github.com/hoyadong1/DriveSoundtrack/wiki/Architecture) | 구조도, 파일별 역할, 저장소 폴더 |
+| [개발과 실행](https://github.com/hoyadong1/DriveSoundtrack/wiki/Development) | 빌드·테스트, 기기·에뮬레이터 실행, 녹화, 검증 범위 |
 | [제품 근거](https://github.com/hoyadong1/DriveSoundtrack/wiki/Product-Rationale) | 파워트레인 중립 설계와 전기차 시대의 기회 |
-| [주행 음악 알고리즘](https://github.com/hoyadong1/DriveSoundtrack/wiki/Driving-Score-Algorithm) | 신호별 매핑 수치와 규칙 |
 | [버전 이력](https://github.com/hoyadong1/DriveSoundtrack/wiki/Version-History) | 0.1부터 현재까지 |
 
 시연 영상의 소리는 녹화 중 앱이 실제로 출력한 PCM이며, 모든 검증은 Pleos 에뮬레이터 기준입니다. 앱은 위치·속도 데이터를 저장하거나 전송하지 않습니다.
