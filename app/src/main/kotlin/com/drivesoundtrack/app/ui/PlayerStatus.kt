@@ -67,6 +67,8 @@ interface PlayerActions {
     fun setInstrument(stage: Int, instrument: Int, band: Boolean)
     fun resetInstruments(band: Boolean)
     fun toggleMyAlbum(index: Int)
+    /** Previous (-1) or next (1) track of the album, like the steering-wheel media buttons. */
+    fun skip(direction: Int)
     fun demoSpeed(kmh: Double)
     fun demoAccelerator(percent: Double)
     fun demoBrake(active: Boolean)

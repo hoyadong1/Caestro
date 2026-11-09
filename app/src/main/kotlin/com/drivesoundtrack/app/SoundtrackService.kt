@@ -49,6 +49,7 @@ class SoundtrackService : MediaBrowserService() {
         const val INSTRUMENT = "com.drivesoundtrack.INSTRUMENT"
         const val RESET_INSTRUMENTS = "com.drivesoundtrack.RESET_INSTRUMENTS"
         const val MY_ALBUM_TOGGLE = "com.drivesoundtrack.MY_ALBUM_TOGGLE"
+        const val SKIP = "com.drivesoundtrack.SKIP"
         private const val CHANNEL = "drive_soundtrack_playback"
         private val NAMES = Soundscapes.all.map { it.name }
     }
@@ -211,6 +212,7 @@ class SoundtrackService : MediaBrowserService() {
                 intent.getBooleanExtra("band", false))
             RESET_INSTRUMENTS -> resetInstruments(intent.getBooleanExtra("band", false))
             MY_ALBUM_TOGGLE -> toggleMyAlbum(intent.getIntExtra("preset", -1))
+            SKIP -> skip(if (intent.getIntExtra("direction", 1) < 0) -1 else 1)
             SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
             STATUS_REQUEST -> broadcastStatus()
             RECONNECT_SPEED -> {
