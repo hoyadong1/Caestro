@@ -72,7 +72,9 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
     var editing by rememberSaveable { mutableStateOf(EDIT_NONE) }
 
     MaterialTheme(colorScheme = darkColorScheme(primary = accent)) {
-      Box(Modifier.fillMaxSize()) {
+      val showEditor = canConfigure && (editing == EDIT_BAND || (editing == EDIT_TRACK && status.instruments.size == 6))
+      if (showEditor) InstrumentEditor(status, editing, accent, landscape, actions) { editing = EDIT_NONE }
+      else Box(Modifier.fillMaxSize()) {
         // Landscape (the car display) fits on one screen without scrolling: the stage and the
         // soundscape cards share the height that is left. Portrait falls back to a scrolling page.
         Column(
@@ -108,8 +110,6 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
                 }
             }
         }
-        if (canConfigure && (editing == EDIT_BAND || (editing == EDIT_TRACK && status.instruments.size == 6)))
-            InstrumentEditor(status, editing, accent, actions) { editing = EDIT_NONE }
       }
     }
 }
@@ -126,14 +126,14 @@ private fun Header(status: PlayerStatus) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Label("DRIVE / SOUNDTRACK", 23.sp, Color.White, bold = true)
-            Label("ADAPTIVE DRIVING SCORE", 11.sp, Palette.Muted, bold = true, spacing = 0.13.em)
+            Label("ADAPTIVE DRIVING SCORE", 14.sp, Palette.Muted, bold = true, spacing = 0.13.em)
         }
         val source = when {
             status.scenarioEnabled -> "●  시연 주행"
             status.carAvailable -> "●  차량 속도 신호"
             else -> "●  데모 속도 입력"
         }
-        Label(source, 12.sp, if (status.carAvailable) Palette.LiveSignal else Palette.DemoSignal, bold = true)
+        Label(source, 15.sp, if (status.carAvailable) Palette.LiveSignal else Palette.DemoSignal, bold = true)
     }
 }
 
@@ -166,12 +166,12 @@ private fun Hero(status: PlayerStatus, accent: Color, playing: Boolean, landscap
         InstrumentStage(status, accent, playing, Modifier.fillMaxSize())
         Column(Modifier.fillMaxWidth().padding(start = 26.dp, top = 22.dp, end = 26.dp)) {
             val source = scene.piece?.let { "${Albums.names[status.album]}  ·  ${it.composer}" } ?: "ORIGINAL SCORE"
-            Label("NOW PLAYING  /  $source", 11.sp, Palette.Muted, bold = true, spacing = 0.12.em)
+            Label("NOW PLAYING  /  $source", 14.sp, Palette.Muted, bold = true, spacing = 0.12.em)
             Label(scene.name.uppercase(), if (landscape) 43.sp else 36.sp, Color.White, bold = true,
                 modifier = Modifier.padding(top = 7.dp))
-            Label(scene.character.uppercase(), 13.sp, Palette.Genre, bold = true, spacing = 0.1.em)
+            Label(scene.character.uppercase(), 15.sp, Palette.Genre, bold = true, spacing = 0.1.em)
         }
-        Label(phaseText(status), 14.sp, Color.White, bold = true,
+        Label(phaseText(status), 16.sp, Color.White, bold = true,
             modifier = Modifier.align(Alignment.TopEnd).padding(top = 18.dp, end = 16.dp)
                 .background(Palette.Chip, RoundedCornerShape(9.dp)).padding(horizontal = 12.dp, vertical = 7.dp))
     }
@@ -198,10 +198,10 @@ private fun Metrics(status: PlayerStatus) {
 private fun Metric(caption: String, value: String, unit: String, modifier: Modifier) {
     Column(modifier.height(86.dp).background(Palette.Panel, RoundedCornerShape(13.dp))
         .padding(start = 14.dp, top = 10.dp, end = 8.dp)) {
-        Label(caption, 10.sp, Palette.Muted, bold = true, spacing = 0.11.em)
+        Label(caption, 13.sp, Palette.Muted, bold = true, spacing = 0.11.em)
         Row(verticalAlignment = Alignment.Bottom) {
             Label(value, 26.sp, Color.White, bold = true)
-            Label("  $unit", 10.sp, Palette.Muted, modifier = Modifier.padding(bottom = 5.dp))
+            Label("  $unit", 13.sp, Palette.Muted, modifier = Modifier.padding(bottom = 5.dp))
         }
     }
 }
@@ -214,14 +214,14 @@ private fun DemoControls(status: PlayerStatus, actions: PlayerActions) {
     var turn by rememberSaveable { mutableStateOf(false) }
     var wiper by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-        Label("시연 속도   ${status.kmh.roundToInt()} km/h", 13.sp, Palette.Muted)
+        Label("시연 속도   ${status.kmh.roundToInt()} km/h", 15.sp, Palette.Muted)
         Slider(
             value = dragging ?: status.kmh.toFloat().coerceIn(0f, 120f),
             onValueChange = { dragging = it; actions.demoSpeed(it.roundToInt().toDouble()) },
             onValueChangeFinished = { dragging = null },
             valueRange = 0f..120f,
         )
-        Label("시연 가속 페달", 12.sp, Palette.Muted)
+        Label("시연 가속 페달", 15.sp, Palette.Muted)
         Slider(value = pedal, onValueChange = { pedal = it; actions.demoAccelerator(it.roundToInt().toDouble()) },
             valueRange = 0f..100f)
         Row(Modifier.fillMaxWidth()) {
@@ -235,14 +235,14 @@ private fun DemoControls(status: PlayerStatus, actions: PlayerActions) {
 @Composable
 private fun DemoToggle(title: String, active: Boolean, modifier: Modifier, onClick: () -> Unit) {
     TextButton(onClick, modifier.height(48.dp)) {
-        Text(title, fontSize = 12.sp, color = if (active) MaterialTheme.colorScheme.primary else Color.White,
+        Text(title, fontSize = 15.sp, color = if (active) MaterialTheme.colorScheme.primary else Color.White,
             fontWeight = if (active) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
 @Composable
 private fun PermissionPrompt(actions: PlayerActions) {
-    Label("차량 속도 권한을 허용하면 차량 신호에 맞춰 재생합니다.", 12.sp, Palette.Muted)
+    Label("차량 속도 권한을 허용하면 차량 신호에 맞춰 재생합니다.", 15.sp, Palette.Muted)
     Button(actions::requestVehiclePermissions) { Text("차량 속도 연결") }
 }
 
@@ -262,13 +262,13 @@ private fun ColumnScope.Library(status: PlayerStatus, enabled: Boolean, landscap
                     .clickable { viewedChoice = i },
                 contentAlignment = Alignment.Center,
             ) {
-                Text((if (i == status.album) "♪ " else "") + name, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                Text((if (i == status.album) "♪ " else "") + name, fontSize = 16.sp, fontWeight = FontWeight.Bold,
                     color = if (selected) Palette.Background else Color.White, maxLines = 1)
             }
         }
     }
     val tracks = Albums.tracks(viewed, status.myAlbum.toIntArray()).toList()
-    if (tracks.isEmpty()) Label("오리지널·클래식 앨범에서 ＋를 눌러 곡을 담으세요.", 13.sp, Palette.Muted,
+    if (tracks.isEmpty()) Label("오리지널·클래식 앨범에서 ＋를 눌러 곡을 담으세요.", 15.sp, Palette.Muted,
         modifier = Modifier.padding(vertical = 12.dp))
     for (i in tracks) {
         val scene = Soundscapes.all[i]
@@ -290,10 +290,10 @@ private fun ColumnScope.Library(status: PlayerStatus, enabled: Boolean, landscap
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Label(scene.name, if (landscape) 21.sp else 18.sp, Color.White, bold = true)
-                Label(scene.character.uppercase(), 12.sp, Palette.Muted, spacing = 0.05.em)
+                Label(scene.character.uppercase(), 15.sp, Palette.Muted, spacing = 0.05.em)
             }
             if (selected && scene.piece != null) TextButton({ onEdit(EDIT_TRACK) }, enabled = enabled) {
-                Text(if (status.ownInstruments) "이 곡 편성 ●" else "이 곡 편성", fontSize = 14.sp, color = accent, fontWeight = FontWeight.Bold)
+                Text(if (status.ownInstruments) "이 곡 편성 ●" else "이 곡 편성", fontSize = 16.sp, color = accent, fontWeight = FontWeight.Bold)
             } else if (landscape) SoundscapeGlyph(i, accent, Modifier.width(64.dp).fillMaxHeight())
             val inMine = i in status.myAlbum
             TextButton({ actions.toggleMyAlbum(i) }, enabled = enabled, modifier = Modifier.width(52.dp)) {
@@ -302,7 +302,7 @@ private fun ColumnScope.Library(status: PlayerStatus, enabled: Boolean, landscap
             }
         }
     }
-    Label("곡은 약 3분씩 이어서 연주됩니다. ＋ 내 앨범에 담기. 주행 중에는 선택과 편성이 잠깁니다.", 12.sp, Palette.Muted,
+    Label("곡은 약 3분씩 이어서 연주됩니다. ＋ 내 앨범에 담기. 주행 중에는 선택과 편성이 잠깁니다.", 15.sp, Palette.Muted,
         modifier = Modifier.padding(top = 4.dp))
 }
 
@@ -325,68 +325,91 @@ private fun BandCard(status: PlayerStatus, enabled: Boolean, onEdit: () -> Unit)
             Label("나만의 악단", 17.sp, Color.White, bold = true)
             Label(if (status.band.size == 6) status.band.filter { Instruments.all[it].id != "none" }
                 .joinToString(" · ") { Instruments.all[it].label } else "곡마다 어울리는 추천 편성으로 연주 중",
-                12.sp, Palette.Muted)
+                15.sp, Palette.Muted)
         }
         TextButton(onEdit, enabled = enabled) {
-            Text("악단 꾸리기", fontSize = 14.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            Text("악단 꾸리기", fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 /**
- * Pick the instrument of each stage, for the band (every classical track without its own choice)
- * or for the playing track only. Changes are heard right away.
+ * The band screen: pick the instrument of each stage, for "my band" (every classical track without
+ * its own choice) or for the playing track only. Changes are heard right away, and the stage on
+ * the left shows how each chosen instrument will look on the driving screen.
  */
 @Composable
-private fun InstrumentEditor(status: PlayerStatus, mode: Int, accent: Color, actions: PlayerActions, onClose: () -> Unit) {
+private fun InstrumentEditor(status: PlayerStatus, mode: Int, accent: Color, landscape: Boolean, actions: PlayerActions, onClose: () -> Unit) {
     val scene = Soundscapes.all[status.preset]
     val band = mode == EDIT_BAND
     val chosenIds = if (band) status.band.takeIf { it.size == 6 } ?: Instruments.BAND_DEFAULT.map { Instruments.indexOf(it) }
     else status.instruments
-    Box(
-        Modifier.fillMaxSize().background(Color(0xDD050B12)).clickable(enabled = false) { },
-        contentAlignment = Alignment.Center,
+    val preview = status.copy(layerMask = 0b111111, layers = 6, bassSolo = false, instruments = chosenIds, turn = 0, steering = 0.0)
+    Column(
+        Modifier.fillMaxSize().background(Palette.Background)
+            .then(if (landscape) Modifier else Modifier.verticalScroll(rememberScrollState()))
+            .padding(start = 28.dp, top = 18.dp, end = 28.dp, bottom = 18.dp)
     ) {
-        Column(
-            Modifier.fillMaxWidth(0.94f).background(Palette.Panel, RoundedCornerShape(20.dp))
-                .border(1.dp, accent, RoundedCornerShape(20.dp)).padding(horizontal = 24.dp, vertical = 18.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Label(if (band) "나만의 악단" else "${scene.name} · 이 곡 편성", 22.sp, Color.White, bold = true)
-                    Label(when {
-                        band -> "모든 클래식 곡이 이 악단으로 연주됩니다. 따로 편성한 곡은 그대로 둡니다."
-                        status.ownInstruments -> "이 곡만 따로 편성했습니다."
-                        status.band.size == 6 -> "지금은 나만의 악단을 따릅니다. 바꾸면 이 곡만 달라집니다."
-                        else -> "지금은 이 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
-                    } + "  ● 실제 악기 녹음", 12.sp, Palette.Muted)
-                }
-                TextButton({ actions.resetInstruments(band) }, enabled = if (band) status.band.size == 6 else status.ownInstruments) {
-                    Text(if (band) "곡별 추천 편성으로" else "악단 편성 따르기", fontSize = 14.sp, color = Palette.Muted)
-                }
-                Button(onClose, shape = RoundedCornerShape(14.dp)) {
-                    Text("완료", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Palette.Background)
-                }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClose) { Text("←  돌아가기", fontSize = 17.sp, color = Color.White) }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Label(if (band) "나만의 악단" else "${scene.name} · 이 곡 편성", 28.sp, Color.White, bold = true)
+                Label(when {
+                    band -> "모든 클래식 곡이 이 악단으로 연주됩니다. 따로 편성한 곡은 그대로 둡니다."
+                    status.ownInstruments -> "이 곡만 따로 편성했습니다."
+                    status.band.size == 6 -> "지금은 나만의 악단을 따릅니다. 바꾸면 이 곡만 달라집니다."
+                    else -> "지금은 이 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
+                }, 17.sp, Palette.Muted)
             }
-            for (stage in 0..5) {
-                Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.width(150.dp)) {
-                        Label("${stage + 1}단계 · ${Instruments.stageNames[stage]}", 15.sp, Color.White, bold = true)
-                        Label(STAGE_SPEEDS[stage], 11.sp, Palette.Muted)
+            TextButton({ actions.resetInstruments(band) }, enabled = if (band) status.band.size == 6 else status.ownInstruments) {
+                Text(if (band) "곡별 추천 편성으로" else "악단 편성 따르기", fontSize = 16.sp, color = Palette.Muted)
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(onClose, shape = RoundedCornerShape(14.dp), modifier = Modifier.height(50.dp)) {
+                Text("완료", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Palette.Background)
+            }
+        }
+        val previewPane: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier) {
+                Label("주행 화면 미리보기", 17.sp, Color.White, bold = true)
+                Label("속도가 오르면 1단계부터 차례로 이 악기들이 나타납니다.", 16.sp, Palette.Muted,
+                    modifier = Modifier.padding(bottom = 8.dp))
+                InstrumentStage(preview, accent, playing = true, titleSpace = false,
+                    modifier = if (landscape) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(420.dp))
+            }
+        }
+        val choices: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier) {
+                Label("●  실제 악기 녹음      ○  신시사이저", 16.sp, Palette.Muted, modifier = Modifier.padding(bottom = 4.dp))
+                for (stage in 0..5) {
+                    Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
+                        Label("${stage + 1}단계 · ${Instruments.stageNames[stage]}", 18.sp, Color.White, bold = true)
+                        Spacer(Modifier.width(10.dp))
+                        Label(STAGE_SPEEDS[stage], 16.sp, Palette.Muted)
                     }
-                    Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (kind in Instruments.options[stage]) {
                             val chosen = chosenIds.getOrNull(stage) == kind
                             val item = Instruments.all[kind]
-                            Box(
-                                Modifier.width(126.dp).height(44.dp)
-                                    .background(if (chosen) accent else Palette.PanelSelected, RoundedCornerShape(12.dp))
-                                    .border(1.dp, if (chosen) accent else Palette.PanelStroke, RoundedCornerShape(12.dp))
-                                    .clickable { actions.setInstrument(stage, kind, band) },
-                                contentAlignment = Alignment.Center,
+                            val look = InstrumentLooks.of(item.id).color
+                            Row(
+                                Modifier.height(50.dp)
+                                    .background(if (chosen) look else Palette.PanelSelected, RoundedCornerShape(12.dp))
+                                    .border(1.dp, if (chosen) look else Palette.PanelStroke, RoundedCornerShape(12.dp))
+                                    .clickable { actions.setInstrument(stage, kind, band) }
+                                    .padding(horizontal = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text((if (item.real) "● " else "") + item.label, fontSize = 14.sp, textAlign = TextAlign.Center, maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                // Filled dot: a recording of the real instrument. Ring: a synthesiser.
+                                val dot = if (chosen) Palette.Background else look
+                                if (item.id != "none") {
+                                    Box(Modifier.size(12.dp).then(if (item.real) Modifier.background(dot, RoundedCornerShape(6.dp))
+                                        else Modifier.border(2.dp, dot, RoundedCornerShape(6.dp))))
+                                    Spacer(Modifier.width(9.dp))
+                                }
+                                Text(item.label, fontSize = 17.sp, maxLines = 1,
                                     color = if (chosen) Palette.Background else Color.White,
                                     fontWeight = if (chosen) FontWeight.Bold else FontWeight.Normal)
                             }
@@ -394,6 +417,15 @@ private fun InstrumentEditor(status: PlayerStatus, mode: Int, accent: Color, act
                     }
                 }
             }
+        }
+        if (landscape) {
+            Row(Modifier.fillMaxWidth().weight(1f).padding(top = 14.dp)) {
+                previewPane(Modifier.weight(1f).fillMaxHeight().padding(end = 22.dp))
+                choices(Modifier.weight(1.1f).fillMaxHeight().verticalScroll(rememberScrollState()))
+            }
+        } else {
+            previewPane(Modifier.fillMaxWidth().padding(top = 14.dp))
+            choices(Modifier.fillMaxWidth().padding(top = 14.dp))
         }
     }
 }

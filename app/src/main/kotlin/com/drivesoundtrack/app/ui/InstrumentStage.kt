@@ -54,7 +54,8 @@ private class StageMotion {
  * change how the instruments are drawn. The stage splits from one tile up to six as layers join.
  */
 @Composable
-fun InstrumentStage(status: PlayerStatus, accent: Color, playing: Boolean, modifier: Modifier = Modifier) {
+fun InstrumentStage(status: PlayerStatus, accent: Color, playing: Boolean, modifier: Modifier = Modifier,
+                    /** Leave room at the top for the title drawn over the stage. */ titleSpace: Boolean = true) {
     val motion = remember { StageMotion() }
     val text = rememberTextMeasurer()
     var frame by remember { mutableLongStateOf(0L) }
@@ -80,7 +81,8 @@ fun InstrumentStage(status: PlayerStatus, accent: Color, playing: Boolean, modif
             Brush.linearGradient(listOf(Color(0xff122b3b), Color(0xff09131f)), Offset.Zero, Offset(w, h)),
             cornerRadius = CornerRadius(18.dp.toPx()),
         )
-        val stage = Rect(14.dp.toPx(), (if (h > 420.dp.toPx()) 115 else 93).dp.toPx(), w - 14.dp.toPx(), h - 14.dp.toPx())
+        val top = if (!titleSpace) 14 else if (h > 420.dp.toPx()) 150 else 118
+        val stage = Rect(14.dp.toPx(), top.dp.toPx(), w - 14.dp.toPx(), h - 14.dp.toPx())
         if (stage.height <= 80.dp.toPx()) return@Canvas
         val targets = layoutFor(count, stage, 8.dp.toPx())
         if (!motion.initialized) {
@@ -147,9 +149,9 @@ private class StageScene(
 
     fun tile(index: Int, r: Rect) {
         val x = r.left; val y = r.top; val w = r.width; val h = r.height
-        // A classical track shows the instrument chosen for each stage.
-        fun name(default: String, english: String) =
-            if (s.instruments.size == 6) "$english / ${Instruments.all[s.instruments[index]].label}" else default
+        // A classical track draws the instrument chosen for each stage in its own look.
+        if (s.instruments.size == 6 && !s.bassSolo) { instrumentTile(index, x, y, w, h); return }
+        fun name(default: String, english: String) = default
         when (index) {
             0 -> { cell(x, y, w, h, if (s.bassSolo) "BASS SOLO / 베이스" else name("BASS / 베이스", "BASS"), "속도 → 저음 음색"); bass(x, y, w, h) }
             1 -> { cell(x, y, w, h, name("DRUMS / 드럼", "RHYTHM"), "18 km/h · 박동"); drums(x, y, w, h) }
@@ -168,12 +170,14 @@ private class StageScene(
         d.drawText(layout, topLeft = Offset(x, baseline - layout.firstBaseline))
     }
 
-    private fun cell(x: Float, y: Float, w: Float, h: Float, name: String, mapping: String) {
+    private fun cell(x: Float, y: Float, w: Float, h: Float, name: String, mapping: String, color: Color? = null) {
         val corner = CornerRadius(dp(12f))
         d.drawRoundRect(Color(0xff142a39), Offset(x, y), Size(w, h), corner)
-        d.drawRoundRect(Color(0xff345264), Offset(x, y), Size(w, h), corner, style = Stroke(dp(1f)))
-        label(name, x + dp(12f), y + dp(24f), 15f, Color.White, bold = true)
-        label(mapping, x + dp(12f), y + dp(44f), 12f, Color(0xffb9d7dd), bold = true)
+        d.drawRoundRect(color?.a(170) ?: Color(0xff345264), Offset(x, y), Size(w, h), corner, style = Stroke(dp(if (color != null) 1.6f else 1f)))
+        if (color != null) d.drawRoundRect(color, Offset(x + dp(12f), y + dp(10f)), Size(dp(4f), dp(20f)), CornerRadius(dp(2f)))
+        val indent = if (color != null) dp(22f) else dp(12f)
+        label(name, x + indent, y + dp(27f), 18f, Color.White, bold = true)
+        label(mapping, x + indent, y + dp(49f), 14f, Color(0xffb9d7dd), bold = true)
     }
 
     private fun bass(x: Float, y: Float, w: Float, h: Float) {
@@ -197,14 +201,14 @@ private class StageScene(
         }
     }
 
-    private fun drums(x: Float, y: Float, w: Float, h: Float) {
+    private fun drums(x: Float, y: Float, w: Float, h: Float, tint: Color = accent) {
         val cy = y + h * 0.65f
         val speedMix = (s.kmh / 130.0).coerceIn(0.0, 1.0).toFloat()
         for (i in 0..2) {
             val center = Offset(x + w * (0.25f + i * 0.25f), cy + if (i == 1) dp(4f) else 0f)
             val radius = min(w, h) * (if (i == 1) 0.20f else 0.135f)
             val alpha = if (playing) (140 + speedMix * 65 + sin(phase * (1.5 + speedMix * 2) + i) * 30).toInt() else 145
-            d.drawCircle((if (i == 1) accent else Color(0xff5f9cad)).a(alpha), radius, center)
+            d.drawCircle((if (i == 1) tint else Color(0xff5f9cad)).a(alpha), radius, center)
             d.drawCircle(Color(0xffd4f8fa), radius, center, style = Stroke(dp(1f)))
         }
         val cymbal = Stroke(dp(1.3f))
@@ -235,7 +239,7 @@ private class StageScene(
     }
 
     private fun melody(x: Float, y: Float, w: Float, h: Float) {
-        if (s.turn != 0) label(if (s.turn < 0) "◀  LEFT · 하행" else "RIGHT · 상행  ▶", x + dp(14f), y + h * 0.39f, 14f, accent, bold = true)
+        if (s.turn != 0) label(if (s.turn < 0) "◀  LEFT · 하행" else "RIGHT · 상행  ▶", x + dp(14f), y + h * 0.39f, 16f, accent, bold = true)
         for (line in 0..2) {
             val path = Path()
             val baseY = y + h * (0.51f + line * 0.12f)
@@ -270,4 +274,294 @@ private class StageScene(
                 Offset(center.x + (cos(angle) * radius).toFloat(), center.y + (sin(angle) * radius).toFloat()))
         }
     }
+
+    // ------------------------------------------------------------------ one look per instrument
+
+    /** A classical track's tile: the chosen instrument drawn in its own shape and color. */
+    private fun instrumentTile(index: Int, x: Float, y: Float, w: Float, h: Float) {
+        val kind = Instruments.all[s.instruments[index]]
+        val look = InstrumentLooks.of(kind.id)
+        val color = look.color
+        cell(x, y, w, h, "${STAGE_EN[index]} · ${kind.label}", STAGE_HINT[index], color)
+        val top = y + dp(56f)
+        val bodyH = max(dp(10f), y + h - top - dp(10f))
+        when (look.shape) {
+            Shape.BOWED -> bowed(x, top, w, bodyH, color, low = kind.id == "cello" || kind.id == "pizz",
+                bows = when (kind.id) { "strings", "synthstrings" -> 3; "viola" -> 2; "pizz" -> 0; else -> 1 })
+            Shape.KEYS -> keys(x, top, w, bodyH, color)
+            Shape.ORGAN -> organ(x, top, w, bodyH, color)
+            Shape.HARP -> harp(x, top, w, bodyH, color)
+            Shape.PLUCKED -> plucked(x, top, w, bodyH, color)
+            Shape.WIND -> wind(x, top, w, bodyH, color, kind.id == "bassoon")
+            Shape.BRASS -> brass(x, top, w, bodyH, color)
+            Shape.MALLET -> mallet(x, top, w, bodyH, color)
+            Shape.VOICE -> voice(x, top, w, bodyH, color)
+            Shape.GLASS -> glass(x, top, w, bodyH, color)
+            Shape.ORCHESTRA -> orchestraPerc(x, top, w, bodyH, color)
+            Shape.LATIN -> latin(x, top, w, bodyH, color)
+            Shape.TIMPANI -> timpani(x, top, w, bodyH, color)
+            Shape.KIT -> drums(x, y, w, h, color)
+            Shape.SYNTH -> synth(x, top, w, bodyH, color)
+            Shape.REST -> label("쉬는 중", x + dp(14f), top + bodyH * 0.5f, 16f, Color(0xff9fb4c2))
+        }
+    }
+
+    private fun pulse(speed: Double = 1.0, offset: Double = 0.0) = if (playing) (0.5 + 0.5 * sin(phase * speed + offset)).toFloat() else 0.5f
+
+    /** Strings with a bow sweeping across them; the strings shiver while the bow moves. */
+    /** [bows]: 1 for a solo player, several for a section, 0 for pizzicato (the strings are plucked). */
+    private fun bowed(x: Float, y: Float, w: Float, h: Float, c: Color, low: Boolean, bows: Int) {
+        val strings = 4
+        val left = x + w * 0.10f; val right = x + w * 0.90f
+        for (i in 0 until strings) {
+            val yy = y + h * (0.22f + i * 0.17f)
+            val path = Path().apply {
+                moveTo(left, yy)
+                for (j in 1..30) {
+                    val xx = left + (right - left) * j / 30f
+                    lineTo(xx, yy + (sin(j * 1.9 + phase * 3.0 + i) * dp(if (low) 2.4f else 1.4f) * pulse(0.7, i.toDouble())).toFloat())
+                }
+            }
+            d.drawPath(path, if (i == 1) c else c.a(150), style = Stroke(dp(if (low) 2.4f - i * 0.3f else 1.6f - i * 0.2f)))
+        }
+        for (b in 0 until bows) {
+            val spread = if (bows == 1) 0f else (b - (bows - 1) / 2f) * 0.22f
+            val bowX = x + w * (0.30f + spread + 0.30f * pulse(0.35, b * 1.7))
+            val tilt = w * (if (bows == 1) 0.12f else 0.07f)
+            d.drawLine(Color(0xffe8dcc4), Offset(bowX - tilt, y + h * 0.08f), Offset(bowX + tilt, y + h * 0.82f), dp(if (bows == 1) 3f else 2f))
+            d.drawLine(c.a(220), Offset(bowX - tilt * 0.8f, y + h * 0.10f), Offset(bowX + tilt * 1.2f, y + h * 0.80f), dp(1.2f))
+        }
+        if (bows == 0) {
+            // Pizzicato: a finger plucks a string, which rings in a bright arc.
+            val pluck = if (playing) ((phase * 0.8).toInt()) % 4 else 1
+            val yy = y + h * (0.22f + pluck * 0.17f)
+            d.drawCircle(c, dp(7f) + dp(4f) * pulse(3.0), Offset(x + w * 0.62f, yy), style = Stroke(dp(2f)))
+        }
+    }
+
+    /** A keyboard whose keys light up one after another. */
+    private fun keys(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val n = 10
+        val left = x + dp(14f); val kw = (w - dp(28f)) / n
+        val ky = y + h * 0.25f; val kh = h * 0.65f
+        val lit = if (playing) ((phase * 0.9).toInt()) % n else -1
+        for (i in 0 until n) {
+            d.drawRoundRect(if (i == lit || i == (lit + 4) % n) c else Color(0xffe4ecee),
+                Offset(left + i * kw + dp(1f), ky), Size(kw - dp(2f), kh), CornerRadius(dp(3f)))
+        }
+        for (i in 0 until n - 1) if (i % 7 != 2 && i % 7 != 6)
+            d.drawRoundRect(Color(0xff0d1a24), Offset(left + (i + 0.68f) * kw, ky), Size(kw * 0.64f, kh * 0.58f), CornerRadius(dp(2f)))
+    }
+
+    /** Organ pipes that glow with the held chord. */
+    private fun organ(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val n = 9
+        val pw = (w - dp(28f)) / n
+        for (i in 0 until n) {
+            val tall = h * (0.45f + 0.5f * (1f - abs(i - n / 2) / (n / 2f)))
+            val glow = pulse(0.25, i * 0.6)
+            d.drawRoundRect(c.a((110 + glow * 130).toInt()), Offset(x + dp(14f) + i * pw + dp(3f), y + h - tall),
+                Size(pw - dp(6f), tall), CornerRadius(dp(4f)))
+            d.drawRect(Color(0xff0d1a24), Offset(x + dp(14f) + i * pw + pw * 0.3f, y + h - tall * 0.25f), Size(pw * 0.4f, dp(3f)))
+        }
+    }
+
+    /** A harp frame; its strings ring one by one. */
+    private fun harp(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val n = 11
+        val left = x + w * 0.16f; val right = x + w * 0.86f
+        val frame = Path().apply {
+            moveTo(left, y + h * 0.95f); lineTo(left, y + h * 0.05f)
+            quadraticTo(x + w * 0.55f, y - h * 0.05f, right, y + h * 0.45f)
+        }
+        d.drawPath(frame, Color(0xffd9b779), style = Stroke(dp(3f)))
+        val ringing = if (playing) ((phase * 1.4).toInt()) % n else -1
+        for (i in 0 until n) {
+            val xx = left + (right - left) * (i + 0.5f) / n
+            val topY = y + h * (0.06f + 0.40f * (i + 0.5f) / n)
+            val wobble = if (i == ringing) dp(3f) * sin(phase * 9).toFloat() else 0f
+            d.drawLine(if (i == ringing) c else c.a(140), Offset(xx, topY), Offset(xx + wobble, y + h * 0.95f), dp(if (i == ringing) 2f else 1.2f))
+        }
+    }
+
+    /** Plucked strings or tines (pizzicato-like synths, kalimba): short lines that snap. */
+    private fun plucked(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val n = 7
+        for (i in 0 until n) {
+            val xx = x + w * (0.14f + i * 0.12f)
+            val len = h * (0.85f - abs(i - 3) * 0.12f)
+            val snap = pulse(1.6, i * 0.9)
+            d.drawRoundRect(c.a((120 + snap * 135).toInt()), Offset(xx, y + h - len), Size(dp(6f), len), CornerRadius(dp(3f)))
+        }
+    }
+
+    /** A woodwind: a body with tone holes and breath flowing out of its end. */
+    private fun wind(x: Float, y: Float, w: Float, h: Float, c: Color, dark: Boolean) {
+        val cy = y + h * 0.42f
+        val body = if (dark) Color(0xff8a5a3c) else Color(0xffcfd8dc)
+        d.drawRoundRect(body, Offset(x + w * 0.08f, cy - dp(6f)), Size(w * 0.58f, dp(12f)), CornerRadius(dp(6f)))
+        for (i in 0..5) d.drawCircle(Color(0xff0d1a24), dp(2.6f), Offset(x + w * (0.20f + i * 0.075f), cy))
+        for (k in 0..2) {
+            val path = Path()
+            for (j in 0..24) {
+                val t = j / 24f
+                val xx = x + w * (0.66f + t * 0.30f)
+                val yy = cy + (sin(t * 7 + phase * 1.4 + k * 1.3) * dp(4f + t * 10f)).toFloat() + (k - 1) * dp(9f) * t
+                if (j == 0) path.moveTo(xx, yy) else path.lineTo(xx, yy)
+            }
+            d.drawPath(path, c.a(220 - k * 50), style = Stroke(dp(2f - k * 0.4f)))
+        }
+    }
+
+    /** A brass bell sending out rings of sound. */
+    private fun brass(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val cy = y + h * 0.45f
+        val bell = Path().apply {
+            moveTo(x + w * 0.10f, cy - dp(4f)); lineTo(x + w * 0.42f, cy - dp(5f))
+            quadraticTo(x + w * 0.52f, cy - h * 0.10f, x + w * 0.56f, cy - h * 0.34f)
+            lineTo(x + w * 0.56f, cy + h * 0.34f)
+            quadraticTo(x + w * 0.52f, cy + h * 0.10f, x + w * 0.42f, cy + dp(5f))
+            lineTo(x + w * 0.10f, cy + dp(4f)); close()
+        }
+        d.drawPath(bell, Color(0xffe0b453))
+        for (ring in 0..2) {
+            val grow = ((phase * 0.12 + ring / 3.0) % 1.0).toFloat()
+            val r = h * (0.22f + grow * 0.45f)
+            d.drawArc(c.a((230 * (1f - grow)).toInt()), -50f, 100f, false,
+                Offset(x + w * 0.56f - r * 0.6f, cy - r), Size(r * 1.2f, r * 2f), style = Stroke(dp(2f)))
+        }
+    }
+
+    /** Mallet bars (marimba, xylophone, glockenspiel, music box) with a mallet bouncing along. */
+    private fun mallet(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val n = 8
+        val bw = (w - dp(28f)) / n
+        val hit = if (playing) ((phase * 1.2).toInt()) % n else -1
+        for (i in 0 until n) {
+            val len = h * (0.90f - i * 0.07f)
+            val top = y + (h - len) / 2
+            d.drawRoundRect(if (i == hit) c else c.a(120), Offset(x + dp(14f) + i * bw + dp(2f), top), Size(bw - dp(4f), len), CornerRadius(dp(3f)))
+        }
+        if (hit >= 0) d.drawCircle(Color.White, dp(5f), Offset(x + dp(14f) + (hit + 0.5f) * bw, y + h * 0.05f + dp(6f) * pulse(4.0)))
+    }
+
+    /** Voices: soft overlapping circles breathing together. */
+    private fun voice(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        for (i in 0..3) {
+            val r = min(w, h) * (0.20f + 0.05f * pulse(0.5, i * 1.1))
+            d.drawCircle(c.a(70), r, Offset(x + w * (0.25f + i * 0.17f), y + h * 0.5f))
+        }
+    }
+
+    /** Glass and synth pads: rings and orbiting sparks. */
+    private fun glass(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val center = Offset(x + w * 0.5f, y + h * 0.5f)
+        for (ring in 1..3) d.drawCircle(c.a(210 - ring * 45), min(w, h) * (0.10f + ring * 0.10f), center, style = Stroke(dp(1.5f)))
+        for (i in 0..7) {
+            val angle = i * PI / 4.0 + phase * 0.18
+            val radius = min(w, h) * 0.38f
+            d.drawCircle(Color.White, dp(if (i % 2 == 0) 2.2f else 1.4f),
+                Offset(center.x + (cos(angle) * radius).toFloat(), center.y + (sin(angle) * radius).toFloat()))
+        }
+    }
+
+    /** Orchestra percussion: a bass drum seen from the front and a ringing triangle. */
+    private fun orchestraPerc(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        val r = min(w * 0.22f, h * 0.45f)
+        val center = Offset(x + w * 0.34f, y + h * 0.5f)
+        d.drawCircle(c.a((90 + 120 * pulse(1.0)).toInt()), r, center)
+        d.drawCircle(Color(0xffe8dcc4), r, center, style = Stroke(dp(3f)))
+        d.drawCircle(Color(0xffe8dcc4).a(120), r * 0.55f, center, style = Stroke(dp(1f)))
+        val tx = x + w * 0.74f; val ty = y + h * 0.20f; val ts = min(w * 0.18f, h * 0.6f)
+        val tri = Path().apply { moveTo(tx, ty); lineTo(tx + ts * 0.5f, ty + ts); lineTo(tx - ts * 0.5f, ty + ts); close() }
+        d.drawPath(tri, Color(0xffdfe8ea), style = Stroke(dp(2.4f)))
+        d.drawCircle(c.a((255 * pulse(2.0)).toInt()), ts * 0.75f, Offset(tx, ty + ts * 0.6f), style = Stroke(dp(1f)))
+    }
+
+    /** Latin percussion: two tall conga drums and claves. */
+    private fun latin(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        for (i in 0..1) {
+            val cx = x + w * (0.30f + i * 0.25f)
+            val dw = w * 0.17f; val top = y + h * (0.18f + i * 0.08f)
+            d.drawRoundRect(Color(0xffa0673f), Offset(cx - dw / 2, top), Size(dw, y + h - top), CornerRadius(dp(8f)))
+            d.drawOval(c.a((140 + 115 * pulse(1.5, i * 2.0)).toInt()), Offset(cx - dw / 2, top - dp(5f)), Size(dw, dp(12f)))
+        }
+        d.drawLine(Color(0xffd9b779), Offset(x + w * 0.72f, y + h * 0.30f), Offset(x + w * 0.90f, y + h * 0.20f), dp(5f))
+        d.drawLine(Color(0xffd9b779), Offset(x + w * 0.74f, y + h * 0.48f), Offset(x + w * 0.90f, y + h * 0.36f), dp(5f))
+    }
+
+    /** Timpani: two kettle drums whose heads shiver after each stroke. */
+    private fun timpani(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        for (i in 0..1) {
+            val cx = x + w * (0.30f + i * 0.40f)
+            val r = min(w * 0.18f, h * 0.42f)
+            val bowl = Path().apply {
+                moveTo(cx - r, y + h * 0.35f)
+                quadraticTo(cx - r, y + h * 0.95f, cx, y + h * 0.95f)
+                quadraticTo(cx + r, y + h * 0.95f, cx + r, y + h * 0.35f); close()
+            }
+            d.drawPath(bowl, Color(0xffb87333))
+            d.drawOval(c.a((150 + 105 * pulse(1.0, i * 3.0)).toInt()), Offset(cx - r, y + h * 0.29f), Size(r * 2, h * 0.12f))
+        }
+    }
+
+    /** Synthesisers: a glowing waveform. */
+    private fun synth(x: Float, y: Float, w: Float, h: Float, c: Color) {
+        for (line in 0..1) {
+            val path = Path()
+            for (i in 0..40) {
+                val xx = x + dp(14f) + (w - dp(28f)) * i / 40f
+                val saw = ((i + phase * 2).toFloat() % 8f) / 8f
+                val yy = y + h * 0.5f + (if (line == 0) (saw - 0.5f) * h * 0.6f else sin(i * 0.5 + phase).toFloat() * h * 0.2f)
+                if (i == 0) path.moveTo(xx, yy) else path.lineTo(xx, yy)
+            }
+            d.drawPath(path, if (line == 0) c else c.a(110), style = Stroke(dp(if (line == 0) 2f else 1.2f)))
+        }
+    }
+}
+
+private val STAGE_EN = listOf("BASS", "RHYTHM", "CHORDS", "ARP", "MELODY", "HIGH")
+private val STAGE_HINT = listOf("항상 · 속도 → 저음 음색", "18 km/h~ · 박동", "38 km/h~ · 화성", "58 km/h~ · 분산음", "82 km/h~ · 조향", "105 km/h~ · 대선율")
+
+internal enum class Shape { BOWED, KEYS, ORGAN, HARP, PLUCKED, WIND, BRASS, MALLET, VOICE, GLASS, ORCHESTRA, LATIN, TIMPANI, KIT, SYNTH, REST }
+
+/** How each instrument is drawn on the stage: its shape and its own color. */
+internal object InstrumentLooks {
+    class Look(val shape: Shape, val color: Color)
+    private val looks = mapOf(
+        "cello" to Look(Shape.BOWED, Color(0xffd08a52)),
+        "pizz" to Look(Shape.BOWED, Color(0xffb5763f)),
+        "strings" to Look(Shape.BOWED, Color(0xffe6a86b)),
+        "viola" to Look(Shape.BOWED, Color(0xffc9925e)),
+        "violin" to Look(Shape.BOWED, Color(0xfff2c27e)),
+        "synthstrings" to Look(Shape.BOWED, Color(0xff9aa7ff)),
+        "piano" to Look(Shape.KEYS, Color(0xff8fd3ff)),
+        "epiano" to Look(Shape.KEYS, Color(0xff7ee0c3)),
+        "organ" to Look(Shape.ORGAN, Color(0xffd9b779)),
+        "harp" to Look(Shape.HARP, Color(0xfff4dc8c)),
+        "kalimba" to Look(Shape.PLUCKED, Color(0xff9fe0a4)),
+        "synthpluck" to Look(Shape.PLUCKED, Color(0xff7fd6ff)),
+        "flute" to Look(Shape.WIND, Color(0xffb8e6ff)),
+        "clarinet" to Look(Shape.WIND, Color(0xff9ec5e8)),
+        "oboe" to Look(Shape.WIND, Color(0xffa8d8b9)),
+        "bassoon" to Look(Shape.WIND, Color(0xffd6a77a)),
+        "horn" to Look(Shape.BRASS, Color(0xfff0c060)),
+        "trumpet" to Look(Shape.BRASS, Color(0xffffd166)),
+        "marimba" to Look(Shape.MALLET, Color(0xffc8875a)),
+        "xylophone" to Look(Shape.MALLET, Color(0xfff0a868)),
+        "glock" to Look(Shape.MALLET, Color(0xffe0f0ff)),
+        "musicbox" to Look(Shape.MALLET, Color(0xfff7b7d2)),
+        "choir" to Look(Shape.VOICE, Color(0xffd7b8f5)),
+        "glasspad" to Look(Shape.GLASS, Color(0xffc9b8f2)),
+        "orchperc" to Look(Shape.ORCHESTRA, Color(0xffe07a5f)),
+        "latin" to Look(Shape.LATIN, Color(0xfff2a65a)),
+        "timpani" to Look(Shape.TIMPANI, Color(0xffe8836b)),
+        "softkit" to Look(Shape.KIT, Color(0xff6fb7c9)),
+        "shaker" to Look(Shape.KIT, Color(0xffa3d977)),
+        "electro" to Look(Shape.KIT, Color(0xff5ec8f2)),
+        "synthbass" to Look(Shape.SYNTH, Color(0xff6ad1e3)),
+        "synthlead" to Look(Shape.SYNTH, Color(0xffff8fb1)),
+    )
+    private val rest = Look(Shape.REST, Color(0xff5c6f7c))
+    fun of(id: String): Look = looks[id] ?: rest
 }
