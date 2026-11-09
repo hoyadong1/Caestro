@@ -300,8 +300,8 @@ private class StageScene(
             Shape.ORGAN -> organ(x, top, w, bodyH, color)
             Shape.HARP -> harp(x, top, w, bodyH, color)
             Shape.PLUCKED -> plucked(x, top, w, bodyH, color)
-            Shape.WIND -> wind(x, top, w, bodyH, color, id == "bassoon")
-            Shape.BRASS -> brass(x, top, w, bodyH, color)
+            Shape.WIND -> wind(x, top, w, bodyH, color, id)
+            Shape.BRASS -> brass(x, top, w, bodyH, color, coiled = id == "horn")
             Shape.MALLET -> mallet(x, top, w, bodyH, color)
             Shape.VOICE -> voice(x, top, w, bodyH, color)
             Shape.GLASS -> glass(x, top, w, bodyH, color)
@@ -310,7 +310,12 @@ private class StageScene(
             Shape.TIMPANI -> timpani(x, top, w, bodyH, color)
             Shape.KIT -> drums(x, top - bodyH * 0.25f, w, bodyH * 1.2f, color)
             Shape.SYNTH -> synth(x, top, w, bodyH, color)
-            Shape.REST -> label("쉼", x + w * 0.5f - dp(9f), top + bodyH * 0.6f, 20f, Color(0xff9fb4c2), bold = true)
+            Shape.REST -> {
+                // A whole rest: a short block under a line.
+                val cx = x + w * 0.5f; val cy = top + bodyH * 0.45f
+                d.drawLine(Color(0xff5c6f7c), Offset(cx - dp(30f), cy), Offset(cx + dp(30f), cy), dp(2f))
+                d.drawRect(Color(0xff9fb4c2), Offset(cx - dp(13f), cy), Size(dp(26f), dp(10f)))
+            }
         }
     }
 
@@ -404,11 +409,18 @@ private class StageScene(
     }
 
     /** A woodwind: a body with tone holes and breath flowing out of its end. */
-    private fun wind(x: Float, y: Float, w: Float, h: Float, c: Color, dark: Boolean) {
+    /** Body color tells the woodwinds apart: silver flute, black clarinet, dark oboe, red-brown bassoon. */
+    private fun wind(x: Float, y: Float, w: Float, h: Float, c: Color, id: String) {
         val cy = y + h * 0.42f
-        val body = if (dark) Color(0xff8a5a3c) else Color(0xffcfd8dc)
+        val body = when (id) { "bassoon" -> Color(0xff8a5a3c); "clarinet" -> Color(0xff2b2f36); "oboe" -> Color(0xff4a3328); else -> Color(0xffcfd8dc) }
+        if (id == "clarinet" || id == "oboe") {
+            // A small bell at the end of the reed instruments.
+            val bell = Path().apply { moveTo(x + w * 0.62f, cy - dp(6f)); lineTo(x + w * 0.68f, cy - dp(11f))
+                lineTo(x + w * 0.68f, cy + dp(11f)); lineTo(x + w * 0.62f, cy + dp(6f)); close() }
+            d.drawPath(bell, body)
+        }
         d.drawRoundRect(body, Offset(x + w * 0.08f, cy - dp(6f)), Size(w * 0.58f, dp(12f)), CornerRadius(dp(6f)))
-        for (i in 0..5) d.drawCircle(Color(0xff0d1a24), dp(2.6f), Offset(x + w * (0.20f + i * 0.075f), cy))
+        for (i in 0..5) d.drawCircle(if (id == "clarinet" || id == "oboe") Color(0xffd9dde0) else Color(0xff0d1a24), dp(2.6f), Offset(x + w * (0.20f + i * 0.075f), cy))
         for (k in 0..2) {
             val path = Path()
             for (j in 0..24) {
@@ -422,7 +434,7 @@ private class StageScene(
     }
 
     /** A brass bell sending out rings of sound. */
-    private fun brass(x: Float, y: Float, w: Float, h: Float, c: Color) {
+    private fun brass(x: Float, y: Float, w: Float, h: Float, c: Color, coiled: Boolean) {
         val cy = y + h * 0.45f
         val bell = Path().apply {
             moveTo(x + w * 0.10f, cy - dp(4f)); lineTo(x + w * 0.42f, cy - dp(5f))
@@ -432,6 +444,8 @@ private class StageScene(
             lineTo(x + w * 0.10f, cy + dp(4f)); close()
         }
         d.drawPath(bell, Color(0xffe0b453))
+        // The horn's coiled tubing.
+        if (coiled) d.drawCircle(Color(0xffe0b453), min(w, h) * 0.17f, Offset(x + w * 0.24f, cy), style = Stroke(dp(4f)))
         for (ring in 0..2) {
             val grow = ((phase * 0.12 + ring / 3.0) % 1.0).toFloat()
             val r = h * (0.22f + grow * 0.45f)

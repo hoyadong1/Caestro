@@ -18,6 +18,13 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     buildFeatures { compose true }
+    testOptions {
+        unitTests {
+            // Screenshot tests render the Compose screen on the JVM (Robolectric) and need resources.
+            includeAndroidResources = true
+            all { systemProperty 'roborazzi.test.record', 'true' }
+        }
+    }
 }
 
 def localSdkProperties = new Properties()
@@ -52,4 +59,10 @@ dependencies {
     implementation 'androidx.compose.material3:material3'
 
     testImplementation 'junit:junit:4.13.2'
+    testImplementation platform('androidx.compose:compose-bom:2025.10.01')
+    testImplementation 'androidx.compose.ui:ui-test-junit4'
+    testImplementation 'org.robolectric:robolectric:4.16'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi:1.46.1'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi-compose:1.46.1'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
 }
