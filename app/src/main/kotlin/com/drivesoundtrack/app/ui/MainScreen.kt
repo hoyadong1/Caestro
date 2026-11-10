@@ -1,6 +1,7 @@
 package com.drivesoundtrack.app.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,6 +50,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
+import com.drivesoundtrack.app.R
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -130,7 +133,7 @@ private fun NavRail(selected: Int, enabled: Boolean, accent: Color, onSelect: (I
         Modifier.width(128.dp).fillMaxHeight().background(Palette.Panel).padding(vertical = 22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Canvas(Modifier.size(46.dp)) { logo(accent) }
+        Image(painterResource(R.drawable.caestro_logo), contentDescription = "카에스트로", modifier = Modifier.size(64.dp))
         Text("CAESTRO", fontSize = 14.sp, lineHeight = 18.sp, color = Palette.Muted, fontWeight = FontWeight.Bold,
             letterSpacing = 0.06.em, modifier = Modifier.padding(top = 8.dp, bottom = 26.dp))
         RailItem("지금 재생", selected == TAB_PLAY, true, accent, { playIcon(it) }) { onSelect(TAB_PLAY) }
@@ -734,15 +737,6 @@ private fun Label(
     fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
 // ------------------------------------------------------------------ icons
-
-private fun DrawScope.logo(accent: Color) {
-    drawCircle(accent, size.minDimension / 2)
-    val w = size.width
-    for (i in 0..3) {
-        val h = size.height * floatArrayOf(0.30f, 0.55f, 0.42f, 0.22f)[i]
-        drawRoundRect(Palette.Background, Offset(w * (0.24f + i * 0.15f), (size.height - h) / 2), Size(w * 0.08f, h), CornerRadius(w * 0.04f))
-    }
-}
 
 private fun DrawScope.playIcon(c: Color) {
     val p = Path().apply { moveTo(size.width * 0.22f, size.height * 0.12f); lineTo(size.width * 0.90f, size.height * 0.5f)
