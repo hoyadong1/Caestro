@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#07121c">
   <meta name="description" content="카에스트로(Caestro): 내 차가 곧 지휘자. 속도·페달·핸들이 오케스트라를 지휘하는 차량용 음악 앱.">
   <title>카에스트로 Caestro | 내 차가 곧 지휘자</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta property="og:image" content="https://hoyadong1.github.io/DriveSoundtrack/icon.png">
   <style>
     :root { color-scheme:dark; font-family:Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif; color:#edf7fb; background:#07121c; }
     * { box-sizing:border-box; }
@@ -17,7 +20,7 @@
     .topbar { border-bottom:1px solid #213745; background:#07121cd9; backdrop-filter:blur(14px); }
     .topbar .wrap { min-height:70px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
     .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.02em; text-decoration:none; white-space:nowrap; }
-    .brand-mark { width:29px; height:29px; display:grid; place-items:center; border:1px solid #65c6f5; border-radius:9px; color:#7ed4ff; font-size:18px; }
+    .brand-mark { width:32px; height:32px; border-radius:8px; display:block; box-shadow:0 0 14px rgba(126,212,255,.35); }
     .toplinks { display:flex; gap:24px; color:#b4cbd8; font-size:14px; }
     .toplinks a { text-decoration:none; }
     .toplinks a:hover, .toplinks a:focus-visible { color:#83d9ff; }
@@ -73,7 +76,7 @@
 <body>
   <header class="topbar">
     <div class="wrap">
-      <a class="brand" href="#top"><span class="brand-mark">♫</span> CAESTRO 카에스트로</a>
+      <a class="brand" href="#top"><img class="brand-mark" src="icon.png" alt="" width="32" height="32"> CAESTRO 카에스트로</a>
       <nav class="toplinks" aria-label="페이지 메뉴"><a href="#scenario">시연</a><a href="#demo">주행</a><a href="#steering">핸들</a><a href="#cloud">클라우드</a><a href="#how">악단</a><a href="#download">설치</a></nav>
     </div>
   </header>
