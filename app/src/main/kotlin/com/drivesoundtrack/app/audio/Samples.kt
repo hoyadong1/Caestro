@@ -5,6 +5,7 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.math.ln
 
 /**
@@ -25,7 +26,7 @@ internal object SampleBank {
     /**
      * Bowed and blown recordings take a while to sound: half their level only after 0.1 s (reeds) to
      * 0.5 s (string sections), which put them behind the beat next to percussion and harp. Playback
-     * starts 20 ms before the note reaches half its level, so every instrument speaks on the beat.
+     * starts 20 ms before the note reaches about 70% of its level, so every instrument speaks on the beat.
      * The voice's own short fade-in keeps the cut from clicking.
      */
     fun speakingStart(note: Note, data: ShortArray): Int {
@@ -45,7 +46,12 @@ internal object SampleBank {
             for (i in note.loopStart until note.loopEnd) { val v = data[i].toDouble(); sum += v * v }
             sum / (note.loopEnd - note.loopStart)
         } else env.maxOrNull() ?: 0.0
-        val half = env.indexOfFirst { it >= steady * 0.25 }.let { if (it < 0) 0 else it } // mean square: 0.25 is half the level
+        // Mean square 0.5 = about 70% of the level. At half the level (0.25) string sections, violin and pipe
+        // organ were still swelling for 0.3 s and sounded behind the beat in the band (EnsembleCheckTest).
+        // Recordings that stay under that within their first second (a cello swelling into its loop) fall
+        // back to half the level; never to the very start, which would play the silent lead-in.
+        val half = env.indexOfFirst { it >= steady * 0.5 }.takeIf { it >= 0 }
+            ?: env.indexOfFirst { it >= steady * 0.25 }.takeIf { it >= 0 } ?: 0
         var start = note.offset + maxOf(0, half * frame - 480)
         // Some soft bowed notes are still swelling when their loop begins: then playback starts just before the loop.
         start = if (note.loopEnd > 0) minOf(start, note.loopStart - 240) else minOf(start, note.offset + 1440)
@@ -183,7 +189,12 @@ internal class SampleVoice(id: String, attack: Double, release: Double) : Voice(
  * and grow with the drum level that speed sets, but stay light: no backbeat snare, no hi-hat.
  */
 internal class SampleKit(private val style: Int) : Part {
-    companion object { const val ORCHESTRA = 0; const val LATIN = 1 }
+    companion object {
+        const val ORCHESTRA = 0; const val LATIN = 1; const val TIMPANI = 2
+        /** Principal pitch of the two recorded drums (measured from the recordings). */
+        private const val TIMPANI_LO_HZ = 89.7
+        private const val TIMPANI_HI_HZ = 142.5
+    }
 
     override var left = 0.0; private set
     override var right = 0.0; private set
@@ -191,21 +202,49 @@ internal class SampleKit(private val style: Int) : Part {
     private val players = Array(8) { SamplePlayer() }
     private val gains = DoubleArray(8)
     private val pans = DoubleArray(8)
+    private val pitches = DoubleArray(8) { 1.0 }
     private var cursor = 0
 
-    private fun hit(name: String, gain: Double, pan: Double = 0.0) {
+    private fun hit(name: String, gain: Double, pan: Double = 0.0, pitch: Double = 1.0) {
         val note = set?.named(name) ?: return
         // Reuse a free player, otherwise the oldest; a cut hit is already far into its decay.
         var pick = -1
         for (k in players.indices) { val i = (cursor + k) % players.size; if (!players[i].playing) { pick = i; break } }
         if (pick < 0) pick = cursor
         cursor = (pick + 1) % players.size
-        players[pick].start(set, note); gains[pick] = gain; pans[pick] = pan
+        players[pick].start(set, note); gains[pick] = gain; pans[pick] = pan; pitches[pick] = pitch
     }
 
-    fun step(inBar: Int, stepsPerBar: Int, level: Int, wiper: Boolean) {
+    // The timpani recordings hold 95% of their energy under 200 Hz and almost no mallet attack, so on
+    // small speakers (laptop, emulator, door speakers) the drum vanished. Each stroke adds a short felt
+    // mallet tap (band-passed noise around 1.6 kHz, ~5 ms), and the drum's own 200..600 Hz overtones are
+    // lifted: the pitch then reaches speakers that cut the low end.
+    private val malletNoise = Noise(0x7193L)
+    private val malletFilter = Svf().apply { set(1600.0, 1.4) }
+    private val bodyFilter = Svf().apply { set(260.0, 0.7) }
+    private val bodyFilter2 = Svf().apply { set(260.0, 0.7) }
+    private var malletAge = 10.0
+    private var malletLevel = 0.0
+
+    /** A timpani stroke tuned to [hz]: the recorded drum nearest in pitch, retuned as little as possible. */
+    private fun timp(hz: Double, gain: Double) {
+        val low = abs(ln(hz / TIMPANI_LO_HZ)) <= abs(ln(hz / TIMPANI_HI_HZ))
+        if (low) hit("timpani_lo", gain, -0.15, hz / TIMPANI_LO_HZ) else hit("timpani_hi", gain, 0.15, hz / TIMPANI_HI_HZ)
+        malletAge = 0.0; malletLevel = gain
+    }
+
+    fun step(inBar: Int, stepsPerBar: Int, bar: Long, level: Int, wiper: Boolean, tonicHz: Double) {
         val beats = stepsPerBar / 4
         when (style) {
+            TIMPANI -> {
+                // Tonic on the downbeat, the dominant on beat 3 (4/4), a short roll into every fourth bar.
+                // Tuned in the drums' middle register (90..180 Hz, between the two recordings) rather than
+                // the bass octave: the stroke's overtones then reach small speakers that cut the low end.
+                val tonic = if (tonicHz < 90.0) tonicHz * 2.0 else tonicHz
+                if (inBar == 0) timp(tonic, 1.0)
+                else if (beats == 4 && inBar == 8 && level >= 1) timp(if (tonic > 120.0) tonic * 0.75 else tonic * 1.5, 0.7)
+                if (level >= 2 && bar % 4 == 3L && inBar >= stepsPerBar - 4) timp(tonic, 0.3 + 0.12 * (inBar - stepsPerBar + 4))
+            }
             ORCHESTRA -> {
                 if (inBar == 0) hit("bassdrum", 0.6)
                 if (beats == 4 && inBar == 8) hit("bassdrum", 0.38)
@@ -230,8 +269,19 @@ internal class SampleKit(private val style: Int) : Part {
         val ratio = SampleBank.RATE / Dsp.RATE
         for (i in players.indices) {
             if (!players[i].playing) continue
-            val v = players[i].next(ratio) * gains[i]
+            val v = players[i].next(ratio * pitches[i]) * gains[i]
             l += v * (1.0 - pans[i]); r += v * (1.0 + pans[i])
+        }
+        if (style == TIMPANI) {
+            // Presence: the drum's own 200..600 Hz overtones lifted about 12 dB, as a closer microphone hears them.
+            // Two 12 dB/octave high-passes at 260 Hz leave the fundamental (90..180 Hz) alone.
+            bodyFilter.process((l + r) * 0.5)
+            bodyFilter2.process(bodyFilter.high)
+            val overtone = bodyFilter2.high * 10.0
+            malletFilter.process(malletNoise.next())
+            val mallet = if (malletAge < 0.03) malletFilter.band * exp(-malletAge * 220.0) * 2.0 * malletLevel else 0.0
+            malletAge += 1.0 / Dsp.RATE
+            l += overtone + mallet * 0.9; r += overtone + mallet
         }
         left = l; right = r
     }

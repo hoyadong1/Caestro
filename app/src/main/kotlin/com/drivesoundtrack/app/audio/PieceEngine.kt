@@ -21,6 +21,9 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
     private var stepSamples = 5000
     private val tonicHz = midiHz(36 + piece.tonic)
 
+    private val presenceA = Array(6) { Svf().apply { set(260.0, 0.7) } }
+    private val presenceB = Array(6) { Svf().apply { set(260.0, 0.7) } }
+
     private val roomLeft = DoubleArray(4096)
     private val roomRight = DoubleArray(4096)
     private var roomWrite = 0
@@ -49,20 +52,29 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
         }
         stepSamples = (60.0 / bpm / 4.0 * Dsp.RATE).toInt()
         val spb = piece.stepsPerBar
-        val s = ((bar * spb + position) % piece.lengthSteps).toInt()
+        now = bar * spb + position
+        val s = (now % piece.lengthSteps).toInt()
         val span = piece.chordAt(s)
         val accent = when { position == 0 -> 1.0; position % 4 == 0 -> 0.86; else -> 0.74 }
 
         piece.bassAt(s)?.let { play(Instruments.BASS, it.midi, it.length, 0.95) }
         (parts[Instruments.RHYTHM] as? Kit)?.step(position, spb, bar, rhythmLevel, wiper, tonicHz, stepSamples)
-        (parts[Instruments.RHYTHM] as? SampleKit)?.step(position, spb, rhythmLevel, wiper)
+        (parts[Instruments.RHYTHM] as? SampleKit)?.step(position, spb, bar, rhythmLevel, wiper, tonicHz)
+
+        chordClasses = 0
+        for (iv in span.intervals) chordClasses = chordClasses or (1 shl Math.floorMod(span.root + iv, 12))
+        for (m in span.harmony) chordClasses = chordClasses or (1 shl Math.floorMod(m, 12))
+        for (m in span.arp) chordClasses = chordClasses or (1 shl Math.floorMod(m, 12))
+        // The melody note held from here (one starting now, else one still sounding), for the clash rule below.
+        val tune = piece.melodyAt(s)?.let { if (it.length >= 4) it.midi else null }
+            ?: if (now < melodyUntil && melodyUntil - now >= 4) melodyMidi else null
 
         if (Instruments.all[kinds[Instruments.HARMONY]].sustained) {
-            if (span.start == s) for (m in span.harmony) play(Instruments.HARMONY, m, span.length, 0.8)
+            if (span.start == s) for (m in span.harmony) if (!clashes(m, tune)) play(Instruments.HARMONY, m, span.length, 0.8)
         } else if (piece.comp[position]) {
             var until = 1
             while (position + until < spb && !piece.comp[position + until]) until++
-            for (m in span.harmony) play(Instruments.HARMONY, m, until, accent * 0.85)
+            for (m in span.harmony) if (!clashes(m, tune)) play(Instruments.HARMONY, m, until, accent * 0.85)
         }
 
         val index = piece.arp[position]
@@ -76,14 +88,42 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
         val high = Instruments.all[kinds[Instruments.HIGH]]
         when (piece.high) {
             HighLine.BELLS -> if (high.sustained) {
-                if (span.start == s) for (m in span.harmony.takeLast(2)) play(Instruments.HIGH, m + 12, span.length, 0.7)
+                if (span.start == s) for (m in span.harmony.takeLast(2)) if (!clashes(m, tune)) play(Instruments.HIGH, m + 12, span.length, 0.7)
             } else if (s % (spb / 2) == 0 && (span.start == s || span.length > spb / 2)) {
-                play(Instruments.HIGH, span.top + 12, spb / 2, 0.8)
+                // The chord's top note, or the highest chord tone that does not rub against the melody.
+                val bell = if (!clashes(span.top, tune)) span.top else span.harmony.sortedDescending().firstOrNull { !clashes(it, tune) }
+                if (bell != null) play(Instruments.HIGH, bell + 12, spb / 2, 0.8)
             }
             HighLine.CANON -> piece.melodyAt(Math.floorMod(s - piece.canonBars * spb, piece.lengthSteps))
                 ?.let { play(Instruments.HIGH, it.midi, it.length, 0.75) }
             HighLine.OCTAVE -> piece.melodyAt(s)?.let { play(Instruments.HIGH, it.midi + 12, it.length, 0.75) }
         }
+    }
+
+    /** Tests only: told of every note as played (stage, MIDI note after fitting the instrument's range, steps). */
+    internal var onNote: ((stage: Int, midi: Int, steps: Int) -> Unit)? = null
+
+    // The bass note now sounding: chord and arpeggio notes never go under it.
+    private var now = 0L
+    private var bassMidi = 0
+    private var bassUntil = -1L
+    // The melody note now sounding.
+    private var melodyMidi = 0
+    private var melodyUntil = -1L
+
+    /** Pitch classes of the chord now playing, as written (its voicing included). */
+    private var chordClasses = 0
+
+    /**
+     * A chord or bell note a semitone (or major seventh / minor ninth) from the melody note held for a
+     * beat or more, when that melody note is not itself in the chord: left out for that chord. The
+     * arrangement keeps simple chords under the tune, and where the tune holds a note foreign to them
+     * (Satie's C# over G major 7) the two would rub for a bar. Written sevenths (G with F#) stay.
+     */
+    private fun clashes(midi: Int, tune: Int?): Boolean {
+        if (tune == null || chordClasses and (1 shl Math.floorMod(tune, 12)) != 0) return false
+        val ic = Math.floorMod(midi - tune, 12)
+        return ic == 1 || ic == 11
     }
 
     private fun play(stage: Int, midi: Int, steps: Int, velocity: Double, pan: Double? = null) {
@@ -92,6 +132,14 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
         var m = midi
         while (m < kind.minMidi) m += 12
         while (m > kind.maxMidi) m -= 12
+        if (stage == Instruments.BASS) { bassMidi = m; bassUntil = now + steps }
+        else if (stage == Instruments.MELODY) { melodyMidi = m; melodyUntil = now + steps }
+        else if ((stage == Instruments.HARMONY || stage == Instruments.ARP) && now < bassUntil) {
+            // A bass instrument that cannot reach a written low note plays it an octave up (Bach's closing G1
+            // on a cello); the written chord under it would then sound below the bass, muddy and inverted.
+            while (m < bassMidi && m + 12 <= kind.maxMidi) m += 12
+        }
+        onNote?.invoke(stage, m, steps)
         poly.play(midiHz(m), (steps * stepSamples * 0.95).toInt().coerceAtLeast(1), velocity, pan)
     }
 
@@ -109,12 +157,22 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
             // A silent stage is not rendered; its voices simply wait until the stage fades back in.
             if (part != null && mix > 1e-4) {
                 part.render(c)
-                var gain = STAGE_GAIN[stage] * Instruments.all[kinds[stage]].gain * mix
+                val kind = Instruments.all[kinds[stage]]
+                var gain = STAGE_GAIN[stage] * kind.gain * mix
                 if (stage == Instruments.HARMONY || stage == Instruments.HIGH) gain *= soften
-                if (stage == 0) low += (part.left + part.right) * 0.5 * gain
+                var pl = part.left; var pr = part.right
+                if (kind.presence > 0.0 && stage == Instruments.BASS) {
+                    // Only in the bass register, where the lift is needed (an organ playing chords was
+                    // lifted 5 dB over its neighbours). Two 12 dB/octave high-passes at 260 Hz leave the fundamental alone.
+                    presenceA[stage].process((pl + pr) * 0.5)
+                    presenceB[stage].process(presenceA[stage].high)
+                    val lift = presenceB[stage].high * kind.presence
+                    pl += lift; pr += lift
+                }
+                if (stage == 0) low += (pl + pr) * 0.5 * gain
                 else {
-                    l += part.left * gain; r += part.right * gain
-                    if (stage >= Instruments.HARMONY) send += (part.left + part.right) * 0.5 * gain * SEND[stage]
+                    l += pl * gain; r += pr * gain
+                    if (stage >= Instruments.HARMONY) send += (pl + pr) * 0.5 * gain * SEND[stage]
                 }
             }
             val old = retiring[stage]

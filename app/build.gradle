@@ -22,7 +22,8 @@ android {
         unitTests {
             // Screenshot tests render the Compose screen on the JVM (Robolectric) and need resources.
             includeAndroidResources = true
-            all { systemProperty 'roborazzi.test.record', 'true' }
+            // The audio checks render every piece with every instrument; 512 MB was not enough for the whole suite.
+            all { systemProperty 'roborazzi.test.record', 'true'; maxHeapSize = '2g' }
         }
     }
 }

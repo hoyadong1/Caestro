@@ -67,8 +67,10 @@ def detect(x, rate, guess, octaves=(-24, -12, 0, 12)):
     onset = np.argmax(np.abs(x) > 0.05 * np.abs(x).max())
     seg = spectrum(x, rate, onset / rate + 0.12)
     best = None
+    # +-110 cents: a recording can sound a semitone off its file name (VSCO's top clarinet "F#6" is an F6);
+    # a search capped at +-60 then stopped at its edge and wrote a root 40 cents sharp.
     for octave in octaves:
-        for cents in range(-60, 61, 2):
+        for cents in range(-110, 111, 2):
             f = 440 * 2 ** ((guess + octave - 69 + cents / 100) / 12)
             if f < 25 or f > 5000: continue
             sc = f0_score(seg, f)

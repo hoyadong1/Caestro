@@ -39,7 +39,7 @@ class StudioBankExport {
                     val take = mutableListOf<Double>()
                     for (bar in 0 until 3) for (step in 0 until spb) {
                         (part as? Kit)?.step(step, spb, bar.toLong(), 2, false, midiHz(36), stepSamples)
-                        (part as? SampleKit)?.step(step, spb, 2, false)
+                        (part as? SampleKit)?.step(step, spb, bar.toLong(), 2, false, midiHz(36))
                         repeat(stepSamples) { part.render(controls); if (bar == 1) take += (part.left + part.right) * 0.5 * kind.gain }
                     }
                     loops += "\"$beats\": [${"%.4f".format(bars.size.toDouble() / rate)}, ${"%.4f".format(take.size.toDouble() / rate)}]"

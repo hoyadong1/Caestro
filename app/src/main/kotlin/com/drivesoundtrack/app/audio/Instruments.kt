@@ -39,6 +39,11 @@ object Instruments {
         internal val sampleKit: Int = -1,
         /** Downloaded from the cloud (made on the creator platform), not shipped with the app. */
         val cloud: Boolean = false,
+        /**
+         * Lift of the instrument's own overtones above ~260 Hz (1.0 = about +6 dB there), for low instruments
+         * whose sound otherwise lives where small speakers cannot play it.
+         */
+        internal val presence: Double = 0.0,
         internal val voice: (() -> Voice)? = null,
     )
 
@@ -48,9 +53,9 @@ object Instruments {
             gain = gain, cloud = true) { SampleVoice(id, attack, release) }
 
     private fun real(id: String, label: String, sample: String = id, sustained: Boolean, voices: Int, min: Int, max: Int,
-                     gain: Double, attack: Double, release: Double, mono: Boolean = false) =
+                     gain: Double, attack: Double, release: Double, mono: Boolean = false, presence: Double = 0.0) =
         Kind(id, label, real = true, sustained = sustained, voices = voices, mono = mono, minMidi = min, maxMidi = max,
-            gain = gain) { SampleVoice(sample, attack, release) }
+            gain = gain, presence = presence) { SampleVoice(sample, attack, release) }
 
     /** Everything that can be played: the app's own instruments, then downloaded ones ([addCloud]). */
     @Volatile var all: List<Kind> = builtIn(); private set
@@ -70,12 +75,12 @@ object Instruments {
     private fun builtIn(): List<Kind> = listOf(
         // Recorded orchestra.
         real("cello", "첼로", sustained = true, voices = 2, min = 36, max = 72, gain = 3.0, attack = 0.08, release = 0.3),
-        real("pizz", "콘트라베이스", sample = "contrabass", sustained = false, voices = 3, min = 28, max = 60, gain = 2.55, attack = 0.002, release = 0.35),
+        real("pizz", "콘트라베이스", sample = "contrabass", sustained = false, voices = 3, min = 28, max = 60, gain = 2.55, attack = 0.002, release = 0.35, presence = 6.0),
         real("bassoon", "바순", sustained = true, voices = 2, min = 34, max = 72, gain = 2.42, attack = 0.05, release = 0.25),
         real("piano", "피아노", sustained = false, voices = 6, min = 29, max = 105, gain = 3.12, attack = 0.002, release = 0.45),
-        real("organ", "파이프 오르간", sustained = true, voices = 5, min = 36, max = 96, gain = 2.26, attack = 0.03, release = 0.25),
+        real("organ", "파이프 오르간", sustained = true, voices = 5, min = 36, max = 96, gain = 2.26, attack = 0.03, release = 0.25, presence = 3.0),
         // Sections fade in over 0.08 s (was 0.3 / 0.25 s): together with the slow bow they came in behind the beat.
-        real("strings", "바이올린 합주", sustained = true, voices = 5, min = 55, max = 88, gain = 2.89, attack = 0.08, release = 0.6),
+        real("strings", "바이올린 합주", sustained = true, voices = 5, min = 55, max = 88, gain = 2.89, attack = 0.03, release = 0.6),
         real("viola", "비올라 합주", sustained = true, voices = 4, min = 48, max = 86, gain = 2.38, attack = 0.08, release = 0.5),
         real("horn", "호른", sustained = true, voices = 4, min = 36, max = 72, gain = 2.12, attack = 0.08, release = 0.35),
         real("harp", "하프", sustained = false, voices = 6, min = 35, max = 96, gain = 1.76, attack = 0.002, release = 1.2),
@@ -91,7 +96,7 @@ object Instruments {
         Kind("latin", "라틴 퍼커션", real = true, gain = 0.48, sampleKit = SampleKit.LATIN),
         // Synthesised.
         Kind("synthbass", "신스 베이스", voices = 2, maxMidi = 60, gain = 1.09) { SynthBassVoice() },
-        Kind("synthstrings", "신스 스트링", sustained = true, voices = 5, minMidi = 43, gain = 0.99) { BowedVoice(4.5, 0.003, true, Adsr(0.35, 0.6, 0.85, 0.7)) },
+        Kind("synthstrings", "신스 스트링", sustained = true, voices = 5, minMidi = 43, gain = 0.99) { BowedVoice(4.5, 0.003, true, Adsr(0.12, 0.6, 0.85, 0.7)) },
         Kind("epiano", "전자 피아노", voices = 6, gain = 0.84) { EPianoVoice() },
         Kind("choir", "합창", sustained = true, voices = 4, minMidi = 48, maxMidi = 81, gain = 0.37) { ChoirVoice() },
         Kind("kalimba", "칼림바", voices = 4, minMidi = 60, maxMidi = 96, gain = 0.98) {
@@ -103,7 +108,7 @@ object Instruments {
             PartialVoice(doubleArrayOf(1.0, 3.0, 5.98), doubleArrayOf(1.0, 0.22, 0.07), doubleArrayOf(0.85, 0.28, 0.1))
         },
         Kind("glasspad", "유리 패드", sustained = true, voices = 3, minMidi = 64, maxMidi = 96, gain = 0.71) { GlassVoice() },
-        Kind("timpani", "팀파니", gain = 0.75, kit = Kit.TIMPANI),
+        Kind("timpani", "팀파니", real = true, gain = 0.32, sampleKit = SampleKit.TIMPANI),
         Kind("softkit", "부드러운 드럼", gain = 1.07, kit = Kit.SOFT),
         Kind("electro", "일렉트로 비트", gain = 0.9, kit = Kit.ELECTRO),
         Kind("shaker", "셰이커", gain = 1.5, kit = Kit.SHAKER),
@@ -296,8 +301,13 @@ internal class SynthBassVoice : Voice(Adsr(0.005, 0.8, 0.4, 0.1)) {
     override fun reset() { p = 0.0 }
     override fun wave(c: Controls): Double {
         p = frac(p + hz / Dsp.RATE)
-        return Wave.sin(p) * (0.85 - c.speed * 0.2) + Wave.sin(frac(p * 2)) * (0.12 + c.speed * 0.3 + c.accelerator * 0.12) +
-            Wave.sin(frac(p * 3)) * c.speed * 0.06
+        // A pure low sine vanishes on small speakers (they roll off under ~200 Hz), so the note also
+        // carries a warm 2nd..5th harmonic series: the ear hears the pitch from it. The upper harmonics
+        // soften as the note is held (a gentle pluck), and open a little with speed and accelerator.
+        val bright = 0.65 + 0.35 * exp(-age * 5.0) + c.speed * 0.15 + c.accelerator * 0.1
+        return Wave.sin(p) * (0.85 - c.speed * 0.2) +
+            Wave.sin(frac(p * 2)) * (0.30 + c.speed * 0.2 + c.accelerator * 0.1) +
+            (Wave.sin(frac(p * 3)) * 0.20 + Wave.sin(frac(p * 4)) * 0.11 + Wave.sin(frac(p * 5)) * 0.06) * bright
     }
 }
 
@@ -353,7 +363,7 @@ internal class FluteVoice : Voice(Adsr(0.06, 0.6, 0.8, 0.22)) {
 }
 
 /** "Ah" voices: two detuned saws through two vowel formants. */
-internal class ChoirVoice : Voice(Adsr(0.45, 0.8, 0.9, 0.9)) {
+internal class ChoirVoice : Voice(Adsr(0.09, 0.8, 0.9, 0.9)) {
     private val a = Osc()
     private val b = Osc()
     private val f1 = Svf().apply { set(700.0, 5.0) }
@@ -450,7 +460,7 @@ internal class PartialVoice(
     }
 }
 
-internal class GlassVoice : Voice(Adsr(0.7, 1.0, 0.9, 1.4)) {
+internal class GlassVoice : Voice(Adsr(0.12, 1.0, 0.9, 1.4)) {
     private var a = 0.0
     private var b = 0.0
     override fun wave(c: Controls): Double {
@@ -531,14 +541,19 @@ internal class PluckVoice(private val ringSeconds: Double, private val brightnes
 
 /** Rhythm sections that follow the bar length (4/4 or 3/4) and the drum level from speed. */
 internal class Kit(private val style: Int) : Part {
-    companion object { const val TIMPANI = 0; const val SOFT = 1; const val ELECTRO = 2; const val SHAKER = 3 }
+    // The timpani is a recorded drum now ([SampleKit.TIMPANI]); 0 stays unused so the other ids keep their values.
+    companion object {
+        const val SOFT = 1; const val ELECTRO = 2; const val SHAKER = 3
+        /** Kick knock and beater click per style (index = style). */
+        private val KNOCK = doubleArrayOf(0.0, 3.0, 2.4, 2.0)
+        private val CLICK = doubleArrayOf(0.0, 2.4, 2.0, 1.6)
+    }
+    private val clickFilter = Svf().apply { set(2800.0, 1.0) }
 
     override var left = 0.0; private set
     override var right = 0.0; private set
     private val noise = Noise(0x5A17L + style)
     private var kickAge = 10.0; private var kickPhase = 0.0; private var kickLevel = 1.0
-    private var timpAge = 10.0; private var timpPhase = 0.0; private var timpHz = 73.4; private var timpLevel = 1.0
-    private var timpLast = 0.0; private var timpDeclick = 0.0
     private var snareAge = 10.0; private var snareLevel = 1.0
     private var rimAge = 10.0
     private var hatAge = 10.0; private var hatLevel = 1.0
@@ -547,7 +562,6 @@ internal class Kit(private val style: Int) : Part {
     private val rimFilter = Svf().apply { set(1900.0, 3.0) }
     private val hatFilter = Svf().apply { set(7500.0, 0.9) }
     private val shakerFilter = Svf().apply { set(6200.0, 1.1) }
-    private val thumpFilter = Svf().apply { set(180.0, 0.7) }
 
     fun step(inBar: Int, stepsPerBar: Int, bar: Long, level: Int, wiper: Boolean, tonicHz: Double, stepSamples: Int) {
         val beats = stepsPerBar / 4
@@ -555,11 +569,6 @@ internal class Kit(private val style: Int) : Part {
         val beat = inBar / 4
         val backbeat = onBeat && (if (beats == 3) beat > 0 else beat % 2 == 1)
         when (style) {
-            TIMPANI -> {
-                if (inBar == 0) timp(tonicHz, 1.0)
-                else if (beats == 4 && inBar == 8 && level >= 1) timp(if (tonicHz > 90.0) tonicHz * 0.75 else tonicHz * 1.5, 0.7)
-                if (level >= 2 && bar % 4 == 3L && inBar >= stepsPerBar - 4) timp(tonicHz, 0.3 + 0.12 * (inBar - stepsPerBar + 4))
-            }
             SOFT -> {
                 if (inBar == 0 || (beats == 4 && inBar == 8)) kick(0.9)
                 if (backbeat) rimAge = 0.0
@@ -586,32 +595,23 @@ internal class Kit(private val style: Int) : Part {
     }
 
     private fun kick(level: Double) { kickAge = 0.0; kickPhase = 0.0; kickLevel = level }
-    private fun timp(hz: Double, level: Double) {
-        timpDeclick += timpLast
-        timpAge = 0.0; timpPhase = 0.0; timpHz = hz; timpLevel = level
-    }
 
     override fun render(c: Controls) {
         val frame = Voice.FRAME
         val n = noise.next()
         var mono = 0.0
+        // The beater click keeps running between kicks so a new kick never starts from a stale value.
+        clickFilter.process(n)
         if (kickAge < 0.7) {
             val punch = if (style == ELECTRO) 49.0 + 80.0 * exp(-kickAge * 24.0) else 52.0 + 40.0 * exp(-kickAge * 28.0)
             kickPhase += 2.0 * PI * punch * frame
             mono += sin(kickPhase) * exp(-kickAge * (if (style == ELECTRO) 10.0 else 6.0)) * 0.20 * kickLevel
+            // A kick is a 50 Hz sine, which small speakers (laptop, emulator, door speakers) cannot play:
+            // a short knock at its 3rd harmonic and a beater click carry the beat to them.
+            val onset = 1.0 - exp(-kickAge * 2000.0)
+            mono += (sin(kickPhase * 3.0) * exp(-kickAge * 45.0) * 0.07 * KNOCK[style] +
+                clickFilter.band * exp(-kickAge * 350.0) * 0.30 * CLICK[style]) * onset * kickLevel
         }
-        var timp = 0.0
-        // The thump filter keeps running between strokes so a new stroke never starts from a stale value.
-        thumpFilter.process(n)
-        if (timpAge < 2.0) {
-            timpPhase = frac(timpPhase + timpHz * (1.0 + 0.04 * exp(-timpAge * 20.0)) * frame)
-            timp = (Wave.sin(timpPhase) + Wave.sin(frac(timpPhase * 1.505)) * 0.35 + Wave.sin(frac(timpPhase * 1.99)) * 0.12) *
-                exp(-timpAge * 2.2) * (1.0 - exp(-timpAge * 700.0)) * 0.17 * timpLevel +
-                thumpFilter.low * exp(-timpAge * 35.0) * (1.0 - exp(-timpAge * 700.0)) * 0.5 * timpLevel
-        }
-        timpLast = timp
-        mono += timp + timpDeclick
-        timpDeclick *= 0.993
         snareFilter.process(n)
         if (snareAge < 0.35) mono += (snareFilter.band * 1.2 + sin(2.0 * PI * 190.0 * snareAge) * 0.4) *
             exp(-snareAge * 22.0) * 0.07 * snareLevel
@@ -625,6 +625,6 @@ internal class Kit(private val style: Int) : Part {
             shakerLevel * 0.10 else 0.0
         left = mono + hat * 0.8 + shaker * 0.85
         right = mono + hat * 1.0 + shaker * 1.0
-        kickAge += frame; timpAge += frame; snareAge += frame; rimAge += frame; hatAge += frame; shakerAge += frame
+        kickAge += frame; snareAge += frame; rimAge += frame; hatAge += frame; shakerAge += frame
     }
 }
