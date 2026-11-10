@@ -10,7 +10,8 @@ Caestro Studio (web)   ──upload──▶  cloud (catalog + pack files)  ─�
 ```
 
 The creator platform prototype is `docs/studio` (Caestro Studio, served at `https://hoyadong1.github.io/Caestro/studio/`):
-a score editor with a speed-layered preview, an instrument maker (upload recorded notes or design a timbre), and a pack
+a mood-based automatic composer (and chords for a melody played on its keyboard), a score editor with a speed-layered
+preview, an instrument maker (record in the browser, upload recorded notes or design a timbre), and a pack
 export (zip of the new files plus the updated `catalog.json`). Its checks in `docs/studio/core.js` follow `CloudLibrary`;
 `node tools/studio/check.mjs` tests them and writes a studio-made pack to `app/build/studio-pack`, which
 `CloudLibraryTest.aStudioMadePackPlaysInTheCar` downloads and plays like the car.

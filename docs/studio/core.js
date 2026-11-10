@@ -436,3 +436,218 @@ export function zip(files) {
   let at = 0; for (const p of all) { out.set(p, at); at += p.length; }
   return out;
 }
+
+// ------------------------------------------------------------------ automatic composer (rule based, in the browser)
+
+/** Moods a listener picks from: harmony, rhythm and the suggested band. */
+export const MOODS = {
+  calm: { label: '잔잔한 아침', emoji: '🌤', mode: 'major', beats: 4, bpm: 66, tempoRange: 8, keys: ['C', 'F', 'G', 'D'],
+    rhythms: [[8, 8], [4, 4, 8], [12, 4], [8, 4, 4], [4, 4, 4, 4]], ends: [[12, -4], [16]],
+    bass: 'HALVES', arp: '0 . 2 . 1 . 2 . 0 . 2 . 1 . 2 .', comp: 'x . . . . . . . x . . . . . . .', high: 'BELLS',
+    band: ['cello', 'orchperc', 'strings', 'harp', 'flute', 'glock'], color: '#9ad7ff' },
+  drive: { label: '신나는 드라이브', emoji: '🚗', mode: 'major', beats: 4, bpm: 100, tempoRange: 16, keys: ['D', 'G', 'A', 'E'],
+    rhythms: [[4, 4, 4, 4], [2, 2, 4, 4, 4], [4, 2, 2, 8], [6, 2, 4, 4], [4, 4, 8]], ends: [[8, 4, -4], [12, -4]],
+    bass: 'ROOT_FIFTH', arp: '0 1 2 1 3 1 2 1 0 1 2 1 3 1 2 1', comp: 'x . . . x . . . x . . . x . . .', high: 'OCTAVE',
+    band: ['pizz', 'latin', 'piano', 'marimba', 'trumpet', 'xylophone'], color: '#ffb35c' },
+  night: { label: '밤의 도시', emoji: '🌃', mode: 'minor', beats: 4, bpm: 76, tempoRange: 10, keys: ['A', 'D', 'E'],
+    rhythms: [[6, 2, 8], [4, 4, 8], [12, 4], [2, 2, 4, 8], [6, 6, 4]], ends: [[12, -4], [8, -8]],
+    bass: 'HALVES', arp: '0 . 1 . 2 . 3 . 4 . 3 . 2 . 1 .', comp: 'x . . x . . x . . . x . . . . .', high: 'BELLS',
+    band: ['cello', 'softkit', 'epiano', 'harp', 'clarinet', 'glasspad'], color: '#b49cff' },
+  epic: { label: '웅장한 오케스트라', emoji: '🏔', mode: 'minor', beats: 4, bpm: 82, tempoRange: 14, keys: ['D', 'C', 'G'],
+    rhythms: [[8, 8], [12, 4], [4, 4, 8], [6, 2, 8], [4, 4, 4, 4]], ends: [[16], [12, -4]],
+    bass: 'ROOT_FIFTH', arp: '0 . 2 . 3 . 2 . 0 . 2 . 3 . 2 .', comp: 'x . . . x . . . x . . . x . . .', high: 'OCTAVE',
+    band: ['pizz', 'timpani', 'strings', 'harp', 'horn', 'glock'], color: '#ff8f8f' },
+  waltz: { label: '따뜻한 왈츠', emoji: '☕', mode: 'major', beats: 3, bpm: 84, tempoRange: 10, keys: ['F', 'G', 'D', 'C'],
+    rhythms: [[4, 4, 4], [8, 4], [4, 8], [6, 2, 4], [12]], ends: [[12], [8, -4]],
+    bass: 'HALVES', arp: '0 . 1 . 2 . 1 . 2 . 1 .', comp: '. . . . x . . . x . . .', high: 'BELLS',
+    band: ['cello', 'orchperc', 'viola', 'harp', 'oboe', 'glasspad'], color: '#f2d16b' },
+  dreamy: { label: '아련한 회상', emoji: '🌙', mode: 'minor', beats: 4, bpm: 62, tempoRange: 6, keys: ['E', 'A', 'B'],
+    rhythms: [[12, 4], [8, 8], [16], [4, 4, 8], [8, 4, 4]], ends: [[16], [12, -4]],
+    bass: 'HALVES', arp: '0 . 2 . 4 . 2 . 1 . 2 . 4 . 2 .', comp: 'x . . . . . . . . . . . . . . .', high: 'BELLS',
+    band: ['cello', 'orchperc', 'strings', 'piano', 'violin', 'flute'], color: '#8fd0b8' },
+};
+
+const SCALE = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+const DIATONIC = {
+  major: { I: [0, ''], ii: [2, 'm'], iii: [4, 'm'], IV: [5, ''], V: [7, ''], V7: [7, '7'], vi: [9, 'm'] },
+  minor: { i: [0, 'm'], iv: [5, 'm'], V: [7, ''], V7: [7, '7'], VI: [8, ''], III: [3, ''], VII: [10, ''] },
+};
+const PHRASES = {
+  major: [['I', 'V', 'vi', 'IV'], ['I', 'vi', 'IV', 'V'], ['I', 'IV', 'V', 'I'], ['vi', 'IV', 'I', 'V'], ['I', 'iii', 'IV', 'V'], ['IV', 'I', 'ii', 'V']],
+  minor: [['i', 'VI', 'III', 'VII'], ['i', 'iv', 'V', 'i'], ['i', 'VII', 'VI', 'V'], ['VI', 'VII', 'i', 'i'], ['i', 'iv', 'VII', 'III']],
+};
+const CADENCES = { major: [['IV', 'V7', 'I', 'I'], ['ii', 'V7', 'I', 'I'], ['I', 'IV', 'V7', 'I']], minor: [['iv', 'V7', 'i', 'i'], ['VI', 'V7', 'i', 'i']] };
+/** Usual next chords, for the harmonizer. */
+const FLOW = { I: 'IV V vi ii iii', ii: 'V V7', iii: 'vi IV', IV: 'V I ii V7', V: 'I vi', V7: 'I', vi: 'IV ii V',
+  i: 'iv VI VII V', iv: 'V i VII', VI: 'VII III iv', III: 'VI iv', VII: 'III i VI' };
+
+const FLAT_KEYS = new Set(['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb']);
+const MINOR_FLAT = new Set(['D', 'G', 'C', 'F', 'Bb']);
+export function usesFlats(tonic, mode) { return mode === 'minor' ? MINOR_FLAT.has(tonic) : FLAT_KEYS.has(tonic); }
+const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const FLAT_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+export function pcName(pc, flats) { return (flats ? FLAT_NAMES : SHARP_NAMES)[((pc % 12) + 12) % 12]; }
+export function spell(m, flats) { return pcName(m, flats) + (Math.floor(m / 12) - 1); }
+
+export function rng(seed) { let s = (seed >>> 0) || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+const pick = (r, list) => list[Math.floor(r() * list.length)];
+
+function chordOf(numeral, tonicPc, mode) { const [deg, q] = DIATONIC[mode][numeral]; return { numeral, root: (tonicPc + deg) % 12, quality: q, tones: QUALITIES[q].map(i => (tonicPc + deg + i) % 12) }; }
+
+/** Melody notes for bars over a chord per bar, as {start, length, midi} (rests left out). */
+function melodyFor(r, rhythms, chords, ctx) {
+  const out = [];
+  for (const [b, rhythm] of rhythms.entries()) {
+    let pos = 0;
+    const chord = chords[b];
+    for (const [k, len] of rhythm.entries()) {
+      const at = b * ctx.spb + pos;
+      pos += Math.abs(len);
+      if (len < 0) continue;
+      const strong = (at % ctx.spb === 0) || (at % 4 === 0 && len >= 4);
+      const final = ctx.finalBar === b && k === rhythm.length - 1;
+      let m;
+      if (final) m = nearest(ctx.prev ?? ctx.center, [ctx.tonicPc], ctx);
+      else if (strong || ctx.prev == null) m = nearest(ctx.prev ?? ctx.center, chord.tones, ctx, r);
+      else {
+        // A step or two along the scale, leaning back toward the middle of the range.
+        const dir = ctx.prev > ctx.center + 5 ? -1 : ctx.prev < ctx.center - 5 ? 1 : (r() < 0.5 ? -1 : 1);
+        m = scaleStep(ctx.prev, dir * (r() < 0.75 ? 1 : 2), ctx);
+      }
+      out.push({ start: at, length: len, midi: m });
+      ctx.prev = m;
+    }
+  }
+  return out;
+}
+function nearest(from, pcs, ctx, r = null) {
+  const cands = [];
+  for (let m = ctx.low; m <= ctx.high; m++) if (pcs.includes(((m % 12) + 12) % 12)) cands.push(m);
+  cands.sort((a, b) => Math.abs(a - from) - Math.abs(b - from));
+  // Mostly the closest chord tone, sometimes a small leap; avoid sitting on one note.
+  let i = 0;
+  if (r) { if (cands[0] === from && cands.length > 1 && r() < 0.6) i = 1; if (r() < 0.25 && cands.length > 2) i = Math.min(i + 1, 2); }
+  return cands[i];
+}
+function scaleStep(from, steps, ctx) {
+  const inScale = m => ctx.scale.includes((((m - ctx.tonicPc) % 12) + 12) % 12);
+  let m = from, n = Math.abs(steps);
+  while (n > 0) { m += Math.sign(steps); if (inScale(m)) n--; }
+  return Math.max(ctx.low, Math.min(ctx.high, m));
+}
+
+export function melodyText(notes, totalSteps, spb, flats) {
+  const tokens = [];
+  let pos = 0;
+  const bar = () => { if (pos % spb === 0 && pos < totalSteps) tokens.push('|'); };
+  const rest = until => { while (pos < until) { const len = Math.min(until, (Math.floor(pos / spb) + 1) * spb) - pos; tokens.push(`r:${len}`); pos += len; bar(); } };
+  for (const n of notes.slice().sort((a, b) => a.start - b.start)) {
+    if (n.start < pos) continue;
+    rest(n.start);
+    // A note never crosses a bar line in the notation: the rest of it is tied over.
+    let left = n.length, first = true;
+    while (left > 0) {
+      const len = Math.min(left, (Math.floor(pos / spb) + 1) * spb - pos);
+      tokens.push(first ? `${spell(n.midi, flats)}:${len}` : `-:${len}`);
+      first = false; pos += len; left -= len; bar();
+    }
+  }
+  rest(totalSteps);
+  return tokens.join(' ');
+}
+
+function chordText(chords, spb, flats) { return chords.map(c => `${pcName(c.root, flats) + c.quality}:${spb}`).join(' | '); }
+
+/** A whole score in the editor's fields, made from a mood: { score, info }. */
+export function compose(moodKey, { bars = 8, tonic = null, seed = Date.now() } = {}) {
+  const mood = MOODS[moodKey], r = rng(seed), mode = mood.mode;
+  const key = tonic ?? pick(r, mood.keys), tonicPc = pitchClass(key), flats = usesFlats(key, mode);
+  const spb = mood.beats * 4, phrases = bars / 4;
+  const a = pick(r, PHRASES[mode]), b = pick(r, PHRASES[mode].filter(p => p !== a)), cad = pick(r, CADENCES[mode]);
+  const plan = phrases === 2 ? [a, cad] : [a, b, a, cad];
+  const chords = plan.flat().map(n => chordOf(n, tonicPc, mode));
+  const base = 67 + ((((tonicPc - 67) % 12) + 12) % 12);
+  const ctx = { spb, tonicPc, scale: SCALE[mode], center: base + 4, low: base - 5, high: base + 12, prev: null, finalBar: -1 };
+  // Rhythm: one motif per phrase (bars 1 and 3 alike), the phrase end breathes, the last bar holds.
+  const phraseRhythm = () => { const m = pick(r, mood.rhythms); return [m, pick(r, mood.rhythms), m, pick(r, mood.ends)]; };
+  const rA = phraseRhythm(), rB = phraseRhythm(), rEnd = [rA[0], rB[1], rA[1], [spb]];
+  let melody;
+  if (phrases === 2) {
+    ctx.finalBar = 7;
+    melody = melodyFor(r, [...rA, ...rEnd], chords, ctx);
+  } else {
+    // A B A cadence: the third phrase repeats the first note for note.
+    const first = melodyFor(r, rA, chords.slice(0, 4), ctx);
+    const second = melodyFor(r, rB, chords.slice(4, 8), ctx).map(n => ({ ...n, start: n.start + 4 * spb }));
+    const third = first.map(n => ({ ...n, start: n.start + 8 * spb }));
+    ctx.prev = first.at(-1).midi; ctx.finalBar = 3;
+    const last = melodyFor(r, rEnd, chords.slice(12), ctx).map(n => ({ ...n, start: n.start + 12 * spb }));
+    melody = [...first, ...second, ...third, ...last];
+  }
+  const score = {
+    id: '', title: '', character: `${mood.label} · 스튜디오 자동 작곡`, composer: '카에스트로 스튜디오', creator: '', license: '직접 작곡 · CC BY 4.0',
+    color: mood.color, bpm: mood.bpm, tempoRange: mood.tempoRange, beatsPerBar: mood.beats, tonic: key,
+    chords: chordText(chords, spb, flats), voicings: '', melody: melodyText(melody, bars * spb, spb, flats),
+    bass: mood.bass, arp: mood.arp, comp: mood.comp, high: mood.high, canonBars: 0, defaults: mood.band.slice(),
+  };
+  return { score, info: { key: key + (mode === 'minor' ? ' 단조' : ' 장조'), numerals: plan.flat(), seed } };
+}
+
+/**
+ * Chords for a melody someone played: every half bar (whole bar in 3/4) the diatonic chord holding most of
+ * the melody, preferring usual progressions, starting and ending on the tonic. notes: [{start, length, midi}].
+ */
+export function harmonize(notes, { tonic, mode, beats }) {
+  const spb = beats * 4, seg = beats === 4 ? spb / 2 : spb, tonicPc = pitchClass(tonic), flats = usesFlats(tonic, mode);
+  const end = notes.reduce((e, n) => Math.max(e, n.start + n.length), 0);
+  const bars = Math.max(1, Math.ceil(end / spb)), count = bars * spb / seg;
+  const names = Object.keys(DIATONIC[mode]).filter(n => n !== 'V7');
+  const tonicName = mode === 'major' ? 'I' : 'i';
+  const segs = [];
+  for (let k = 0; k < count; k++) {
+    const a = k * seg, b = a + seg;
+    let best = null;
+    for (const n of names) {
+      const c = chordOf(n, tonicPc, mode);
+      let s = 0, heard = 0, fits = true;
+      for (const note of notes) {
+        const from = Math.max(note.start, a), to = Math.min(note.start + note.length, b);
+        if (to <= from) continue;
+        const pc = ((note.midi % 12) + 12) % 12, w = (to - from) * (from === a ? 1.5 : 1);
+        if (c.tones.includes(pc)) s += w; else { s -= 0.7 * w; fits = false; }
+        if (pc === c.root) s += 0.15 * w;
+        heard += to - from;
+      }
+      const prev = segs.at(-1)?.c;
+      // Fewer, plainer chords: keep a chord that still fits, prefer the primary chords and usual moves.
+      if (prev && prev.numeral === n && fits) s += 2.5;
+      if (['I', 'IV', 'V', 'i', 'iv'].includes(n)) s += 0.8;
+      if (prev && FLOW[prev.numeral]?.split(' ').includes(n)) s += 0.5;
+      if (k === 0 && n === tonicName) s += 3;
+      if (k === count - 1 && n === tonicName) s += 6;
+      if (k === count - 2 && n === 'V') s += 2;
+      // A held-over chord costs nothing where the melody rests.
+      if (!heard && prev && prev.numeral === n) s += 2;
+      if (!best || s > best.s) best = { s, c };
+    }
+    segs.push({ c: best.c, len: seg });
+  }
+  if (segs.length > 2 && segs.at(-2).c.numeral === 'V') segs.at(-2).c = chordOf('V7', tonicPc, mode);
+  // One symbol per bar when both halves agree.
+  const text = [];
+  for (let b = 0; b < bars; b++) {
+    const inBar = segs.slice(b * spb / seg, (b + 1) * spb / seg);
+    const name = x => pcName(x.c.root, flats) + x.c.quality;
+    text.push(inBar.length === 2 && name(inBar[0]) !== name(inBar[1]) ? `${name(inBar[0])}:${seg} ${name(inBar[1])}:${seg}` : `${name(inBar[0])}:${spb}`);
+  }
+  return { chords: text.join(' | '), melody: melodyText(notes, bars * spb, spb, flats), bars, numerals: segs.map(x => x.c.numeral) };
+}
+
+/** The scale notes of a key, as pitch classes (for the keyboard). */
+export function scaleOf(tonic, mode) { const t = pitchClass(tonic); return SCALE[mode].map(i => (t + i) % 12); }
+
+/** A pack id from a title: ASCII titles keep their words, others get a short unique id. */
+export function idFrom(title, prefix) {
+  const ascii = String(title).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+  return ascii && /^[a-z0-9]/.test(ascii) ? ascii : `${prefix}-${Date.now().toString(36)}`;
+}

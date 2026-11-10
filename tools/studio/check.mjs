@@ -29,6 +29,33 @@ bad({ high: 'CANON', canonBars: 0 }, 'canonBars');
 bad({ bass: 'C2:8 G2:4' }, 'bass');
 assert(!core.checkScore({ ...largo, beatsPerBar: 3, chords: 'C:12 | G:12', melody: 'E5:4 D5 C5 | D5:12', arp: '0 . 1 . 2 . 1 . 2 . 1 .', comp: 'x . . . x . . . x . . .', bass: 'C3:12 | G2:12' }).errors.length, 'waltz');
 
+// 2b. The automatic composer always writes a score the car accepts, in range, ending on the tonic.
+let composed = 0;
+for (const mood of Object.keys(core.MOODS)) for (const bars of [8, 16]) for (let seed = 1; seed <= 40; seed++) {
+  const { score } = core.compose(mood, { bars, seed });
+  const c = core.checkScore({ ...score, id: 'auto', title: 'Auto' });
+  assert(!c.errors.length, `${mood} ${bars} ${seed}: ${JSON.stringify(c.errors)}\n${score.melody}`);
+  const p = c.piece;
+  assert(p.lengthSteps === bars * p.spb, `${mood} length`);
+  assert(p.melody.every(n => n.midi >= 55 && n.midi <= 96), `${mood} range`);
+  const last = p.melody.at(-1);
+  assert(((last.midi - p.tonic) % 12 + 12) % 12 === 0 && last.start === (bars - 1) * p.spb, `${mood} ${seed} ends on the tonic`);
+  // Strong beats sit on chord tones.
+  const strong = p.melody.filter(n => n.start % p.spb === 0);
+  const fit = strong.filter(n => { const ch = p.chords[p.chordAt[n.start]]; return ch.intervals.some(i => (ch.root + i) % 12 === ((n.midi % 12) + 12) % 12); });
+  assert(fit.length === strong.length, `${mood} ${seed} downbeats off the chord`);
+  composed++;
+}
+assert(core.compose('calm', { seed: 7 }).score.melody === core.compose('calm', { seed: 7 }).score.melody, 'same seed, same song');
+// The harmonizer: "Twinkle" played on the keyboard gets its usual chords.
+const twinkle = [];
+[[72, 4], [72, 4], [79, 4], [79, 4], [81, 4], [81, 4], [79, 8], [77, 4], [77, 4], [76, 4], [76, 4], [74, 4], [74, 4], [72, 8]].reduce((at, [m, l]) => { twinkle.push({ start: at, length: l, midi: m }); return at + l; }, 0);
+const h = core.harmonize(twinkle, { tonic: 'C', mode: 'major', beats: 4 });
+assert(h.bars === 4 && h.chords.startsWith('C:') && h.chords.endsWith('G7:8 C:8') && /F:8/.test(h.chords), 'twinkle chords ' + h.chords);
+assert(!core.checkScore({ ...largo, chords: h.chords, melody: h.melody }).errors.length, 'harmonized score');
+assert(core.melodyText([{ start: 12, length: 8, midi: 72 }], 32, 16, false) === 'r:12 C5:4 | -:4 r:12', 'tie over the bar line: ' + core.melodyText([{ start: 12, length: 8, midi: 72 }], 32, 16, false));
+console.log('composer ok:', composed, 'songs;', 'twinkle →', h.chords);
+
 // 3. Recorded notes: a synthetic tone is found by pitch and file name, looped and leveled like the app's bank.
 const tone = (f, sec, rate) => Float32Array.from({ length: Math.round(sec * rate) }, (_, i) => 0.3 * Math.sin(2 * Math.PI * f * i / rate) + 0.1 * Math.sin(4 * Math.PI * f * i / rate));
 const up = core.resample(tone(220, 2.4, 44100), 44100);
@@ -45,6 +72,8 @@ mkdirSync(join(out, 'scores'), { recursive: true }); mkdirSync(join(out, 'instru
 const files = {}, items = [];
 const score = core.scoreManifest({ ...largo, id: 'studio-largo', title: 'Studio Largo', defaults: ['cello', 'orchperc', 'strings', 'studio-bell', 'studio-tone', 'glock'] });
 files['scores/studio-largo.json'] = core.utf8(JSON.stringify(score, null, 1));
+const auto = core.scoreManifest({ ...core.compose('drive', { bars: 16, seed: 5 }).score, id: 'studio-auto', title: 'Studio Auto', creator: 'check' });
+files['scores/studio-auto.json'] = core.utf8(JSON.stringify(auto, null, 1));
 const bellNotes = [62, 70, 78].map(m => ({ root: core.hz(m), x: core.designNote(core.hz(m), core.DESIGNS.bell), loop: null }));
 const bell = core.buildInstrument({ id: 'studio-bell', label: '스튜디오 종', sound: 'designed', creator: 'check', license: 'CC0', stages: [3, 5],
   sustained: false, voices: 6, mono: false, minMidi: 60, maxMidi: 90, gain: 1.9, attack: 0.002, release: 0.9, look: 'GLASS', color: '#9AD0FF' }, bellNotes);
@@ -54,7 +83,7 @@ const rec = core.buildInstrument({ id: 'studio-tone', label: '스튜디오 녹�
   sustained: true, voices: 3, mono: false, minMidi: 40, maxMidi: 80, gain: 2.3, attack: 0.05, release: 0.3, look: 'BRASS', color: '#E3A857' }, toneNotes);
 for (const b of [bell, rec]) { files[`instruments/${b.manifest.id}.json`] = core.utf8(b.json); files[`instruments/${b.manifest.pcm}`] = b.pcm; }
 const sizes = Object.fromEntries(Object.entries(files).map(([k, v]) => [k, v.length]));
-items.push(core.catalogItem('score', score, sizes), core.catalogItem('instrument', bell.manifest, sizes), core.catalogItem('instrument', rec.manifest, sizes));
+items.push(core.catalogItem('score', score, sizes), core.catalogItem('score', auto, sizes), core.catalogItem('instrument', bell.manifest, sizes), core.catalogItem('instrument', rec.manifest, sizes));
 files['catalog.json'] = core.utf8(JSON.stringify({ format: 1, name: 'studio check', items }, null, 1));
 for (const [p, d] of Object.entries(files)) writeFileSync(join(out, p), d);
 const z = core.zip(files);
