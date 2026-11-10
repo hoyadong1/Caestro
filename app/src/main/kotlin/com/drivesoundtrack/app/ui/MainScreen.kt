@@ -186,9 +186,10 @@ private fun NowPlaying(status: PlayerStatus, accent: Color, canConfigure: Boolea
                 }
             }
         }
+        // Speed first: the road with its stops sits right under the title, the band it builds below.
+        SpeedLadder(status, accent, Modifier.fillMaxWidth().height(116.dp).padding(top = 14.dp))
         InstrumentStage(status, accent, status.playing && canConfigure, titleSpace = false,
             modifier = Modifier.fillMaxWidth().padding(top = 14.dp).then(if (landscape) Modifier.weight(1f) else Modifier.height(380.dp)))
-        SpeedLadder(status, accent, Modifier.fillMaxWidth().height(116.dp).padding(top = 14.dp))
         TransportBar(status, accent, actions)
         if (!status.carAvailable && !restricted) DemoControls(status, actions)
         if (canRequestPermission) PermissionPrompt(actions)
