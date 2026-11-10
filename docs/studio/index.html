@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07121c">
+  <meta name="description" content="카에스트로 스튜디오: 차 밖에서 악보와 악기를 만들어 클라우드로 보내는 웹 플랫폼 (프로토타입).">
+  <title>카에스트로 스튜디오</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <style>
+    :root { color-scheme:dark; font-family:Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif; color:#edf7fb; background:#07121c;
+      --line:#29485b; --panel:#0d2231; --panel2:#102738; --muted:#a9bfcd; --accent:#70cfff; --bad:#ff8f8f; --warn:#ffd27a; --ok:#8fe0b8; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(circle at 75% 0, #113649 0, transparent 30%), #07121c; }
+    a { color:inherit; }
+    button, input, select, textarea { font:inherit; color:inherit; }
+    .wrap { width:min(1200px, calc(100% - 32px)); margin-inline:auto; }
+    header { border-bottom:1px solid #213745; background:#07121cd9; position:sticky; top:0; z-index:5; backdrop-filter:blur(12px); }
+    header .wrap { min-height:64px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; text-decoration:none; white-space:nowrap; }
+    .brand img { width:30px; height:30px; border-radius:8px; }
+    .brand small { color:var(--accent); font-weight:700; letter-spacing:.08em; }
+    nav.tabs { display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; }
+    nav.tabs button { min-height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; background:var(--panel); cursor:pointer; color:#c8e4f1; }
+    nav.tabs button[aria-selected="true"] { background:var(--accent); border-color:var(--accent); color:#07121c; font-weight:800; }
+    .intro { padding:34px 0 8px; }
+    .intro h1 { margin:0; font-size:clamp(26px,3.4vw,38px); letter-spacing:-.04em; }
+    .intro p { max-width:820px; margin:10px 0 0; color:var(--muted); line-height:1.75; word-break:keep-all; }
+    .flow { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; font-size:13px; color:#c8e4f1; }
+    .flow span { padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--panel); }
+    .flow b { color:var(--accent); }
+    main section[hidden] { display:none; }
+    main section { padding:20px 0 70px; }
+    .grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:16px; align-items:start; }
+    .card { padding:18px; border:1px solid var(--line); border-radius:14px; background:linear-gradient(150deg,#112a3a,#0b1d2a); }
+    .card h2 { margin:0 0 4px; font-size:18px; }
+    .card h3 { margin:18px 0 8px; font-size:14px; color:#bfe7f8; letter-spacing:.02em; }
+    .card .hint { margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.65; word-break:keep-all; }
+    .row { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
+    label.f { display:flex; flex-direction:column; gap:5px; font-size:12px; color:#9fc3d4; font-weight:600; }
+    label.f > span em { font-style:normal; color:#7a98a8; font-weight:400; }
+    input[type=text], input[type=number], select, textarea { width:100%; padding:9px 10px; border:1px solid #2f5166; border-radius:8px; background:#081722; }
+    textarea { min-height:74px; resize:vertical; font-family:"JetBrains Mono", Consolas, "D2Coding", monospace; font-size:13px; line-height:1.55; }
+    input[type=color] { width:100%; height:39px; padding:2px; border:1px solid #2f5166; border-radius:8px; background:#081722; }
+    .invalid { border-color:var(--bad) !important; box-shadow:0 0 0 1px var(--bad) inset; }
+    .checks { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:13px; }
+    .checks label { display:flex; align-items:center; gap:6px; }
+    .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .btn { min-height:40px; padding:0 15px; border:1px solid #416a7e; border-radius:9px; background:#0f2333; color:#d8f5ff; font-weight:700; cursor:pointer; }
+    .btn.primary { background:var(--accent); border-color:var(--accent); color:#07121c; }
+    .btn:disabled { opacity:.45; cursor:not-allowed; }
+    .btn:hover:not(:disabled) { filter:brightness(1.15); }
+    .status { margin-top:12px; padding:10px 12px; border-radius:9px; font-size:13px; line-height:1.6; background:#0a1b27; border:1px solid var(--line); }
+    .status ul { margin:4px 0 0; padding-left:18px; }
+    .status .bad { color:var(--bad); } .status .warn { color:var(--warn); } .status .ok { color:var(--ok); }
+    canvas { display:block; width:100%; border-radius:10px; background:#06131d; border:1px solid #1f3a4b; }
+    .player { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; margin-top:12px; }
+    .speed { font-size:28px; font-weight:800; min-width:120px; text-align:right; }
+    .speed small { font-size:13px; color:var(--muted); font-weight:600; }
+    input[type=range] { width:100%; accent-color:var(--accent); }
+    .stages { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; margin-top:10px; }
+    .stage { padding:8px; border:1px solid #23404f; border-radius:9px; font-size:12px; color:#7d9aab; background:#0a1a26; transition:.25s; }
+    .stage b { display:block; font-size:13px; color:#9fb6c4; }
+    .stage.on { border-color:var(--accent); color:#d8f5ff; background:#123247; }
+    .stage.on b { color:var(--accent); }
+    .stage select { margin-top:6px; padding:5px; font-size:12px; }
+    .notes { display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:300px; overflow:auto; }
+    .note { display:grid; grid-template-columns:minmax(0,1fr) 92px 70px auto auto; gap:8px; align-items:center; padding:7px 9px; border:1px solid #23404f; border-radius:8px; background:#0a1a26; font-size:12px; }
+    .note .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .note select { padding:4px; }
+    .mini { min-height:30px; padding:0 10px; font-size:12px; border-radius:7px; }
+    .drop { display:grid; place-items:center; min-height:110px; padding:16px; border:1.5px dashed #3c6a82; border-radius:12px; color:#bfe7f8; text-align:center; font-size:14px; line-height:1.6; cursor:pointer; background:#0a1c29; }
+    .drop.over { border-color:var(--accent); background:#12324a; }
+    .keys { display:flex; gap:2px; align-items:flex-start; margin-top:10px; overflow-x:auto; padding-bottom:4px; }
+    .keys button { flex:0 0 30px; height:84px; border:1px solid #2c4c5f; border-radius:0 0 6px 6px; background:#dfeef5; color:#24404f; font-size:10px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; cursor:pointer; }
+    .keys button.black { flex:0 0 20px; margin:0 -10px; z-index:1; position:relative; background:#183140; color:#9fc3d4; height:54px; border-color:#0b1a24; }
+    .keys button.out { opacity:.35; }
+    .keys button:active, .keys button.hit { background:var(--accent); color:#07121c; }
+    .pack { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; margin-top:10px; }
+    .item { padding:13px; border:1px solid #23404f; border-left:4px solid var(--c, #70cfff); border-radius:10px; background:#0a1a26; font-size:13px; line-height:1.55; }
+    .item b { font-size:15px; } .item .meta { color:var(--muted); font-size:12px; }
+    .item .new { color:var(--ok); font-weight:800; font-size:11px; letter-spacing:.08em; }
+    .seg { display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; margin-bottom:12px; }
+    .seg button { min-height:36px; padding:0 14px; border:0; background:var(--panel); cursor:pointer; color:#c8e4f1; }
+    .seg button[aria-pressed="true"] { background:#1f4a63; color:#fff; font-weight:700; }
+    .partials { display:grid; grid-template-columns:auto repeat(3,minmax(0,1fr)); gap:6px 10px; align-items:center; font-size:12px; color:#9fc3d4; }
+    .partials input[type=range] { margin:0; }
+    code { padding:1px 5px; border-radius:5px; background:#0a1b27; border:1px solid #1f3a4b; font-size:12px; }
+    details.help { margin-top:10px; font-size:13px; color:var(--muted); line-height:1.7; }
+    details.help summary { cursor:pointer; color:#bfe7f8; }
+    footer { padding:30px 0 50px; border-top:1px solid #1d3442; color:#7f99a8; font-size:12px; line-height:1.7; }
+    @media (max-width:900px) { .grid { grid-template-columns:1fr; } .stages { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (max-width:520px) { header { position:static; } .player { grid-template-columns:1fr; } .speed { text-align:left; } .note { grid-template-columns:1fr 80px auto; } .note .len, .note .del { display:none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="brand" href="../"><img src="../icon.png" alt=""> CAESTRO <small>STUDIO</small></a>
+      <nav class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="score">① 악보 만들기</button>
+        <button role="tab" aria-selected="false" data-tab="instrument">② 악기 만들기</button>
+        <button role="tab" aria-selected="false" data-tab="pack">③ 클라우드에 올리기</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap intro">
+    <h1>악보와 악기는 차 밖에서 만듭니다</h1>
+    <p>카에스트로 스튜디오는 차에 넣을 곡과 악기를 만드는 웹 플랫폼입니다. 여기서 만든 악보와 악기는 클라우드에 올라가고, 차는 정차 중에 골라 내려받기만 합니다. 앱이 쓰는 것과 같은 규칙으로 바로 검사하고, 속도를 올려 가며 미리 들어 볼 수 있습니다.</p>
+    <div class="flow"><span><b>스튜디오</b> 악보·악기 만들기</span><span>→ <b>클라우드</b> 카탈로그에 올리기</span><span>→ <b>차</b> 정차 중 내려받기 · 내 악단이 연주</span></div>
+  </div>
+
+  <main class="wrap">
+    <!-- ------------------------------------------------------------ score -->
+    <section id="tab-score" role="tabpanel">
+      <div class="grid">
+        <div class="card">
+          <h2>악보</h2>
+          <p class="hint">한 칸은 16분음표입니다. 4/4박자 한 마디는 16칸, 3/4박자는 12칸. <code>|</code>는 마디선이고 위치가 맞는지 검사합니다.</p>
+          <div class="btns" style="margin:0 0 12px">
+            <button class="btn" id="ex-twinkle">예시: 작은 별</button>
+            <button class="btn" id="ex-largo">예시: 라르고 (클라우드)</button>
+            <label class="btn" style="display:inline-flex;align-items:center">JSON 열기<input type="file" id="score-open" accept=".json,application/json" hidden></label>
+          </div>
+          <div class="row">
+            <label class="f"><span>아이디 <em>영문 소문자</em></span><input type="text" id="s-id"></label>
+            <label class="f"><span>곡 제목</span><input type="text" id="s-title"></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="f"><span>부제 <em>앨범에 보이는 설명</em></span><input type="text" id="s-character"></label>
+            <label class="f"><span>작곡가</span><input type="text" id="s-composer"></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="f"><span>만든 사람</span><input type="text" id="s-creator"></label>
+            <label class="f"><span>저작권</span><select id="s-license"><option>퍼블릭 도메인</option><option>직접 작곡 · CC BY 4.0</option><option>직접 작곡 · CC0</option></select></label>
+            <label class="f"><span>색</span><input type="color" id="s-color" value="#8fd0b8"></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="f"><span>박자</span><select id="s-beatsPerBar"><option value="4">4/4</option><option value="3">3/4</option></select></label>
+            <label class="f"><span>조성 <em>으뜸음</em></span><input type="text" id="s-tonic" placeholder="C, F#, Bb"></label>
+            <label class="f"><span>템포 <em>BPM, 정차 시</em></span><input type="number" id="s-bpm" min="40" max="160"></label>
+            <label class="f"><span>+ 템포 <em>130 km/h에서</em></span><input type="number" id="s-tempoRange" min="0" max="40"></label>
+          </div>
+          <h3>코드 진행 <span class="hint">예: <code>C:16 | F:8 C:8 | G7:8 C:8</code> · 쓸 수 있는 코드: C Cm C7 Cmaj7 Cm7 Cm6 C6 Cdim Cdim7 Caug Csus4, 자리바꿈 F/C</span></h3>
+          <textarea id="s-chords" spellcheck="false"></textarea>
+          <h3>선율 <span class="hint">예: <code>E5:6 G5:2 G5:8 | r:4 D5 - C5</code> · <code>r</code> 쉼표, <code>-</code> 붙임줄, <code>:n</code> 길이(칸)</span></h3>
+          <textarea id="s-melody" spellcheck="false"></textarea>
+          <div class="row" style="margin-top:10px">
+            <label class="f"><span>베이스</span><select id="s-bassStyle"><option value="HALVES">코드 근음, 반 마디씩</option><option value="ROOT_FIFTH">근음·5음 번갈아</option><option value="VOICING">보이싱 맨 아래 음</option><option value="EXPLICIT">직접 쓰기</option></select></label>
+            <label class="f"><span>고음 단계</span><select id="s-high"><option value="BELLS">종소리 (코드 윗음)</option><option value="OCTAVE">선율 한 옥타브 위</option><option value="CANON">캐논 (선율이 뒤따라옴)</option></select></label>
+            <label class="f"><span>캐논 간격 <em>마디</em></span><input type="number" id="s-canonBars" min="0" max="16" value="0"></label>
+          </div>
+          <textarea id="s-bass" spellcheck="false" placeholder="베이스 선율: C3:8 G2:8 | ..." style="margin-top:8px" hidden></textarea>
+          <div class="row" style="margin-top:10px">
+            <label class="f"><span>분산음 패턴 <em>한 마디, 0~4 또는 .</em></span><input type="text" id="s-arp" spellcheck="false"></label>
+            <label class="f"><span>반주 리듬 <em>한 마디, x 또는 .</em></span><input type="text" id="s-comp" spellcheck="false"></label>
+          </div>
+          <details class="help"><summary>보이싱 직접 쓰기 (선택)</summary>
+            <p>코드마다 실제로 누를 음을 낮은 음부터 적습니다. 코드 수와 같아야 합니다. 예: <code>C3 E3 G3 C4 E4 | C3 D3 A3 D4 F4</code></p>
+            <textarea id="s-voicings" spellcheck="false"></textarea>
+          </details>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2>미리 듣기</h2>
+            <p class="hint">속도를 올리면 차에서처럼 18·38·58·82·105 km/h에서 단계가 하나씩 들어옵니다. 브라우저 간이 음색이고, 클라우드나 ② 탭에서 만든 악기는 실제 소리로 들립니다.</p>
+            <canvas id="roll" width="1200" height="380" aria-label="피아노 롤: 코드, 선율, 베이스"></canvas>
+            <div class="player">
+              <button class="btn primary" id="play">▶ 재생</button>
+              <input type="range" id="speed" min="0" max="130" value="0" step="1" aria-label="속도 km/h">
+              <div class="speed"><span id="kmh">0</span> <small>km/h · <span id="bpmNow">0</span> BPM</small></div>
+            </div>
+            <div class="stages" id="stages"></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <h2>검사</h2>
+            <div class="status" id="score-status">악보를 입력하세요.</div>
+            <div class="btns">
+              <button class="btn primary" id="score-add" disabled>클라우드 팩에 담기</button>
+              <button class="btn" id="score-download" disabled>JSON 받기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------ instrument -->
+    <section id="tab-instrument" role="tabpanel" hidden>
+      <div class="grid">
+        <div class="card">
+          <h2>악기</h2>
+          <div class="seg" role="group" aria-label="악기 만드는 방법">
+            <button aria-pressed="true" data-mode="recorded">녹음 올리기</button>
+            <button aria-pressed="false" data-mode="designed">음색 디자인</button>
+          </div>
+          <div id="mode-recorded">
+            <p class="hint">한 음씩 녹음한 파일(WAV·MP3·M4A)을 여러 개 올립니다. 파일 이름에 음 이름(<code>C4</code>, <code>A#3</code>)이 있으면 그대로 쓰고, 없으면 음높이를 찾아냅니다. 24 kHz로 바꾸고 앱의 악기와 같은 크기로 맞춥니다. 지속음은 1.6초 이상이면 끊김 없이 이어지는 루프를 만듭니다.</p>
+            <label class="drop" id="drop">여기에 녹음 파일을 끌어 놓거나 눌러서 고르세요<input type="file" id="files" accept="audio/*" multiple hidden></label>
+          </div>
+          <div id="mode-designed" hidden>
+            <p class="hint">배음(기본음의 몇 배 높이), 크기, 울림 길이를 정해 음색을 만듭니다. 음역 안에서 장3도마다 한 음씩 만들어 담습니다.</p>
+            <div class="row">
+              <label class="f"><span>출발 음색</span><select id="d-preset"></select></label>
+              <label class="f"><span>타격 <em>초</em></span><input type="number" id="d-attack" step="0.001" min="0.001" max="0.5"></label>
+              <label class="f"><span>손 타격음</span><input type="range" id="d-thump" min="0" max="1" step="0.05"></label>
+              <label class="f"><span>일렁임 <em>Hz</em></span><input type="range" id="d-shimmer" min="0" max="3" step="0.1"></label>
+            </div>
+            <h3>배음</h3>
+            <div class="partials" id="partials"></div>
+            <div class="btns"><button class="btn" id="d-make">음 만들기</button></div>
+          </div>
+          <div class="notes" id="note-list"></div>
+          <h3>설정</h3>
+          <div class="row">
+            <label class="f"><span>아이디</span><input type="text" id="i-id"></label>
+            <label class="f"><span>악기 이름</span><input type="text" id="i-label"></label>
+            <label class="f"><span>만든 사람</span><input type="text" id="i-creator"></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="f"><span>저작권</span><select id="i-license"><option>직접 녹음 · CC BY 4.0</option><option>CC0 (퍼블릭 도메인)</option><option>직접 디자인 · CC BY 4.0</option></select></label>
+            <label class="f"><span>무대 그림</span><select id="i-look"></select></label>
+            <label class="f"><span>색</span><input type="color" id="i-color" value="#e3a857"></label>
+          </div>
+          <h3>연주할 단계</h3>
+          <div class="checks" id="i-stages"></div>
+          <div class="row" style="margin-top:12px">
+            <label class="f"><span>음역 아래</span><select id="i-min"></select></label>
+            <label class="f"><span>음역 위</span><select id="i-max"></select></label>
+            <label class="f"><span>동시 발음</span><input type="number" id="i-voices" min="1" max="8" value="4"></label>
+            <label class="f"><span>음량 <em>앱 악기 2~3</em></span><input type="number" id="i-gain" min="0.1" max="6" step="0.05" value="2.3"></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <label class="f"><span>어택 <em>초</em></span><input type="number" id="i-attack" min="0.001" max="2" step="0.005" value="0.05"></label>
+            <label class="f"><span>릴리스 <em>초</em></span><input type="number" id="i-release" min="0.01" max="4" step="0.05" value="0.3"></label>
+            <div class="checks" style="align-self:end;padding-bottom:8px"><label><input type="checkbox" id="i-sustained" checked> 지속음</label><label><input type="checkbox" id="i-mono"> 한 음씩</label></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <h2>건반으로 들어 보기</h2>
+            <p class="hint">흐린 건반은 음역 밖입니다. 차에서는 옥타브를 옮겨 연주합니다.</p>
+            <div class="keys" id="keys"></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <h2>검사</h2>
+            <div class="status" id="inst-status">음을 올리거나 만들어 주세요.</div>
+            <div class="btns">
+              <button class="btn primary" id="inst-add" disabled>클라우드 팩에 담기</button>
+              <button class="btn" id="inst-download" disabled>파일 받기 (.json + .pcm)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------ pack -->
+    <section id="tab-pack" role="tabpanel" hidden>
+      <div class="card">
+        <h2>클라우드</h2>
+        <p class="hint">지금 클라우드에 있는 악보·악기와, 이번에 담은 것입니다. 같은 아이디는 새것으로 바뀝니다.</p>
+        <div class="pack" id="pack"></div>
+        <div class="btns">
+          <button class="btn primary" id="pack-zip" disabled>올릴 팩 받기 (.zip)</button>
+        </div>
+        <div class="status" id="pack-status">① 악보나 ② 악기 탭에서 “클라우드 팩에 담기”를 누르세요.</div>
+        <details class="help" open><summary>올리는 방법 (프로토타입)</summary>
+          <p>이 시연용 클라우드는 GitHub Pages(<code>docs/cloud</code>)라서, 받은 zip을 저장소의 <code>docs/cloud</code>에 풀고 올리면 됩니다. 실제 서비스에서는 이 단계가 업로드 버튼 하나이고, 운영자가 저작권을 확인한 뒤 카탈로그에 공개합니다. 차는 클라우드 탭에서 새 목록을 받아, 정차 중에만 내려받습니다. 차가 재생할 수 없는 팩은 설치하지 않고 이전 것을 지킵니다.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">카에스트로 스튜디오 프로토타입 · 팩 형식은 저장소의 <code>tools/cloud/README.md</code>를 따르고, 검사는 차 앱의 규칙(<code>CloudLibrary</code>)과 같습니다. 이 페이지는 아무것도 서버로 보내지 않습니다: 모든 처리는 브라우저 안에서 합니다.</footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

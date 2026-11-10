@@ -4,10 +4,16 @@ Scores and instruments are **made outside the car** on a creator platform (web) 
 The car app only lists, downloads (parked) and plays them: it has no editor and never uploads.
 
 ```
-creator platform (web)  ──upload──▶  cloud (catalog + pack files)  ──download, parked──▶  car app
-  score editor / MIDI import                                                  Get tab → Albums "받은 곡"
-  record or design an instrument                                               Get tab → Band cards
+Caestro Studio (web)   ──upload──▶  cloud (catalog + pack files)  ──download, parked──▶  car app
+  score editor                                                                Cloud tab → Albums "클라우드 곡"
+  record or design an instrument                                               Cloud tab → Band cards
 ```
+
+The creator platform prototype is `docs/studio` (Caestro Studio, served at `https://hoyadong1.github.io/Caestro/studio/`):
+a score editor with a speed-layered preview, an instrument maker (upload recorded notes or design a timbre), and a pack
+export (zip of the new files plus the updated `catalog.json`). Its checks in `docs/studio/core.js` follow `CloudLibrary`;
+`node tools/studio/check.mjs` tests them and writes a studio-made pack to `app/build/studio-pack`, which
+`CloudLibraryTest.aStudioMadePackPlaysInTheCar` downloads and plays like the car.
 
 The example cloud is `docs/cloud`, served by GitHub Pages at
 `https://hoyadong1.github.io/Caestro/cloud/` (`CloudLibrary.BASE`). A debug build can point at another copy:

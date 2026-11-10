@@ -65,7 +65,8 @@ class CloudLibraryTest {
         val largo = Soundscapes.all.indexOfFirst { it.cloudId == "largo" }
         check(largo >= 0)
         check(largo in Albums.downloaded && largo !in Albums.classics && largo !in Albums.originals)
-        check(Albums.tracks(Albums.DOWNLOADED, IntArray(0)).contentEquals(intArrayOf(largo)))
+        // (aStudioMadePackPlaysInTheCar may have loaded its own score into the same process.)
+        check(Albums.tracks(Albums.DOWNLOADED, IntArray(0)).filter { !Soundscapes.all[it].cloudId!!.startsWith("studio-") } == listOf(largo))
         // The app's own content keeps its place.
         check(Soundscapes.all[0].name == "Pulse" && Instruments.all[0].id == "cello")
 
@@ -168,6 +169,44 @@ class CloudLibraryTest {
         System.getenv("CLOUD_PREVIEW")?.let { name ->
             val dir = File("build/preview").apply { mkdirs() }
             writeWav(File(dir, "$name.wav"), result.pcm)
+        }
+    }
+
+    /**
+     * A pack written by the web creator platform (docs/studio): `node tools/studio/check.mjs` writes one to
+     * build/studio-pack (a zip downloaded from the studio page can be unpacked there too). The car downloads,
+     * loads and plays it like the example cloud. Skipped when there is none.
+     */
+    @Test
+    fun aStudioMadePackPlaysInTheCar() {
+        val dir = File("build/studio-pack")
+        org.junit.Assume.assumeTrue("run node tools/studio/check.mjs first", File(dir, "catalog.json").isFile)
+        val studio = dir.canonicalFile.toURI().toString()
+        val root = Files.createTempDirectory("library").toFile()
+        val items = CloudLibrary.fetchCatalog(studio)
+        for (item in items) {
+            check(item.files.sumOf { File(dir, it).length() } == item.bytes) { "${item.id}: bytes" }
+            CloudLibrary.download(item, root, studio)
+        }
+        CloudLibrary.load(root)
+        check(CloudLibrary.installed(root) == items.map { it.id }.toSet()) { "not every pack installed: ${CloudLibrary.installed(root)}" }
+        for (item in items.filter { !it.isScore }) {
+            val index = Instruments.indexOf(item.id)
+            for (stage in 0..5) check((index in Instruments.options[stage]) == (stage in item.stages && stage != 1)) { "${item.id} on stage $stage" }
+        }
+        for (item in items.filter { it.isScore }) {
+            val track = Soundscapes.all.indexOfFirst { it.cloudId == item.id }
+            check(track >= 0 && track in Albums.downloaded) { item.id }
+            // Each stage plays the suggested instrument when the car has it, else the default band.
+            val band = IntArray(6) { stage ->
+                val id = Soundscapes.all[track].piece!!.defaults[stage]
+                val studioMade = items.firstOrNull { it.id == id && stage in it.stages }
+                Instruments.indexOf(studioMade?.id ?: id)
+            }
+            val result = drive(track, band)
+            println("Studio pack ${item.id}: band ${band.map { Instruments.all[it].id }}, peak ${result.peak}, rms ${result.levels.map { it.toInt() }}")
+            check(result.peak < 30000) { "clips: ${result.peak}" }
+            check(result.levels.all { it > 100 }) { "too quiet somewhere: ${result.levels}" }
         }
     }
 
