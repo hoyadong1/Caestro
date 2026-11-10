@@ -495,6 +495,18 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                     status.band.size == 6 -> "「${scene.name}」 · 지금 나만의 악단을 따릅니다. 바꾸면 이 곡만 달라집니다."
                     else -> "「${scene.name}」 · 지금 곡의 추천 편성입니다. 바꾸면 이 곡만 달라집니다."
                 }, 18.sp, Palette.Muted)
+                // Say so when the change will not be heard in the track playing now.
+                val unheard = when {
+                    scene.piece == null -> "지금 곡 「${scene.name}」은 오리지널 곡이라 악단이 연주하지 않습니다. 클래식·클라우드 곡에서 들립니다."
+                    band && status.ownInstruments -> "지금 곡 「${scene.name}」은 따로 편성해 두어 악단을 바꿔도 그대로입니다."
+                    else -> null
+                }
+                if (unheard != null) Row(verticalAlignment = Alignment.CenterVertically) {
+                    Label(unheard, 18.sp, Palette.DemoSignal, bold = true, modifier = Modifier.weight(1f, fill = false))
+                    if (band && status.ownInstruments) TextButton({ actions.resetInstruments(false) }) {
+                        Text("이 곡도 악단 따르기", fontSize = 18.sp, color = accent, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
             // Up here, next to the band/track switch, so the six presets fit on one line.
             TextButton({ actions.resetInstruments(band) }, enabled = if (band) status.band.size == 6 else status.ownInstruments) {
@@ -535,10 +547,14 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                         modifier = Modifier.semantics { contentDescription = "악기 카드 크게" }) { Text("＋", fontSize = 26.sp, color = Palette.Muted) }
                 }
                 Row(Modifier.padding(top = 4.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (status.playing) {
+                    // Heard now only where the playing track follows what is being edited.
+                    val heardNow = scene.piece != null && !(band && status.ownInstruments)
+                    if (status.playing && heardNow) {
                         Box(Modifier.size(10.dp).background(accent, CircleShape)); Spacer(Modifier.width(8.dp))
                         Label(if (stage == 0) "베이스는 늘 들립니다. 고르면 바로 바뀝니다." else "지금 이 단계를 미리 들려줍니다. 고르면 바로 바뀝니다.",
                             19.sp, accent)
+                    } else if (status.playing) {
+                        Label("고른 악기는 저장되고, 이 악단을 따르는 곡에서 들립니다.", 19.sp, Palette.Muted)
                     } else {
                         Label("재생을 켜면 고르는 악기를 바로 들을 수 있습니다.", 19.sp, Palette.Muted, modifier = Modifier.weight(1f, fill = false))
                         Spacer(Modifier.width(12.dp))

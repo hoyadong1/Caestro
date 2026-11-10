@@ -92,6 +92,12 @@ class ScreenshotTest {
         tap("악기 카드 크게"); tap("악기 카드 크게"); tap("악기 카드 크게")
         shoot("5c-band-melody-2-columns")
         tap("악기 카드 작게")
+        // When the change would not be heard in the track playing now, the band page says so.
+        status = parked.copy(ownInstruments = true)
+        shoot("5d-band-own-track")
+        status = parked.copy(preset = Soundscapes.all.indexOfFirst { it.name == "Pulse" }, instruments = emptyList())
+        shoot("5e-band-original-track")
+        status = parked
         // Driving at 47 km/h: the rail locks and only Now playing is shown.
         status = parked.copy(kmh = 47.0, bpm = 68, layers = 3, layerMask = 0b111)
         shoot("6-now-playing-driving")

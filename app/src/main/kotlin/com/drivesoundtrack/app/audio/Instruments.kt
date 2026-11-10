@@ -218,11 +218,13 @@ internal abstract class Voice(private val env: Adsr) {
         this.velocity = velocity
         gate = gateSamples
         target = frequency
-        if (legato && !env.idle) env.legato()
+        if (legato && !env.idle) { env.legato(); legatoTo(frequency) }
         else { hz = frequency; age = 0.0; env.restart(); reset() }
     }
 
     protected open fun reset() {}
+    /** A tied-on note in a mono line ([hz] glides there); a sampled voice may move to a closer recording. */
+    protected open fun legatoTo(frequency: Double) {}
     protected abstract fun wave(c: Controls): Double
     protected fun pitch(c: Controls) = if (bendable) hz * c.bend else hz
 

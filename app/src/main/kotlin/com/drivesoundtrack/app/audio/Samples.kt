@@ -138,16 +138,44 @@ internal class SamplePlayer {
 /** A real instrument's note: the nearest recorded note shifted to pitch, shaped by the envelope. */
 internal class SampleVoice(id: String, attack: Double, release: Double) : Voice(Adsr(attack, 60.0, 1.0, release)) {
     private val set = SampleBank.set(id)
-    private val player = SamplePlayer()
+    private var player = SamplePlayer()
     private var root = 440.0
+    // A mono line moving far from the note it started on hands over to the recording nearest the new
+    // note (otherwise one recording would be stretched over the whole melody), crossfading so it cannot click.
+    private var outgoing = SamplePlayer()
+    private var outgoingRoot = 440.0
+    private var blend = 1.0
 
     override fun reset() {
         val note = set?.nearest(hz)
         root = note?.root ?: 440.0
         player.start(set, note)
+        outgoing.stop()
+        blend = 1.0
     }
 
-    override fun wave(c: Controls): Double = player.next(pitch(c) / root * (SampleBank.RATE / Dsp.RATE))
+    override fun legatoTo(frequency: Double) {
+        val note = set?.nearest(frequency) ?: return
+        if (note.root == root) return
+        val previous = outgoing
+        outgoing = player; outgoingRoot = root
+        player = previous
+        root = note.root
+        player.start(set, note)
+        blend = 0.0
+    }
+
+    override fun wave(c: Controls): Double {
+        val rate = SampleBank.RATE / Dsp.RATE
+        val now = player.next(pitch(c) / root * rate)
+        if (blend >= 1.0) return now
+        blend = (blend + BLEND_STEP).coerceAtMost(1.0)
+        val before = outgoing.next(pitch(c) / outgoingRoot * rate)
+        if (blend >= 1.0) outgoing.stop()
+        return now * blend + before * (1.0 - blend)
+    }
+
+    private companion object { const val BLEND_STEP = 1.0 / (0.03 * Dsp.RATE) }
 }
 
 /**
