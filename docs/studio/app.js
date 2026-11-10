@@ -13,7 +13,65 @@ let cloudCatalog = { format: 1, name: '카에스트로 클라우드', items: [] 
 
 const SUSTAINED = new Set(['cello', 'bassoon', 'organ', 'strings', 'viola', 'horn', 'violin', 'flute', 'clarinet', 'oboe', 'trumpet', 'choir', 'synthstrings', 'glasspad']);
 const SUSTAINED_HIGH = new Set(['flute', 'violin', 'strings', 'glasspad']);
-const STAGE_LEVEL = [0.9, 0.5, 0.55, 0.6, 0.7, 0.5];
+const STAGE_LEVEL = [1, 1, 1, 1, 1, 1];
+/** The app's own level per stage (PieceEngine.STAGE_GAIN) and the studio's output trim. */
+const STAGE_GAIN = [0.085, 1.0, 0.036, 0.054, 0.066, 0.036];
+const OUTPUT = 2.4;
+
+// ------------------------------------------------------------------ the app's instruments, recorded from the app
+
+/** bank.json: every built-in instrument rendered with the app's own voices (StudioBankExport). */
+let bank = null;
+const bankBuffers = new Map();
+/** The decoded recording of [id], or null while it loads (loading starts on the first ask). */
+function bankBuffer(id) {
+  const info = bank?.instruments[id];
+  if (!info) return null;
+  const have = bankBuffers.get(id);
+  if (have instanceof AudioBuffer) return have;
+  if (!have) bankBuffers.set(id, fetch('bank/' + info.file).then(r => r.arrayBuffer()).then(x => audio().decodeAudioData(x))
+    .then(buffer => { bankBuffers.set(id, buffer); return buffer; }).catch(() => bankBuffers.delete(id)));
+  return null;
+}
+function preloadBand() { for (const id of readDefaults() ?? []) bankBuffer(id); }
+async function loadBank() {
+  try { bank = await (await fetch('bank/bank.json')).json(); preloadBand(); } catch { /* the simple voices stand in */ }
+}
+/** One note of a built-in instrument from the bank; false while its recording is not loaded yet. */
+function playBank(id, stage, midi, when, dur, vel, dest) {
+  const info = bank?.instruments[id], buffer = bankBuffer(id);
+  if (!info || !buffer || info.kind !== 'melodic') return false;
+  let m = midi;
+  while (m < info.min) m += 12;
+  while (m > info.max) m -= 12;
+  let best = info.notes[0];
+  for (const n of info.notes) if (Math.abs(n.midi - m) < Math.abs(best.midi - m)) best = n;
+  const a = audio(), src = a.createBufferSource(), g = a.createGain();
+  src.buffer = buffer;
+  src.playbackRate.value = 2 ** ((m - best.midi) / 12);
+  const available = info.slot / src.playbackRate.value;
+  const end = info.sustained ? Math.max(0.05, Math.min(dur, available - 0.3)) : Math.min(available, dur + 1.2);
+  const level = vel * STAGE_GAIN[stage] * OUTPUT / bank.scale / 0.9;
+  g.gain.setValueAtTime(level, when);
+  g.gain.setValueAtTime(level, when + end);
+  g.gain.setTargetAtTime(0, when + end, info.sustained ? 0.08 : 0.15);
+  src.connect(g).connect(dest);
+  src.start(when, best.at, info.slot);
+  src.stop(when + end + 0.8);
+  return true;
+}
+/** One bar of a built-in rhythm section, from the bank, stretched to the tempo. */
+function playKit(id, beats, when, bpm, dest) {
+  const info = bank?.instruments[id], buffer = bankBuffer(id);
+  if (!info || !buffer || info.kind !== 'rhythm') return false;
+  const [start, length] = info.loops[beats] ?? info.loops['4'];
+  const a = audio(), src = a.createBufferSource(), g = a.createGain();
+  src.buffer = buffer; src.playbackRate.value = bpm / info.bpm;
+  g.gain.value = STAGE_GAIN[1] * OUTPUT / bank.scale;
+  src.connect(g).connect(dest);
+  src.start(when, start, length);
+  return true;
+}
 
 function save(name, bytes, type = 'application/octet-stream') {
   const url = URL.createObjectURL(new Blob([bytes], { type }));
@@ -56,7 +114,7 @@ function pcmToFloat(bytes) {
   return out;
 }
 
-function playSample(inst, midi, when, dur, vel, dest) {
+function playSample(inst, midi, when, dur, vel, dest, stage = 4) {
   const m0 = inst.manifest;
   let m = midi;
   while (m < m0.minMidi) m += 12;
@@ -68,7 +126,7 @@ function playSample(inst, midi, when, dur, vel, dest) {
   src.buffer = best.buffer;
   src.playbackRate.value = f / best.root;
   if (m0.sustained && best.loopStart >= 0) { src.loop = true; src.loopStart = best.loopStart; src.loopEnd = best.loopEnd; }
-  const level = vel * m0.gain * 0.16, attack = Math.max(0.002, m0.attack), release = Math.max(0.02, m0.release);
+  const level = vel * m0.gain * STAGE_GAIN[stage] * OUTPUT, attack = Math.max(0.002, m0.attack), release = Math.max(0.02, m0.release);
   g.gain.setValueAtTime(0, when);
   g.gain.linearRampToValueAtTime(level, when + attack);
   const off = when + Math.max(dur, attack);
@@ -241,9 +299,10 @@ function renderStages(defaults = readDefaults()) {
     const want = defaults?.[stage] ?? C.BAND_DEFAULT[stage];
     if (![...sel.options].some(o => o.value === want)) sel.add(new Option(`${want} (차에 없으면 기본)`, want));
     sel.value = want;
-    sel.addEventListener('change', onScoreInput);
+    sel.addEventListener('change', () => { bankBuffer(sel.value); onScoreInput(); });
   });
   updateStageLights();
+  preloadBand();
 }
 function readDefaults() { const s = stageBox.querySelectorAll('select'); return s.length ? [...s].map(x => x.value) : null; }
 
@@ -372,6 +431,7 @@ function ensureGraph() {
   const a = audio();
   master = a.createDynamicsCompressor(); master.threshold.value = -12; master.ratio.value = 3;
   const out = a.createGain(); out.gain.value = 0.9; master.connect(out).connect(a.destination);
+  if (DEBUG) { DEBUG.analyser = a.createAnalyser(); DEBUG.analyser.fftSize = 4096; out.connect(DEBUG.analyser); }
   stageGains = C.STAGES.map((_, s) => { const g = a.createGain(); g.gain.value = s === 0 ? 1 : 0; g.connect(master); return g; });
 }
 function speed() { return Number(speedInput.value); }
@@ -392,15 +452,23 @@ function playStage(stage, midi, steps, vel, when, stepDur) {
   if (id === 'none') return;
   const dur = steps * stepDur * 0.95, dest = stageGains[stage];
   const inst = sampled.get(id);
-  if (inst) playSample(inst, midi, when, dur, vel, dest); else synth(stage, id, midi, when, dur, vel, dest);
+  if (inst) playSample(inst, midi, when, dur, vel, dest, stage);
+  else if (!playBank(id, stage, midi, when, dur, vel, dest)) synth(stage, id, midi, when, dur, vel, dest);
 }
-function sustainedAt(stage) { const id = readDefaults()?.[stage]; const s = sampled.get(id); return s ? s.manifest.sustained : (stage === 5 ? SUSTAINED_HIGH : SUSTAINED).has(id); }
+function sustainedAt(stage) {
+  const id = readDefaults()?.[stage], s = sampled.get(id);
+  if (s) return s.manifest.sustained;
+  if (bank?.instruments[id]) return bank.instruments[id].sustained;
+  return (stage === 5 ? SUSTAINED_HIGH : SUSTAINED).has(id);
+}
 
 function scheduleStep(p, s, when, stepDur) {
   const spb = p.spb, position = s % spb, span = p.chords[p.chordAt[s]];
   const accent = position === 0 ? 1 : position % 4 === 0 ? 0.86 : 0.74;
   const b = p.bassAt[s]; if (b) playStage(0, b.midi, b.length, 0.95, when, stepDur);
-  if (readDefaults()?.[1] !== 'none') drum(position, spb, when, stageGains[1]);
+  const kit = readDefaults()?.[1];
+  if (kit !== 'none' && !(bank?.instruments[kit] && bankBuffer(kit))) drum(position, spb, when, stageGains[1]);
+  else if (kit !== 'none' && position === 0) playKit(kit, p.beats, when, 60 / stepDur / 4, stageGains[1]);
   if (sustainedAt(2)) { if (span.start === s) for (const m of span.harmony) playStage(2, m, span.length, 0.8, when, stepDur); }
   else if (p.comp[position]) { let until = 1; while (position + until < spb && !p.comp[position + until]) until++; for (const m of span.harmony) playStage(2, m, until, accent * 0.85, when, stepDur); }
   const index = p.arp[position];
@@ -660,7 +728,7 @@ $('keys').addEventListener('pointerdown', async e => {
   e.preventDefault();
   if (!preview) { toast('먼저 소리를 넣어 주세요'); return; }
   await audio().resume(); ensureGraph();
-  playSample(preview, m, ctx.currentTime + 0.01, preview.manifest.sustained ? 0.9 : 0.4, 1, master);
+  playSample(preview, m, ctx.currentTime + 0.01, preview.manifest.sustained ? 0.9 : 0.4, 1, master, 4);
 });
 $('inst-download').addEventListener('click', () => { if (!built) return; save(built.manifest.id + '.json', C.utf8(built.json), 'application/json'); setTimeout(() => save(built.manifest.pcm, built.pcm), 400); });
 $('inst-add').addEventListener('click', () => {
@@ -721,6 +789,9 @@ renderMelodyKeys(); renderTyped();
 compose();
 applyKind('long');
 renderKeys();
+// ?debug exposes the bank and the output analyser to automated checks.
+const DEBUG = new URLSearchParams(location.search).has('debug') ? (window.__studio = { bankBuffer, playBank, get bank() { return bank; }, get stageGains() { return stageGains; } }) : null;
+loadBank();
 loadCloud();
 const start = location.hash.slice(1);
 if (['score', 'instrument', 'pack'].includes(start)) showTab(start);

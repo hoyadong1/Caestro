@@ -15,6 +15,8 @@ preview, an instrument maker (record in the browser, upload recorded notes or de
 export (zip of the new files plus the updated `catalog.json`). Its checks in `docs/studio/core.js` follow `CloudLibrary`;
 `node tools/studio/check.mjs` tests them and writes a studio-made pack to `app/build/studio-pack`, which
 `CloudLibraryTest.aStudioMadePackPlaysInTheCar` downloads and plays like the car.
+The studio previews the app's own instruments with recordings of the app's voices (`docs/studio/bank`, made by
+`StudioBankExport` with `STUDIO_BANK=1` and compressed by `tools/studio/bank.py`), so a band sounds as in the car.
 
 The example cloud is `docs/cloud`, served by GitHub Pages at
 `https://hoyadong1.github.io/Caestro/cloud/` (`CloudLibrary.BASE`). A debug build can point at another copy:
