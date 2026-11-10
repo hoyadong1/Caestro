@@ -47,14 +47,14 @@ class CarPedalReader {
                         try {
                             onPedal(props.getFloatProperty(VehiclePropertyIds.ACCELERATOR_PEDAL_COMPRESSION_PERCENTAGE, 0).toDouble())
                         } catch (ex: RuntimeException) {
-                            Log.w("DriveSoundtrack", "Initial accelerator value unavailable", ex)
+                            Log.w("Caestro", "Initial accelerator value unavailable", ex)
                         }
-                    } catch (ex: Exception) { Log.w("DriveSoundtrack", "Accelerator property unavailable", ex); onPedal(null) }
-                      catch (ex: LinkageError) { Log.w("DriveSoundtrack", "Accelerator property unavailable", ex); onPedal(null) }
+                    } catch (ex: Exception) { Log.w("Caestro", "Accelerator property unavailable", ex); onPedal(null) }
+                      catch (ex: LinkageError) { Log.w("Caestro", "Accelerator property unavailable", ex); onPedal(null) }
                 })
             if (car == null) onPedal(null)
-        } catch (ex: Exception) { Log.w("DriveSoundtrack", "Car pedal service unavailable", ex); onPedal(null) }
-          catch (ex: LinkageError) { Log.w("DriveSoundtrack", "Car pedal service unavailable", ex); onPedal(null) }
+        } catch (ex: Exception) { Log.w("Caestro", "Car pedal service unavailable", ex); onPedal(null) }
+          catch (ex: LinkageError) { Log.w("Caestro", "Car pedal service unavailable", ex); onPedal(null) }
     }
 
     private fun clear() {

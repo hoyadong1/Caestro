@@ -42,7 +42,7 @@ class CarSpeedReader {
                         }
                         if (!properties.registerCallback(speedCallback, VehiclePropertyIds.PERF_VEHICLE_SPEED,
                                 CarPropertyManager.SENSOR_RATE_ONCHANGE)) {
-                            Log.w("DriveSoundtrack", "Vehicle speed subscription was rejected")
+                            Log.w("Caestro", "Vehicle speed subscription was rejected")
                             onConnection(false)
                             return@CarServiceLifecycleListener
                         }
@@ -52,24 +52,24 @@ class CarSpeedReader {
                         try {
                             onSpeed(properties.getFloatProperty(VehiclePropertyIds.PERF_VEHICLE_SPEED, 0).toDouble() * 3.6)
                         } catch (ex: RuntimeException) {
-                            Log.w("DriveSoundtrack", "Initial vehicle speed unavailable; waiting for subscription", ex)
+                            Log.w("Caestro", "Initial vehicle speed unavailable; waiting for subscription", ex)
                         }
                     } catch (ex: Exception) {
-                        Log.w("DriveSoundtrack", "Vehicle speed subscription unavailable", ex)
+                        Log.w("Caestro", "Vehicle speed subscription unavailable", ex)
                         clearSubscription()
                         onConnection(false)
                     } catch (ex: LinkageError) {
-                        Log.w("DriveSoundtrack", "Vehicle speed subscription unavailable", ex)
+                        Log.w("Caestro", "Vehicle speed subscription unavailable", ex)
                         clearSubscription()
                         onConnection(false)
                     }
                 })
             if (car == null) onConnection(false)
         } catch (ex: Exception) {
-            Log.w("DriveSoundtrack", "Car service connection unavailable", ex)
+            Log.w("Caestro", "Car service connection unavailable", ex)
             onConnection(false)
         } catch (ex: LinkageError) {
-            Log.w("DriveSoundtrack", "Car service connection unavailable", ex)
+            Log.w("Caestro", "Car service connection unavailable", ex)
             onConnection(false)
         }
     }

@@ -14,4 +14,4 @@ if ($LASTEXITCODE -ne 0) { throw 'Normal media playback did not start.' }
 
 Write-Host 'Normal playback started. Open http://127.0.0.1:8088/ and set D, then vary speed.'
 Write-Host 'The app screen may be hidden in D; listen for the soundtrack and check the media session.'
-Write-Host 'For speed callback logs from the debug APK: adb logcat -s DriveSoundtrack:I'
+Write-Host 'For speed callback logs from the debug APK: adb logcat -s Caestro:I'

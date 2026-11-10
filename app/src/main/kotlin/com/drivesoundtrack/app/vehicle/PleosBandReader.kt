@@ -43,10 +43,10 @@ class PleosBandReader {
             readTurn(connected, model, onUpdate)
             readWiper(connected, model, onUpdate)
         } catch (ex: Exception) {
-            Log.w("DriveSoundtrack", "Pleos band signals unavailable", ex)
+            Log.w("Caestro", "Pleos band signals unavailable", ex)
             stop()
         } catch (ex: LinkageError) {
-            Log.w("DriveSoundtrack", "Pleos band signals unavailable", ex)
+            Log.w("Caestro", "Pleos band signals unavailable", ex)
             stop()
         }
     }
@@ -62,7 +62,7 @@ class PleosBandReader {
             api.registerBrakePedalStatus(listener)
             api.getCurrentBrakePedalStatus({ if (!closed) { model.setBrake(it); update() } },
                 { if (!closed) { model.setBrake(null); update() } })
-        } catch (ex: Exception) { Log.w("DriveSoundtrack", "Brake signal unavailable", ex) }
+        } catch (ex: Exception) { Log.w("Caestro", "Brake signal unavailable", ex) }
     }
 
     /**
@@ -85,7 +85,7 @@ class PleosBandReader {
             api.registerSteeringWheelAngle(listener)
             api.getCurrentSteeringWheelAngle({ if (!closed) { model.setSteering(toAppSteering(it)); update() } },
                 { if (!closed) { model.setSteering(null); update() } })
-        } catch (ex: Exception) { Log.w("DriveSoundtrack", "Steering signal unavailable", ex) }
+        } catch (ex: Exception) { Log.w("Caestro", "Steering signal unavailable", ex) }
     }
 
     private fun readTurn(v: Vehicle, model: SoundModel, update: () -> Unit) {
@@ -104,14 +104,14 @@ class PleosBandReader {
             turnListener = listener
             api.registerTurnSignalState(listener)
             api.getCurrentTurnSignalState({ apply(it) }, { apply(null) })
-        } catch (ex: Exception) { Log.w("DriveSoundtrack", "Turn signal unavailable", ex) }
+        } catch (ex: Exception) { Log.w("Caestro", "Turn signal unavailable", ex) }
     }
 
     private fun readWiper(v: Vehicle, model: SoundModel, update: () -> Unit) {
         try {
             val api = v.getWiper().also { wiperApi = it }
             fun apply(value: WiperState?) {
-                Log.d("DriveSoundtrack", "Wiper state: $value")
+                Log.d("Caestro", "Wiper state: $value")
                 if (!closed) { model.setWiper(when (value) { WiperState.ON -> true; WiperState.OFF -> false; else -> null }); update() }
             }
             val listener = object : WiperStateListener {
@@ -122,7 +122,7 @@ class PleosBandReader {
             api.registerWiperState(frontGlass, listener)
             api.getCurrentWiperState(frontGlass, { apply(it) }, { apply(null) })
             pollWiperSwitch(model)
-        } catch (ex: Exception) { Log.w("DriveSoundtrack", "Wiper signal unavailable", ex) }
+        } catch (ex: Exception) { Log.w("Caestro", "Wiper signal unavailable", ex) }
     }
 
     /** The virtual console exposes a switch even where its actual-state callback is missing. */

@@ -38,21 +38,21 @@ class DriveRestrictionsReader {
                         listener(restrictions.currentCarUxRestrictions?.isRequiresDistractionOptimization
                             ?: restrictedWhenUnavailable)
                     } catch (ex: Exception) {
-                        Log.w("DriveSoundtrack", "Driving restrictions unavailable", ex)
+                        Log.w("Caestro", "Driving restrictions unavailable", ex)
                         clearManager()
                         listener(restrictedWhenUnavailable)
                     } catch (ex: LinkageError) {
-                        Log.w("DriveSoundtrack", "Driving restrictions unavailable", ex)
+                        Log.w("Caestro", "Driving restrictions unavailable", ex)
                         clearManager()
                         listener(restrictedWhenUnavailable)
                     }
                 })
             if (car == null) listener(restrictedWhenUnavailable)
         } catch (ex: Exception) {
-            Log.w("DriveSoundtrack", "Car service connection unavailable", ex)
+            Log.w("Caestro", "Car service connection unavailable", ex)
             listener(restrictedWhenUnavailable)
         } catch (ex: LinkageError) {
-            Log.w("DriveSoundtrack", "Car service connection unavailable", ex)
+            Log.w("Caestro", "Car service connection unavailable", ex)
             listener(restrictedWhenUnavailable)
         }
     }

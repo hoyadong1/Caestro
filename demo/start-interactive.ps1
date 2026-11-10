@@ -12,7 +12,7 @@ $adb = Join-Path $sdk 'platform-tools\adb.exe'
 $root = Split-Path $PSScriptRoot -Parent
 $debugApk = Join-Path $root 'app\build\outputs\apk\debug\app-debug.apk'
 if (!$Apk) {
-    $Apk = (Get-ChildItem -LiteralPath (Join-Path $root 'apk') -Filter '*_DriveSoundtrack_release.apk' |
+    $Apk = (Get-ChildItem -LiteralPath (Join-Path $root 'apk') -Filter '*_Caestro_release.apk' |
         Select-Object -First 1 -ExpandProperty FullName)
 }
 foreach ($path in @($emulator, $adb, $Apk)) {

@@ -139,10 +139,10 @@ class SoundtrackService : MediaBrowserService() {
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
             .setOnAudioFocusChangeListener { change ->
                 if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
-                    Log.i("DriveSoundtrack", "Audio focus change: $change")
+                    Log.i("Caestro", "Audio focus change: $change")
                 if (change <= 0) pause()
             }.build()
-        session = MediaSession(this, "DriveSoundtrack")
+        session = MediaSession(this, "Caestro")
         session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
         session.setCallback(object : MediaSession.Callback() {
             override fun onPlay() = play()
@@ -256,7 +256,7 @@ class SoundtrackService : MediaBrowserService() {
         startForeground(1, playbackNotification())
         true
     } catch (ex: RuntimeException) {
-        Log.w("DriveSoundtrack", "Foreground service not allowed now", ex)
+        Log.w("Caestro", "Foreground service not allowed now", ex)
         false
     }
 
@@ -272,7 +272,7 @@ class SoundtrackService : MediaBrowserService() {
                 vehicleKmh = kmh
                 if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && kmh.toInt() != loggedVehicleKmh) {
                     loggedVehicleKmh = kmh.toInt()
-                    Log.i("DriveSoundtrack", "Vehicle speed received: $loggedVehicleKmh km/h")
+                    Log.i("Caestro", "Vehicle speed received: $loggedVehicleKmh km/h")
                 }
                 if (scenarioEnabled && kmh >= 5.0) handOffScenarioToVehicle()
                 if (!debugJourneyEnabled && !scenarioEnabled) model.setSpeed(kmh)
@@ -341,7 +341,7 @@ class SoundtrackService : MediaBrowserService() {
             val wasPlaying = playing
             if (wasPlaying) engine.stop()
             buildEngine()
-            if (wasPlaying) engine.start { ex -> Log.w("DriveSoundtrack", "Audio output failed", ex); pause() }
+            if (wasPlaying) engine.start { ex -> Log.w("Caestro", "Audio output failed", ex); pause() }
         }
         broadcastStatus()
     }
@@ -436,7 +436,7 @@ class SoundtrackService : MediaBrowserService() {
         try {
             startForeground(1, playbackNotification())
         } catch (ex: RuntimeException) {
-            Log.w("DriveSoundtrack", "Playback cannot start in the current vehicle state", ex)
+            Log.w("Caestro", "Playback cannot start in the current vehicle state", ex)
             playing = false
             audioManager.abandonAudioFocusRequest(focusRequest)
             updateSession()
@@ -444,7 +444,7 @@ class SoundtrackService : MediaBrowserService() {
             return
         }
         engine.start { ex ->
-            Log.w("DriveSoundtrack", "Audio output failed", ex)
+            Log.w("Caestro", "Audio output failed", ex)
             pause()
         }
         updateSession()

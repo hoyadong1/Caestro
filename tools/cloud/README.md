@@ -10,7 +10,7 @@ creator platform (web)  ──upload──▶  cloud (catalog + pack files)  ─
 ```
 
 The example cloud is `docs/cloud`, served by GitHub Pages at
-`https://hoyadong1.github.io/DriveSoundtrack/cloud/` (`CloudLibrary.BASE`). A debug build can point at another copy:
+`https://hoyadong1.github.io/Caestro/cloud/` (`CloudLibrary.BASE`). A debug build can point at another copy:
 `adb shell am start -n com.drivesoundtrack.app/.MainActivity --es cloudBase https://.../cloud/`.
 
     python build_cloud.py <cache dir>     # rebuilds the example instruments and catalog.json (needs numpy)
