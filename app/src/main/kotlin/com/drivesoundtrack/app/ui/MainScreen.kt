@@ -71,6 +71,7 @@ import com.drivesoundtrack.app.audio.Soundscapes
 import com.drivesoundtrack.app.library.CloudLibrary
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.roundToInt
@@ -94,7 +95,7 @@ private const val EDIT_BAND = 2
  */
 @Composable
 fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: Boolean, actions: PlayerActions,
-               cloud: CloudState = CloudState()) {
+               cloud: CloudState = CloudState(), onTap: () -> Unit = {}) {
     val config = LocalConfiguration.current
     val landscape = config.screenWidthDp > config.screenHeightDp
     val canConfigure = !restricted && (status.scenarioEnabled || !status.carAvailable || status.kmh < 5)
@@ -106,7 +107,7 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
     val editTrack = { bandMode = EDIT_TRACK; tab = TAB_BAND }
 
     MaterialTheme(colorScheme = darkColorScheme(primary = accent)) {
-        Row(Modifier.fillMaxSize().background(Palette.Background)) {
+        Row(Modifier.fillMaxSize().background(Palette.Background).tapSounds(onTap)) {
             NavRail(shown, canConfigure, accent) { tab = it }
             Box(Modifier.weight(1f).fillMaxHeight().padding(start = 24.dp, top = 22.dp, end = 30.dp, bottom = 20.dp)) {
                 when (shown) {
@@ -121,6 +122,22 @@ fun MainScreen(status: PlayerStatus, restricted: Boolean, canRequestPermission: 
                     else -> BandPage(status, bandMode, accent, landscape, actions) { bandMode = it }
                 }
             }
+        }
+    }
+}
+
+/**
+ * A tap sound for every press that a button, tab or card took: watched after the children have handled the
+ * touch, it sounds when the lift was consumed (a click) and the finger did not move (not a scroll or a drag).
+ */
+private fun Modifier.tapSounds(onTap: () -> Unit) = pointerInput(onTap) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Final)
+        var moved = false
+        while (true) {
+            val change = awaitPointerEvent(PointerEventPass.Final).changes.firstOrNull { it.id == down.id } ?: break
+            if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) moved = true
+            if (!change.pressed) { if (change.isConsumed && !moved) onTap(); break }
         }
     }
 }
@@ -479,7 +496,11 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
     val chosenIds = if (band) status.band.takeIf { it.size == 6 } ?: Instruments.BAND_DEFAULT.map { Instruments.indexOf(it) }
     else status.instruments
     var stage by rememberSaveable { mutableStateOf(0) }
-    var columns by rememberSaveable { mutableStateOf(3) }
+    var columns by rememberSaveable { mutableStateOf(2) }
+    // Heard now only where the playing track follows what is being edited.
+    val heardNow = scene.piece != null && !(band && status.ownInstruments)
+    // Stopped: a choice plays for a few seconds so it is never silent.
+    val previewOnChoice = { s: Int -> if (!status.playing && heardNow) actions.preview(s) }
     // Hear the stage being chosen: the bass always plays, any other stage is brought in.
     DisposableEffect(stage) {
         actions.audition(if (stage >= 1) stage else -1)
@@ -530,7 +551,7 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
         val slots: @Composable (Modifier) -> Unit = { modifier ->
             Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (s in 0..5) StageSlot(s, chosenIds.getOrElse(s) { 0 }, s == stage,
-                    if (landscape) Modifier.weight(1f) else Modifier.height(88.dp)) { stage = s }
+                    if (landscape) Modifier.weight(1f) else Modifier.height(88.dp)) { stage = s; previewOnChoice(s) }
             }
         }
         val picker: @Composable (Modifier) -> Unit = { modifier ->
@@ -548,8 +569,6 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                         modifier = Modifier.semantics { contentDescription = "악기 카드 크게" }) { Text("＋", fontSize = 26.sp, color = Palette.Muted) }
                 }
                 Row(Modifier.padding(top = 4.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    // Heard now only where the playing track follows what is being edited.
-                    val heardNow = scene.piece != null && !(band && status.ownInstruments)
                     if (status.playing && heardNow) {
                         Box(Modifier.size(10.dp).background(accent, CircleShape)); Spacer(Modifier.width(8.dp))
                         Label(if (stage == 0) "베이스는 늘 들립니다. 고르면 바로 바뀝니다." else "지금 이 단계를 미리 들려줍니다. 고르면 바로 바뀝니다.",
@@ -557,7 +576,8 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                     } else if (status.playing) {
                         Label("고른 악기는 저장되고, 이 악단을 따르는 곡에서 들립니다.", 19.sp, Palette.Muted)
                     } else {
-                        Label("재생을 켜면 고르는 악기를 바로 들을 수 있습니다.", 19.sp, Palette.Muted, modifier = Modifier.weight(1f, fill = false))
+                        Label(if (heardNow) "고르면 몇 초 들려줍니다. 재생하면 계속 들으며 고를 수 있습니다."
+                            else "재생을 켜면 고르는 악기를 바로 들을 수 있습니다.", 19.sp, Palette.Muted, modifier = Modifier.weight(1f, fill = false))
                         Spacer(Modifier.width(12.dp))
                         Button(actions::togglePlay, shape = RoundedCornerShape(12.dp)) { Text("▶  재생", fontSize = 19.sp, color = Palette.Background) }
                     }
@@ -568,6 +588,7 @@ private fun BandPage(status: PlayerStatus, requestedMode: Int, accent: Color, la
                         for (kind in row) InstrumentCard(kind, kind == chosenIds.getOrElse(stage) { 0 },
                             Modifier.weight(1f).height(CARD_HEIGHT[columns - MIN_COLUMNS])) {
                             actions.setInstrument(stage, kind, band)
+                            previewOnChoice(stage)
                         }
                         repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                     }

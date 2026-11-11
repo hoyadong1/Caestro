@@ -27,13 +27,24 @@ class SynthEngine(model: SoundModel) {
     fun setAudition(stage: Int) = renderer.setAudition(stage)
     fun setDebugSpeedJourney(enabled: Boolean) = renderer.setDebugSpeedJourney(enabled)
     fun armCapture(file: File) { captureFile = file }
+    @Volatile private var fadeInFrames = 0
+    @Volatile private var fadeOutFrames = 0
 
-    @Synchronized fun start(onFailure: (RuntimeException) -> Unit) {
+    /**
+     * Starts the sound ([fadeInMs] > 0 rises from silence, for short previews). When it is already running this
+     * cancels a [fadeOutAndStop] in progress.
+     */
+    @Synchronized fun start(fadeInMs: Int = 0, onFailure: (RuntimeException) -> Unit) {
+        fadeOutFrames = 0
         if (running) return
         running = true
+        fadeInFrames = SoundRenderer.RATE * fadeInMs / 1000
         val currentGeneration = ++generation
         worker = Thread({ render(currentGeneration, onFailure) }, "soundtrack-synth").also { it.start() }
     }
+
+    /** Fades out over [ms] and then stops by itself. */
+    fun fadeOutAndStop(ms: Int) { if (running) fadeOutFrames = maxOf(1, SoundRenderer.RATE * ms / 1000) }
 
     @Synchronized fun stop() {
         running = false
@@ -61,20 +72,50 @@ class SynthEngine(model: SoundModel) {
             current.play()
             capture = captureFile?.let { PcmCapture(it) }
             captureFile = null
+            DebugTimeline.streamStarted(value)
             val pcm = ShortArray(1024 * SoundRenderer.CHANNELS)
+            val fadeIn = fadeInFrames
+            var frame = 0L
+            var outTotal = 0
+            var outDone = 0
+            var gain = 1.0
             while (isCurrent(value)) {
                 renderer.render(pcm)
+                // Preview fades: in from silence, out to silence and then stop. A new start cancels the fade-out.
+                val requested = fadeOutFrames
+                if (requested > 0 && outTotal == 0) { outTotal = requested; outDone = 0 }
+                else if (requested == 0 && outTotal > 0) outTotal = 0
+                if ((fadeIn > 0 && frame < fadeIn) || outTotal > 0 || gain < 1.0) {
+                    for (i in 0 until pcm.size / SoundRenderer.CHANNELS) {
+                        val target = when {
+                            outTotal > 0 -> (1.0 - (outDone + i).toDouble() / outTotal).coerceAtLeast(0.0)
+                            fadeIn > 0 && frame + i < fadeIn -> (frame + i).toDouble() / fadeIn
+                            else -> 1.0
+                        }
+                        // Never jump up (a cancelled fade-out rises back over ~50 ms).
+                        gain = if (target > gain) minOf(target, gain + 1.0 / 2205) else target
+                        for (c in 0 until SoundRenderer.CHANNELS) {
+                            val k = i * SoundRenderer.CHANNELS + c
+                            pcm[k] = (pcm[k] * gain).toInt().toShort()
+                        }
+                    }
+                    if (outTotal > 0) outDone += pcm.size / SoundRenderer.CHANNELS
+                }
+                frame += pcm.size / SoundRenderer.CHANNELS
                 var offset = 0
                 while (offset < pcm.size && isCurrent(value)) {
                     val n = current.write(pcm, offset, pcm.size - offset)
                     if (n <= 0) throw IllegalStateException("AudioTrack write failed: $n")
                     capture?.write(pcm, offset, n)
+                    DebugTimeline.writeStream(value, pcm, offset, n)
                     offset += n
                 }
+                if (outTotal > 0 && outDone >= outTotal && fadeOutFrames > 0) break
             }
         } catch (ex: Exception) {
             if (isCurrent(value)) mainHandler.post { if (generation == value) onFailure(RuntimeException(ex)) }
         } finally {
+            DebugTimeline.streamStopped(value)
             capture?.close()
             current?.let {
                 try { it.pause(); it.flush() } catch (_: IllegalStateException) { }

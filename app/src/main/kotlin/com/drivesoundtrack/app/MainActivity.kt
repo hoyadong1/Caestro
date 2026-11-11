@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
+import com.drivesoundtrack.app.audio.TapSound
 import com.drivesoundtrack.app.library.CloudLibrary
 import com.drivesoundtrack.app.ui.CloudState
 import java.io.File
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity(), PlayerActions {
     private var restrictionsKnown by mutableStateOf(false)
     private var permissionsChanged by mutableStateOf(0)
     private var restrictionsReader: DriveRestrictionsReader? = null
+    private var tapSound: TapSound? = null
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) { status = PlayerStatus.from(intent) }
@@ -50,9 +52,10 @@ class MainActivity : ComponentActivity(), PlayerActions {
         }
         CloudLibrary.load(libraryRoot)
         cloud = cloud.copy(installed = CloudLibrary.installed(libraryRoot))
+        val tap = TapSound(this).also { tapSound = it }
         setContent {
             permissionsChanged // Re-evaluate the prompt after a permission result.
-            MainScreen(status, restricted, canRequestPermission(), this, cloud)
+            MainScreen(status, restricted, canRequestPermission(), this, cloud, onTap = tap::play)
         }
         // Opening the app connects the soundtrack right away; the button then only disconnects.
         if (state == null) send(SoundtrackService.PLAY) else startService(Intent(this, SoundtrackService::class.java))
@@ -106,6 +109,7 @@ class MainActivity : ComponentActivity(), PlayerActions {
     override fun toggleMyAlbum(index: Int) = send(SoundtrackService.MY_ALBUM_TOGGLE) { putExtra("preset", index) }
     override fun skip(direction: Int) = send(SoundtrackService.SKIP) { putExtra("direction", direction) }
     override fun audition(stage: Int) = send(SoundtrackService.AUDITION) { putExtra("stage", stage) }
+    override fun preview(stage: Int) = send(SoundtrackService.PREVIEW) { putExtra("stage", stage) }
     override fun setInstruments(ids: IntArray, band: Boolean) =
         send(SoundtrackService.INSTRUMENT_SET) { putExtra("instruments", ids); putExtra("band", band) }
     override fun demoSpeed(kmh: Double) {
@@ -167,6 +171,7 @@ class MainActivity : ComponentActivity(), PlayerActions {
 
     override fun onDestroy() {
         network.shutdown()
+        tapSound?.release()
         super.onDestroy()
     }
 

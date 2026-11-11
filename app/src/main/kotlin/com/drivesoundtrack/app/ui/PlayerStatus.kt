@@ -85,6 +85,8 @@ interface PlayerActions {
     fun skip(direction: Int)
     /** Let one stage (1..5) play while its instrument is being chosen; -1 ends it. */
     fun audition(stage: Int)
+    /** While stopped: let a stage's instrument (0 = bass) play for a few seconds. */
+    fun preview(stage: Int) {}
     /** Set all six stages at once (a preset ensemble). */
     fun setInstruments(ids: IntArray, band: Boolean)
     fun demoSpeed(kmh: Double)

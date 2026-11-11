@@ -1,6 +1,7 @@
 package com.drivesoundtrack.app
 
 import com.drivesoundtrack.app.audio.Albums
+import com.drivesoundtrack.app.audio.DebugTimeline
 import com.drivesoundtrack.app.audio.Instruments
 import com.drivesoundtrack.app.audio.SoundModel
 import com.drivesoundtrack.app.audio.Soundscapes
@@ -54,6 +55,13 @@ class SoundtrackService : MediaBrowserService() {
         const val SKIP = "com.drivesoundtrack.SKIP"
         const val AUDITION = "com.drivesoundtrack.AUDITION"
         const val INSTRUMENT_SET = "com.drivesoundtrack.INSTRUMENT_SET"
+        /** While stopped: let a stage's instrument play for a few seconds (choosing in the band). */
+        const val PREVIEW = "com.drivesoundtrack.PREVIEW"
+        /** Debug builds: record everything the app plays on one timeline (see DebugTimeline). */
+        const val DEBUG_TIMELINE_START = "com.drivesoundtrack.DEBUG_TIMELINE_START"
+        const val DEBUG_TIMELINE_FINISH = "com.drivesoundtrack.DEBUG_TIMELINE_FINISH"
+        private const val PREVIEW_MS = 3500L
+        private const val PREVIEW_FADE_MS = 700
         /** The screen downloaded a score or an instrument from the cloud. */
         const val LIBRARY_CHANGED = "com.drivesoundtrack.LIBRARY_CHANGED"
         private const val CHANNEL = "drive_soundtrack_playback"
@@ -71,7 +79,14 @@ class SoundtrackService : MediaBrowserService() {
     private lateinit var session: MediaSession
     private lateinit var audioManager: AudioManager
     private lateinit var focusRequest: AudioFocusRequest
+    private lateinit var previewFocus: AudioFocusRequest
     private var playing = false
+    /** A short instrument preview is sounding while stopped. */
+    private var previewing = false
+    /** The stage the band page is choosing for (heard while playing); -1 none. */
+    private var auditionStage = -1
+    private val fadePreview = Runnable { engine.fadeOutAndStop(PREVIEW_FADE_MS); handler.postDelayed(endPreview, PREVIEW_FADE_MS + 300L) }
+    private val endPreview = Runnable { stopPreview() }
     private var carAvailable = false
     @Volatile private var restricted = false
     private var preset = 0
@@ -142,6 +157,9 @@ class SoundtrackService : MediaBrowserService() {
                     Log.i("Caestro", "Audio focus change: $change")
                 if (change <= 0) pause()
             }.build()
+        previewFocus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setOnAudioFocusChangeListener { change -> if (change <= 0) stopPreview(hard = true) }.build()
         session = MediaSession(this, "Caestro")
         session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
         session.setCallback(object : MediaSession.Callback() {
@@ -217,7 +235,15 @@ class SoundtrackService : MediaBrowserService() {
             RESET_INSTRUMENTS -> resetInstruments(intent.getBooleanExtra("band", false))
             MY_ALBUM_TOGGLE -> toggleMyAlbum(intent.getIntExtra("preset", -1))
             SKIP -> skip(if (intent.getIntExtra("direction", 1) < 0) -1 else 1)
-            AUDITION -> engine.setAudition(if (locked()) -1 else intent.getIntExtra("stage", -1))
+            AUDITION -> {
+                auditionStage = if (locked()) -1 else intent.getIntExtra("stage", -1)
+                if (!previewing) engine.setAudition(auditionStage)
+            }
+            PREVIEW -> preview(intent.getIntExtra("stage", 0))
+            DEBUG_TIMELINE_START -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+                DebugTimeline.start(File(filesDir, "timeline.wav"))
+            DEBUG_TIMELINE_FINISH -> if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
+                Thread { DebugTimeline.finish() }.start()
             INSTRUMENT_SET -> intent.getIntArrayExtra("instruments")?.let { setInstruments(it, intent.getBooleanExtra("band", false)) }
             SCENARIO_TOGGLE -> if (scenarioEnabled) stopScenario() else startScenario()
             LIBRARY_CHANGED -> reloadLibrary()
@@ -338,6 +364,7 @@ class SoundtrackService : MediaBrowserService() {
             val previous = engineTracks
             orchestrations = orchestrations.copyOf(tracks)
             restoreOrchestrations(previous)
+            stopPreview(hard = true)
             val wasPlaying = playing
             if (wasPlaying) engine.stop()
             buildEngine()
@@ -431,6 +458,13 @@ class SoundtrackService : MediaBrowserService() {
 
     private fun play() {
         if (playing) return
+        // A preview still sounding becomes the playback (the engine keeps running, its fade-out is cancelled).
+        if (previewing) {
+            handler.removeCallbacks(fadePreview); handler.removeCallbacks(endPreview)
+            previewing = false
+            engine.setAudition(auditionStage)
+            audioManager.abandonAudioFocusRequest(previewFocus)
+        }
         if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             Log.i("Caestro", "Audio focus not granted")
             return
@@ -466,6 +500,32 @@ class SoundtrackService : MediaBrowserService() {
             broadcastStatus()
         }
         endScenario()
+    }
+
+    /**
+     * Choosing in the band while stopped: the stage's instrument plays (over the bass, from where the track was)
+     * for a few seconds and fades out. Another choice keeps it going; play turns it into the playback.
+     */
+    private fun preview(stage: Int) {
+        if (playing || locked()) return
+        if (!previewing) {
+            if (audioManager.requestAudioFocus(previewFocus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
+            previewing = true
+        }
+        engine.setAudition(if (stage >= 1) stage else -1)
+        engine.start(fadeInMs = 120) { ex -> Log.w("Caestro", "Preview failed", ex); stopPreview(hard = true) }
+        handler.removeCallbacks(fadePreview); handler.removeCallbacks(endPreview)
+        handler.postDelayed(fadePreview, PREVIEW_MS)
+    }
+
+    private fun stopPreview(hard: Boolean = false) {
+        if (!previewing) return
+        handler.removeCallbacks(fadePreview); handler.removeCallbacks(endPreview)
+        previewing = false
+        if (!playing) engine.stop()
+        engine.setAudition(auditionStage)
+        audioManager.abandonAudioFocusRequest(previewFocus)
+        if (hard) Log.i("Caestro", "Preview ended early")
     }
 
     /**
