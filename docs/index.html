@@ -70,7 +70,7 @@
     .download .actions { margin:0; flex-shrink:0; }
     footer { padding:0 0 40px; color:#829cac; font-size:13px; line-height:1.7; }
     @media (max-width:800px) { .hero { grid-template-columns:1fr; padding:58px 0 70px; gap:36px; } .hero-card { max-width:520px; } .section-head { display:block; } .section-head .muted { margin:12px 0 0; } .instrument-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .download { display:block; } .download .actions { margin-top:22px; } }
-    @media (max-width:550px) { .toplinks { gap:12px; font-size:12px; } .brand { font-size:13px; } .hero-tail { display:block; } .hero-card { padding:22px; } .instrument-grid, .signal-panel { grid-template-columns:1fr; } .signal-panel { gap:26px; padding:24px; } .instrument { min-height:140px; } .section { padding-top:76px; } .download { margin-top:76px; padding:25px; } }
+    @media (max-width:550px) { .topbar .wrap { flex-wrap:wrap; gap:6px 16px; padding:10px 0; } .toplinks { order:2; width:100%; gap:16px; font-size:13px; overflow-x:auto; white-space:nowrap; scrollbar-width:none; } .toplinks::-webkit-scrollbar { display:none; } .brand { font-size:13px; } .hero-tail { display:block; } .hero-card { padding:22px; } .instrument-grid, .signal-panel { grid-template-columns:1fr; } .signal-panel { gap:26px; padding:24px; } .instrument { min-height:140px; } .section { padding-top:76px; } .download { margin-top:76px; padding:25px; } }
   </style>
 </head>
 <body>
@@ -112,9 +112,9 @@
     </section>
 
     <section class="section" id="cloud">
-      <div class="section-head"><div><p class="eyebrow">Cloud</p><h2>웹에서 만든 악보와 악기를 차로</h2></div><p class="muted">만드는 건 차 밖에서, 차에서는 정차 중에 골라 내려받기만 합니다. 내려받은 곡도 내 악단이 연주합니다.</p></div>
+      <div class="section-head"><div><p class="eyebrow">Cloud</p><h2>웹에서 만든 악보와 악기를 차로</h2></div><p class="muted">누구나 웹 스튜디오에서 곡과 악기를 만들어 올리고, 운영자가 확인한 작품이 좋아요 순으로 차에 나옵니다. 차에서는 정차 중에 골라 내려받기만 합니다.</p></div>
       <div class="video-shell"><video controls playsinline preload="metadata" poster="cloud-demo-poster.png" aria-label="클라우드에서 악보 「라르고」와 트롬본·핸드팬을 내려받아 악단에 넣고 시연 주행으로 연주하는 약 2분 35초 영상"><source src="cloud-demo.mp4" type="video/mp4">브라우저에서 영상을 재생할 수 없습니다.</video></div>
-      <div class="actions"><a class="button primary" href="studio/">스튜디오에서 곡·악기 만들어 보기</a><span class="muted" style="align-self:center;font-size:14px">악보를 몰라도 분위기만 고르면 곡이 만들어지고, 녹음 몇 개로 악기가 됩니다.</span></div>
+      <div class="actions"><a class="button primary" href="studio/">스튜디오에서 곡·악기 만들어 보기</a><span class="muted" style="align-self:center;font-size:14px">악보를 몰라도 분위기만 고르면 곡이 만들어지고, 녹음 몇 개로 악기가 됩니다. 다른 사람의 곡을 가져와 내 버전으로 고칠 수도 있습니다.</span></div>
     </section>
 
     <section class="section" id="how">
@@ -125,7 +125,7 @@
         <div class="instrument"><span class="number">MY BAND</span><h3>나만의 악단</h3><p>여섯 단계의 악기를 고르면 모든 곡이 내 악단으로. 고르면서 바로 들어 봅니다.</p></div>
         <div class="instrument"><span class="number">SIGNALS</span><h3>차가 쓰는 지휘봉</h3><p>속도는 악기 수, 가속·제동은 강약, 핸들은 좌우, 방향지시등과 와이퍼도 연주에 들어갑니다.</p></div>
         <div class="instrument"><span class="number">SAFE</span><h3>운전이 먼저</h3><p>주행 중에는 조작을 잠그고, 내비 안내와 통화가 나오면 음악이 양보합니다.</p></div>
-        <div class="instrument"><span class="number">NEXT</span><h3>함께 만드는 음악</h3><p>웹 제작 플랫폼에서 누구나 악보와 악기를 만들어 공유합니다. 주행 상황에 맞춰 곡도 차가 고릅니다.</p></div>
+        <div class="instrument"><span class="number">STUDIO</span><h3>함께 만드는 음악</h3><p>웹 스튜디오에서 만든 곡과 악기를 올리고, 좋아요를 받은 작품이 차의 클라우드 목록 위로 올라갑니다. 다음은 주행 상황에 맞춰 차가 곡을 고르는 것입니다.</p></div>
       </div>
     </section>
 

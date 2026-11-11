@@ -9,7 +9,9 @@ Caestro Studio (web)   ──upload──▶  cloud (catalog + pack files)  ─�
   record or design an instrument                                               Cloud tab → Band cards
 ```
 
-The creator platform prototype is `docs/studio` (Caestro Studio, served at `https://hoyadong1.github.io/Caestro/studio/`):
+The creator platform is `docs/studio` (Caestro Studio, served at `https://hoyadong1.github.io/Caestro/studio/`), with accounts,
+uploads, review, likes and arrangements on Supabase (`tools/platform/README.md`); the car reads the approved list from there.
+The studio itself has
 a mood-based automatic composer (and chords for a melody played on its keyboard), a score editor with a speed-layered
 preview, an instrument maker (record in the browser, upload recorded notes or design a timbre), and a pack
 export (zip of the new files plus the updated `catalog.json`). Its checks in `docs/studio/core.js` follow `CloudLibrary`;

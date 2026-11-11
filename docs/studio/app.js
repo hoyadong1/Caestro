@@ -92,6 +92,8 @@ for (const b of document.querySelectorAll('nav.tabs button')) b.addEventListener
 function showTab(name) {
   for (const b of document.querySelectorAll('nav.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === name));
   for (const s of document.querySelectorAll('main section')) s.hidden = s.id !== 'tab-' + name;
+  // The making tabs open with the introduction; browsing and review get straight to their lists.
+  $('intro').hidden = !['score', 'instrument'].includes(name);
   if (name === 'gallery') renderGallery();
   if (name === 'mine') refreshMine();
   if (name === 'review') refreshReview();
@@ -1049,6 +1051,8 @@ async function listen(w, mode) {
   const label = { fork: '가져와 고치는 중', edit: '내 작품 고치는 중', listen: '둘러보기' }[mode];
   $('compose-info').innerHTML = `${label} · 「${esc(w.title)}」 · ${esc(w.creator || '익명')}` + (stash ? ' <button class="btn mini" id="restore">↩ 내 곡으로</button>' : '');
   if (mode === 'fork') toast('가져왔어요 · 고친 뒤 올리면 원작자가 함께 표시돼요');
+  // On a phone the player sits below the steps: bring it into view.
+  if (innerWidth < 900) $('roll').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (!playing) $('play').click(); else restartPlayback();
 }
 document.addEventListener('click', e => {
@@ -1119,7 +1123,8 @@ compose();
 applyKind('long');
 renderKeys();
 // ?debug exposes the bank and the output analyser to automated checks.
-const DEBUG = new URLSearchParams(location.search).has('debug') ? (window.__studio = { bankBuffer, playBank, get bank() { return bank; }, get stageGains() { return stageGains; } }) : null;
+const DEBUG = new URLSearchParams(location.search).has('debug') ? (window.__studio = { bankBuffer, playBank, get bank() { return bank; }, get stageGains() { return stageGains; },
+  signIn: async (email, password) => (await platform()).auth.signInWithPassword({ email, password }) }) : null;
 loadBank();
 loadCloud();
 const start = location.hash.slice(1);

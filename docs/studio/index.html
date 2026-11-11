@@ -127,6 +127,14 @@
     .item .tag.pending { background:#5a4a1a; color:#ffe2a0; } .item .tag.rejected { background:#5a1f26; color:#ffc4cb; } .item .tag.approved { background:#1d4a39; color:#bff5da; }
     .like[aria-pressed="true"] { color:#ff8fb0; border-color:#ff8fb0; }
     @media (max-width:900px) { .grid { display:flex; flex-direction:column; gap:14px; } .col { display:contents; } .sticky { position:static; } .stages { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (max-width:560px) {
+      header .wrap { gap:8px 10px; padding:8px 0; min-height:0; }
+      header .account { order:2; margin-left:auto; }
+      nav.tabs { order:3; width:100%; margin-left:0; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+      nav.tabs::-webkit-scrollbar { display:none; }
+      nav.tabs button { flex:none; min-height:36px; padding:0 12px; font-size:14px; }
+      .intro { padding-top:18px; } .intro h1 { font-size:22px; } .intro p { display:none; }
+    }
     @media (max-width:560px) { header { position:static; } .tiles { grid-template-columns:repeat(2,minmax(0,1fr)); } .sources { grid-template-columns:1fr; } .player { grid-template-columns:1fr; } .speed { text-align:left; } .note { grid-template-columns:1fr 84px auto; } .note .len, .note .del { display:none; } }
   </style>
 </head>
@@ -145,7 +153,7 @@
     </div>
   </header>
 
-  <div class="wrap intro">
+  <div class="wrap intro" id="intro">
     <h1>내 차가 연주할 곡과 악기를 만들어요</h1>
     <p>악보를 몰라도 됩니다. 분위기만 고르면 곡이 만들어지고, 휴대폰 녹음 몇 개면 악기가 됩니다. 만든 것은 클라우드에 올라가고, 차는 정차 중에 내려받아 달리는 속도에 맞춰 연주합니다.</p>
   </div>
@@ -200,7 +208,7 @@
           </details>
 
           <div class="card" style="order:5">
-            <h2><span class="step">3</span>이름을 붙이고 담기</h2>
+            <h2><span class="step">3</span>이름을 붙이고 올리기</h2>
             <div class="row">
               <label class="f"><span>곡 제목</span><input type="text" id="e-title" placeholder="예: 퇴근길 노을" maxlength="40"></label>
               <label class="f"><span>만든 사람 <em>차 화면에 표시</em></span><input type="text" id="e-creator" placeholder="닉네임" maxlength="30"></label>
@@ -313,7 +321,7 @@
             <div class="notes" id="note-list"></div>
           </div>
           <div class="card" style="order:4">
-            <h2><span class="step">3</span>이름을 붙이고 담기</h2>
+            <h2><span class="step">3</span>이름을 붙이고 올리기</h2>
             <div class="row">
               <label class="f"><span>악기 이름</span><input type="text" id="i-label" placeholder="예: 우리 집 우쿨렐레" maxlength="30"></label>
               <label class="f"><span>만든 사람</span><input type="text" id="i-creator" placeholder="닉네임" maxlength="30"></label>

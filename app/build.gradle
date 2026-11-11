@@ -10,8 +10,8 @@ android {
         applicationId 'com.drivesoundtrack.app'
         minSdk 28
         targetSdk 34
-        versionCode 29
-        versionName '0.12.1'
+        versionCode 30
+        versionName '0.13.0'
         // The studio platform the car downloads from (public project address and public key; see tools/platform).
         buildConfigField 'String', 'SUPABASE_URL', "\"${project.findProperty('caestro.supabaseUrl') ?: ''}\""
         buildConfigField 'String', 'SUPABASE_KEY', "\"${project.findProperty('caestro.supabaseKey') ?: ''}\""
