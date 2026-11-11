@@ -1127,13 +1127,6 @@ $('seed').addEventListener('click', async () => {
     refreshReview();
   } catch (e) { st.innerHTML = `<span class="bad">${esc(e.message || e)}</span>`; }
 });
-      if (result === 'taken') continue;
-      await sb.from('works').update({ status: 'approved' }).eq('id', item.id);
-    }
-    st.innerHTML = '<span class="ok">✓ 예시를 올렸어요.</span>';
-    refreshReview();
-  } catch (e) { st.innerHTML = `<span class="bad">${esc(e.message || e)}</span>`; }
-});
 
 renderMelodyKeys(); renderTyped();
 compose();
