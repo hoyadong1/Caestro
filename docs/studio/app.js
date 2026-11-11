@@ -1023,7 +1023,7 @@ async function listen(w, mode) {
   if (w.kind === 'instrument') {
     try {
       const pcmPath = w.files.find(f => f.endsWith('.pcm'));
-      const bytes = new Uint8Array(await (await fetch(FILES + pcmPath)).arrayBuffer());
+      const bytes = new Uint8Array(await (await fetch(/^https?:/.test(pcmPath) ? pcmPath : FILES + pcmPath)).arrayBuffer());
       const manifest = { ...w.manifest, id: w.id };
       registerSampled(manifest, pcmToFloat(bytes), w.creator || '둘러보기');
       renderStages(readDefaults());
@@ -1077,7 +1077,7 @@ for (const box of ['gallery', 'mine', 'review-pending', 'review-approved']) $(bo
       b.setAttribute('aria-pressed', String(!liked)); b.textContent = `♥ ${w.likes}`;
     } else if (act === 'delete') {
       if (!confirm(`「${w.title}」을 지울까요? 차의 목록에서도 사라져요.`)) return;
-      await c.storage.from('packs').remove(w.files);
+      await c.storage.from('packs').remove(w.files.filter(f => !/^https?:/.test(f)));
       const { error } = await c.from('works').delete().eq('id', w.id);
       if (error) throw error;
       toast('지웠어요'); refreshMine();
