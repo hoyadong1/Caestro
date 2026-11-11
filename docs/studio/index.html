@@ -77,6 +77,13 @@
     .stage.on { border-color:var(--accent); color:#d8f5ff; background:#123247; }
     .stage.on b { color:var(--accent); }
     .stage select { margin-top:6px; padding:5px; font-size:12px; }
+    .stage { cursor:pointer; } .stage .when { display:block; font-size:11px; line-height:1.4; margin-top:2px; }
+    .stage:not(.on) .when { color:#9fb6c4; }
+    .speed-label { display:block; margin-bottom:6px; font-size:13px; font-weight:700; color:#bfe7f8; }
+    .speed-label em { font-style:normal; font-weight:400; color:var(--muted); }
+    .speedchips { margin-top:10px; } .speedchips .chip { min-height:34px; font-size:13px; padding:0 12px; }
+    .chip.drive { border-color:var(--accent); color:var(--accent); font-weight:700; }
+    .chip.drive[aria-pressed="true"] { background:var(--accent); color:#07121c; }
     .notes { display:flex; flex-direction:column; gap:6px; margin-top:10px; max-height:300px; overflow:auto; }
     .note { display:grid; grid-template-columns:minmax(0,1fr) 92px 60px auto auto; gap:8px; align-items:center; padding:7px 9px; border:1px solid #23404f; border-radius:9px; background:#0a1a26; font-size:13px; }
     .note .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -274,10 +281,22 @@
             <canvas id="roll" width="1200" height="360" aria-label="악보 그림: 코드, 선율, 베이스"></canvas>
             <div class="player">
               <button class="btn primary big" id="play">▶ 재생</button>
-              <input type="range" id="speed" min="0" max="130" value="0" step="1" aria-label="속도 km/h">
+              <div>
+                <label class="speed-label" for="speed">🚗 차 속도 <em>올릴수록 악기가 하나씩 들어와요</em></label>
+                <input type="range" id="speed" min="0" max="130" value="0" step="1" aria-label="차 속도 km/h">
+              </div>
               <div class="speed"><span id="kmh">0</span> <small>km/h · <span id="bpmNow">0</span> BPM</small></div>
             </div>
-            <h3>악단 <span class="info">단계마다 악기를 바꿔 들어 보세요 · 차에서 나는 소리 그대로입니다</span></h3>
+            <div class="chips speedchips" id="speed-chips" role="group" aria-label="속도 바로 고르기">
+              <button class="chip" data-kmh="0">정차</button>
+              <button class="chip" data-kmh="25">25</button>
+              <button class="chip" data-kmh="45">45</button>
+              <button class="chip" data-kmh="65">65</button>
+              <button class="chip" data-kmh="90">90</button>
+              <button class="chip" data-kmh="130">130 km/h</button>
+              <button class="chip drive" id="drive">🚗 시연 주행 0→130→0</button>
+            </div>
+            <h3>악단 <span class="info">잠긴 단계를 누르면 그 속도로 올라가요 · 단계마다 악기를 바꿔 들어 보세요 · 차에서 나는 소리 그대로입니다</span></h3>
             <div class="stages" id="stages"></div>
           </div>
         </div>

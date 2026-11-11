@@ -301,7 +301,7 @@ function stageChoices(stage) {
 }
 const stageBox = $('stages');
 function renderStages(defaults = readDefaults()) {
-  stageBox.innerHTML = C.STAGES.map((name, stage) => `<div class="stage" id="stage-${stage}"><b>${name}</b>${stage ? C.ENTER[stage] + ' km/h~' : '항상'}
+  stageBox.innerHTML = C.STAGES.map((name, stage) => `<div class="stage" id="stage-${stage}" data-stage-card="${stage}"><b>${name}</b><span class="when"></span>
     <select data-stage="${stage}" aria-label="${name} 악기">${stageChoices(stage).map(o => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('')}</select></div>`).join('');
   stageBox.querySelectorAll('select').forEach((sel, stage) => {
     const want = defaults?.[stage] ?? C.BAND_DEFAULT[stage];
@@ -467,12 +467,47 @@ function updateStageLights() {
   C.STAGES.forEach((_, s) => {
     const on = s === 0 || v >= C.ENTER[s];
     $('stage-' + s)?.classList.toggle('on', on);
+    const when = $('stage-' + s)?.querySelector('.when');
+    if (when) when.textContent = s === 0 ? '♪ 항상 연주' : on ? '♪ 연주 중' : `🔒 ${C.ENTER[s]} km/h부터`;
     if (stageGains[s] && ctx && playing) stageGains[s].gain.setTargetAtTime(on ? STAGE_LEVEL[s] : 0, ctx.currentTime, 0.25);
   });
   $('kmh').textContent = v;
   $('bpmNow').textContent = piece ? Math.round(piece.bpm + piece.tempoRange * v / 130) : '–';
 }
-speedInput.addEventListener('input', updateStageLights);
+speedInput.addEventListener('input', () => { stopDrive(); updateStageLights(); });
+function setSpeed(kmh) { speedInput.value = Math.round(kmh); updateStageLights(); }
+// One tap to a speed, or a locked stage card to the speed it joins at.
+$('speed-chips').addEventListener('click', e => {
+  const b = e.target.closest('[data-kmh]'); if (!b) return;
+  stopDrive(); setSpeed(Number(b.dataset.kmh)); if (!playing) $('play').click();
+});
+stageBox.addEventListener('click', e => {
+  if (e.target.closest('select')) return;
+  const card = e.target.closest('[data-stage-card]'); if (!card) return;
+  const s = Number(card.dataset.stageCard);
+  if (s > 0 && speed() < C.ENTER[s]) { stopDrive(); setSpeed(C.ENTER[s] + 2); toast(`${C.STAGES[s]} 단계가 들어오는 ${C.ENTER[s]} km/h로 올렸어요`); if (!playing) $('play').click(); }
+});
+// The demo drive of the app: stop, 30, 50, 70, 95, 130 km/h and back to a stop, about 70 seconds.
+const DRIVE = [[0, 0], [4, 0], [9, 30], [16, 30], [20, 50], [27, 50], [31, 70], [38, 70], [42, 95], [49, 95], [54, 130], [62, 130], [74, 0], [78, 0]];
+let driveTimer = 0, driveStart = 0;
+function stopDrive() {
+  if (!driveTimer) return;
+  clearInterval(driveTimer); driveTimer = 0;
+  $('drive').setAttribute('aria-pressed', 'false'); $('drive').textContent = '🚗 시연 주행 0→130→0';
+}
+$('drive').addEventListener('click', () => {
+  if (driveTimer) { stopDrive(); return; }
+  if (!playing) $('play').click();
+  driveStart = performance.now();
+  $('drive').setAttribute('aria-pressed', 'true'); $('drive').textContent = '■ 시연 멈추기';
+  driveTimer = setInterval(() => {
+    const t = (performance.now() - driveStart) / 1000;
+    if (t >= DRIVE.at(-1)[0]) { setSpeed(0); stopDrive(); return; }
+    const k = DRIVE.findIndex(([at]) => at > t);
+    const [t0, v0] = DRIVE[k - 1], [t1, v1] = DRIVE[k];
+    setSpeed(v0 + (v1 - v0) * (t - t0) / (t1 - t0));
+  }, 100);
+});
 
 function playStage(stage, midi, steps, vel, when, stepDur) {
   const id = readDefaults()?.[stage] ?? C.BAND_DEFAULT[stage];
@@ -535,8 +570,10 @@ $('play').addEventListener('click', async () => {
   updateStageLights();
   timer = setInterval(tick, 30); tick(); requestAnimationFrame(frame);
   $('play').textContent = '■ 정지';
+  if (speed() < C.ENTER[1] && !driveTimer) toast('지금은 베이스만 연주해요 · 속도를 올리거나 🚗 시연 주행을 눌러 보세요');
 });
 function stop() {
+  stopDrive();
   playing = false; clearInterval(timer); playStep = -1; drawRoll();
   $('play').textContent = '▶ 재생';
   if (stageGains.length) { const t = ctx.currentTime; stageGains.forEach((g, s) => { g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(s === 0 ? 1 : 0, t, 0.05); }); }
