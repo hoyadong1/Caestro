@@ -14,39 +14,51 @@ const ON_BEATS = 'x . . . x . . . x . . . x . . .';
 
 const scores = [
   {
-    id: 'frere-jacques', title: 'Frère Jacques', character: '프랑스 민요 · 자크 형제 (돌림노래)', composer: '프랑스 민요',
+    // Once in C major, then in C minor as Mahler set it in the third movement of his First Symphony (1888).
+    id: 'frere-jacques', title: 'Frère Jacques', character: '프랑스 민요 · 자크 형제 (장조 → 단조 돌림노래)', composer: '프랑스 민요',
     license: '퍼블릭 도메인 (전래 민요)', color: '#9AD7FF', bpm: 92, tempoRange: 14, beatsPerBar: 4, tonic: 'C',
-    chords: 'C:16 | C | C | C | C | C | C | C',
-    melody: 'C5:4 D5 E5 C5 | C5 D5 E5 C5 | E5:4 F5 G5:8 | E5:4 F5 G5:8 | G5:2 A5 G5 F5 E5:4 C5 | G5:2 A5 G5 F5 E5:4 C5 | C5:4 G4 C5:8 | C5:4 G4 C5:8',
+    chords: 'C:16 | C | C | C | C | C | C | C | Cm | Cm | Cm | Cm | Cm | Cm | Cm | Cm',
+    melody: 'C5:4 D5 E5 C5 | C5 D5 E5 C5 | E5:4 F5 G5:8 | E5:4 F5 G5:8 | G5:2 A5 G5 F5 E5:4 C5 | G5:2 A5 G5 F5 E5:4 C5 | C5:4 G4 C5:8 | C5:4 G4 C5:8 | ' +
+      'C5:4 D5 Eb5 C5 | C5 D5 Eb5 C5 | Eb5:4 F5 G5:8 | Eb5:4 F5 G5:8 | G5:2 Ab5 G5 F5 Eb5:4 C5 | G5:2 Ab5 G5 F5 Eb5:4 C5 | C5:4 G4 C5:8 | C5:4 G4 C5:8',
     // The high stage follows two bars behind: the song as a round.
     bass: 'ROOT_FIFTH', arp: LIGHT_ARP, comp: ON_BEATS, high: 'CANON', canonBars: 2,
     defaults: ['cello', 'orchperc', 'strings', 'harp', 'flute', 'glock'],
   },
   {
-    id: 'jingle-bells', title: 'Jingle Bells', character: 'J. 피어폰트 · 징글벨 (1857)', composer: 'J. Pierpont',
+    id: 'jingle-bells', title: 'Jingle Bells', character: 'J. 피어폰트 · 징글벨 (1857) · 1절과 후렴', composer: 'J. Pierpont',
     license: '퍼블릭 도메인 (1857)', color: '#FF8F8F', bpm: 108, tempoRange: 16, beatsPerBar: 4, tonic: 'C',
-    chords: 'C:16 | C | C | C | F | C | D7 | G7 | C | C | C | C | F | C | G7 | C',
-    melody: 'E5:4 E5 E5:8 | E5:4 E5 E5:8 | E5:4 G5 C5:6 D5:2 | E5:16 | F5:4 F5 F5:6 F5:2 | F5:4 E5 E5 E5:2 E5 | E5:4 D5 D5 E5 | D5:8 G5:8 | ' +
+    chords: 'C:16 | C | C | F | F | G | G7 | C | C | C | C | F | F | G7 | G7 | C:8 G7:8 | ' +
+      'C:16 | C | C | C | F | C | D7 | G7 | C | C | C | C | F | C | G7 | C',
+    melody: 'G4:4 E5 D5 C5 | G4:12 G4:2 G4 | G4:4 E5 D5 C5 | A4:16 | A4:4 F5 E5 D5 | B4:16 | G5:4 G5 F5 D5 | E5:16 | ' +
+      'G4:4 E5 D5 C5 | G4:12 G4:2 G4 | G4:4 E5 D5 C5 | A4:12 A4:4 | A4:4 F5 E5 D5 | G5:4 G5 G5 G5 | A5:4 G5 F5 D5 | C5:8 G5:8 | ' +
+      'E5:4 E5 E5:8 | E5:4 E5 E5:8 | E5:4 G5 C5:6 D5:2 | E5:16 | F5:4 F5 F5:6 F5:2 | F5:4 E5 E5 E5:2 E5 | E5:4 D5 D5 E5 | D5:8 G5:8 | ' +
       'E5:4 E5 E5:8 | E5:4 E5 E5:8 | E5:4 G5 C5:6 D5:2 | E5:16 | F5:4 F5 F5 F5 | F5:4 E5 E5 E5:2 E5 | G5:4 G5 F5 D5 | C5:16',
     bass: 'ROOT_FIFTH', arp: '0 1 2 1 0 1 2 1 0 1 2 1 0 1 2 1', comp: ON_BEATS, high: 'OCTAVE', canonBars: 0,
     defaults: ['pizz', 'latin', 'piano', 'marimba', 'trumpet', 'glock'],
   },
   {
-    id: 'greensleeves', title: 'Greensleeves', character: '잉글랜드 민요 · 그린슬리브스', composer: '잉글랜드 민요',
+    id: 'greensleeves', title: 'Greensleeves', character: '잉글랜드 민요 · 그린슬리브스 · 노래와 후렴', composer: '잉글랜드 민요',
     license: '퍼블릭 도메인 (전래 민요)', color: '#8FD0B8', bpm: 80, tempoRange: 10, beatsPerBar: 3, tonic: 'A',
-    chords: 'Am:12 | Am | C | G | Em | Am | E | E | Am | Am | C | G | Em | Am | E | Am | Am',
+    chords: 'Am:12 | Am | C | G | Em | Am | E | E | Am | Am | C | G | Em | Am | E | Am | ' +
+      'C | Em | G | Em | Am | Am | E | E | C | Em | G | Em | Am | E | Am | Am',
     melody: 'r:8 A4:4 | C5:8 D5:4 | E5:6 F5:2 E5:4 | D5:8 B4:4 | G4:6 A4:2 B4:4 | C5:8 A4:4 | A4:6 G#4:2 A4:4 | B4:8 G#4:4 | E4:8 A4:4 | ' +
-      'C5:8 D5:4 | E5:6 F5:2 E5:4 | D5:8 B4:4 | G4:6 A4:2 B4:4 | C5:6 B4:2 A4:4 | G#4:6 F#4:2 G#4:4 | A4:12 | -:12',
+      'C5:8 D5:4 | E5:6 F5:2 E5:4 | D5:8 B4:4 | G4:6 A4:2 B4:4 | C5:6 B4:2 A4:4 | G#4:6 F#4:2 G#4:4 | A4:12 | ' +
+      'G5:12 | G5:6 F#5:2 E5:4 | D5:8 B4:4 | G4:6 A4:2 B4:4 | C5:8 A4:4 | A4:6 G#4:2 A4:4 | B4:8 G#4:4 | E4:12 | ' +
+      'G5:12 | G5:6 F#5:2 E5:4 | D5:8 B4:4 | G4:6 A4:2 B4:4 | C5:6 B4:2 A4:4 | G#4:6 F#4:2 G#4:4 | A4:12 | -:8 r:4',
     bass: 'HALVES', arp: '0 . 1 . 2 . 1 . 2 . 1 .', comp: '. . . . x . . . x . . .', high: 'BELLS', canonBars: 0,
     defaults: ['cello', 'orchperc', 'viola', 'harp', 'flute', 'glasspad'],
   },
   {
     // 3/8 written two bars to one 3/4 bar: a step is a sixteenth, as in the original.
-    id: 'fur-elise', title: 'Für Elise', character: '베토벤 · 엘리제를 위하여 (1810)', composer: 'L. van Beethoven',
+    id: 'fur-elise', title: 'Für Elise', character: '베토벤 · 엘리제를 위하여 (1810) · 주제와 중간부', composer: 'L. van Beethoven',
     license: '퍼블릭 도메인 (1810)', color: '#C9B8F2', bpm: 66, tempoRange: 8, beatsPerBar: 3, tonic: 'A',
-    chords: 'Am:12 | E7:6 Am:6 | E:6 Am:6 | E7:6 Am:6 | E:6 Am:6',
-    melody: 'r:8 E5:2 D#5 | E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 G#4 B4 C5:2 r:1 E4 E5 D#5 | ' +
-      'E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 C5 B4 A4:6',
+    chords: 'Am:12 | E7:6 Am:6 | E:6 Am:6 | E7:6 Am:6 | E:6 Am:6 | E7:6 Am:6 | E:6 Am:6 | E7:6 Am:6 | E:6 Am:6 | ' +
+      'C:6 G:6 | Am:6 E:6 | E7:6 Am:6 | E:6 Am:6 | E7:6 Am:6 | E:6 Am:6',
+    melody: 'r:10 E5:1 D#5 | ' +
+      'E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 G#4 B4 C5:2 r:1 E4 E5 D#5 | E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 C5 B4 A4:2 r:2 E5:1 D#5 | ' +
+      'E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 G#4 B4 C5:2 r:1 E4 E5 D#5 | E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 C5 B4 A4:2 r:1 B4 C5 D5 | ' +
+      'E5:3 G4:1 F5 E5 D5:3 F4:1 E5 D5 | C5:3 E4:1 D5 C5 B4:2 r:1 E4 E5 D#5 | ' +
+      'E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 G#4 B4 C5:2 r:1 E4 E5 D#5 | E5:1 D#5 E5 B4 D5 C5 A4:2 r:1 C4 E4 A4 | B4:2 r:1 E4 C5 B4 A4:6',
     bass: 'HALVES', arp: '0 . . . 2 . 0 . . . 2 .', comp: 'x . . . . . x . . . . .', high: 'BELLS', canonBars: 0,
     defaults: ['cello', 'orchperc', 'strings', 'harp', 'piano', 'glasspad'],
   },

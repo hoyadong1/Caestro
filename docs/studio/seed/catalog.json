@@ -6,7 +6,7 @@
    "id": "frere-jacques",
    "type": "score",
    "title": "Frère Jacques",
-   "subtitle": "프랑스 민요 · 자크 형제 (돌림노래)",
+   "subtitle": "프랑스 민요 · 자크 형제 (장조 → 단조 돌림노래)",
    "creator": "카에스트로 큐레이션",
    "license": "퍼블릭 도메인 (전래 민요)",
    "look": "",
@@ -15,13 +15,13 @@
    "files": [
     "scores/frere-jacques.json"
    ],
-   "bytes": 796
+   "bytes": 1000
   },
   {
    "id": "jingle-bells",
    "type": "score",
    "title": "Jingle Bells",
-   "subtitle": "J. 피어폰트 · 징글벨 (1857)",
+   "subtitle": "J. 피어폰트 · 징글벨 (1857) · 1절과 후렴",
    "creator": "카에스트로 큐레이션",
    "license": "퍼블릭 도메인 (1857)",
    "look": "",
@@ -30,13 +30,13 @@
    "files": [
     "scores/jingle-bells.json"
    ],
-   "bytes": 910
+   "bytes": 1230
   },
   {
    "id": "greensleeves",
    "type": "score",
    "title": "Greensleeves",
-   "subtitle": "잉글랜드 민요 · 그린슬리브스",
+   "subtitle": "잉글랜드 민요 · 그린슬리브스 · 노래와 후렴",
    "creator": "카에스트로 큐레이션",
    "license": "퍼블릭 도메인 (전래 민요)",
    "look": "",
@@ -45,13 +45,13 @@
    "files": [
     "scores/greensleeves.json"
    ],
-   "bytes": 912
+   "bytes": 1209
   },
   {
    "id": "fur-elise",
    "type": "score",
    "title": "Für Elise",
-   "subtitle": "베토벤 · 엘리제를 위하여 (1810)",
+   "subtitle": "베토벤 · 엘리제를 위하여 (1810) · 주제와 중간부",
    "creator": "카에스트로 큐레이션",
    "license": "퍼블릭 도메인 (1810)",
    "look": "",
@@ -60,7 +60,7 @@
    "files": [
     "scores/fur-elise.json"
    ],
-   "bytes": 798
+   "bytes": 1326
   },
   {
    "id": "dawn-road",
