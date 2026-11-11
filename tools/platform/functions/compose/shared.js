@@ -126,12 +126,16 @@ function fitPattern(text, spb, rest) {
  * They must not reach the car's screen even if the model copies them into title or character.
  */
 // Genres, moods and places are fine to keep; only proper names are removed.
-const COMMON = /^(노래|음악|곡|분위기|느낌|감성|정도|살짝|조금|약간|아주|완전|재즈|보사노바|클래식|발라드|팝|록|락|힙합|댄스|트로트|국악|동요|왈츠|행진곡|자장가|영화|영화음악|게임|게임음악|애니|애니메이션|드라마|광고|카페|봄|여름|가을|겨울|바다|바닷가|새벽|밤|아침|비|눈|파도|우주|꿈|동화|축제|파티|겨울밤|크리스마스)$/;
+const COMMON = /^(혼자|함께|같이|우리|아이|가족|친구|연인|노래|음악|곡|분위기|느낌|감성|정도|살짝|조금|약간|아주|완전|재즈|보사노바|클래식|발라드|팝|록|락|힙합|댄스|트로트|국악|동요|왈츠|행진곡|자장가|영화|영화음악|게임|게임음악|애니|애니메이션|드라마|광고|카페|봄|여름|가을|겨울|바다|바닷가|새벽|밤|아침|비|눈|파도|우주|꿈|동화|축제|파티|겨울밤|크리스마스)$/;
 export function referencedNames(prompt) {
   const names = new Set();
   const re = /((?:[^\s,.]+\s+){0,2}[^\s,.]+?)(?:의|이|가)?\s*(?:같은|같이|처럼|스타일|풍)/g;
   for (const m of String(prompt || '').matchAll(re))
-    for (const w of m[1].split(/\s+/)) if (w.length >= 2 && !COMMON.test(w.replace(/(의|이|가)$/, ''))) names.add(w.replace(/(의|이|가)$/, ''));
+    for (const w of m[1].split(/\s+/)) {
+      const word = w.replace(/(의|이|가)$/, '');
+      // Verbs, adjectives and adverbs ("듣는", "따뜻한", "함께", "아이와") are not names.
+      if (word.length >= 2 && !COMMON.test(word) && !/(는|은|던|한|운|게|고|와|과|히|께|로|에|를|을)$/.test(word)) names.add(word);
+    }
   return [...names].filter(w => w.length >= 2);
 }
 function scrub(text, names) {
