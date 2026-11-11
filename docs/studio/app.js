@@ -1148,7 +1148,7 @@ $('ai-make').addEventListener('click', async () => {
   if (!user) { openLogin('AI 작곡은 로그인해야 쓸 수 있어요. 이메일로 받은 링크를 누르면 돼요.'); return; }
   const prompt = $('ai-prompt').value.trim();
   if (prompt.length < 2) { toast('어떤 곡을 원하는지 적어 주세요'); $('ai-prompt').focus(); return; }
-  button.disabled = true; info.innerHTML = '🎼 작곡하고 있어요… 10초쯤 걸려요';
+  button.disabled = true; info.innerHTML = '🎼 작곡하고 있어요… 10~20초쯤 걸려요';
   try {
     const { data, error } = await c.functions.invoke('compose', { body: { prompt } });
     if (error) {
@@ -1161,7 +1161,8 @@ $('ai-make').addEventListener('click', async () => {
     forkedFrom = null; stash = null; idTouched = false; $('s-id').value = '';
     $('e-title').value = score.title;
     writeScore(withNames({ ...score, creator: $('e-creator').value.trim() }));
-    $('compose-info').textContent = `AI 작곡 · ${score.tonic} · ${score.beatsPerBar}/4 · ${score.bpm} BPM`;
+    const barsCount = score.chords.split('|').length, secs = Math.round(barsCount * score.beatsPerBar * 60 / score.bpm);
+    $('compose-info').textContent = `AI 작곡 · ${score.tonic} · ${score.beatsPerBar}/4 · ${score.bpm} BPM · ${barsCount}마디(약 ${secs}초)` + (data.form ? ` · 구성 ${data.form.split(' ').map(n => ({ I: '전주', A: '1절', B: '후렴', C: '브리지', E: '마무리' })[n] || n).join('→')}` : '');
     info.innerHTML = `<span class="ok">✓ ${esc(data.note || '만들었어요. 오른쪽에서 들어 보세요.')}</span>` +
       (data.remaining != null ? ` <span class="info">오늘 ${data.remaining}곡 더 만들 수 있어요</span>` : '');
     if (!playing) $('play').click(); else restartPlayback();

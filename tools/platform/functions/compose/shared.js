@@ -9,7 +9,7 @@ export function schema(C) {
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['title', 'character', 'tonic', 'beatsPerBar', 'bpm', 'tempoRange', 'bars', 'bass', 'arp', 'comp',
+    required: ['title', 'character', 'tonic', 'beatsPerBar', 'bpm', 'tempoRange', 'sections', 'form', 'bass', 'arp', 'comp',
       'high', 'canonBars', 'band', 'color', 'note'],
     properties: {
       title: { type: 'string', description: 'Short song title (Korean or English), at most 40 characters' },
@@ -18,20 +18,34 @@ export function schema(C) {
       beatsPerBar: { type: 'integer', description: '3 or 4' },
       bpm: { type: 'integer', description: 'Tempo when parked, 40 to 160' },
       tempoRange: { type: 'integer', description: 'BPM added at 130 km/h, 0 to 40' },
-      bars: {
+      sections: {
         type: 'array',
-        description: '8 to 16 bars in order; each bar has its chords and its melody, each adding up to exactly one bar of steps',
+        description: 'The song\'s sections, each written once: A (verse), B (chorus), optionally C (bridge), I (intro), E (ending)',
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['chords', 'melody'],
+          required: ['name', 'bars'],
           properties: {
-            chords: { type: 'string', description: 'This bar only, e.g. "C:16" or "F:8 G7:8" in 4/4, "Am:12" in 3/4' },
-            melody: { type: 'string', description: 'This bar only, e.g. "E5:4 G5:4 C5:8" or "r:4 D5:12"' },
+            name: { type: 'string', enum: ['I', 'A', 'B', 'C', 'E'] },
+            bars: {
+              type: 'array',
+              description: '2 to 8 bars in order; in each bar chords, melody and bass each add up to exactly one bar of steps',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['chords', 'melody', 'bass'],
+                properties: {
+                  chords: { type: 'string', description: 'This bar only, e.g. "C:16" or "F:8 G7:8" in 4/4, "Am:12" in 3/4' },
+                  melody: { type: 'string', description: 'This bar only, e.g. "E5:4 G5:4 C5:8" or "r:4 D5:12"' },
+                  bass: { type: 'string', description: 'This bar\'s bass line (octave 2 or 3), e.g. "C3:8 G2:8"; empty when bass is a style' },
+                },
+              },
+            },
           },
         },
       },
-      bass: { type: 'string' },
+      form: { type: 'array', description: 'The order the sections play, e.g. ["I","A","A","B","A","B","C","B","E"]; 24 to 48 bars in all', items: { type: 'string', enum: ['I', 'A', 'B', 'C', 'E'] } },
+      bass: { type: 'string', description: 'LINE (the bars\' own bass lines) or a style: HALVES, ROOT_FIFTH, VOICING' },
       arp: { type: 'string' },
       comp: { type: 'string' },
       high: { type: 'string', enum: ['BELLS', 'OCTAVE', 'CANON'] },
@@ -56,8 +70,14 @@ so keep it musical, singable and not busy; let the music grow as stages join.
 Write the score in this text notation exactly (it is parsed by a program):
 - A step is a sixteenth note and a beat (quarter note) is always 4 steps. A bar has beatsPerBar*4 steps: 16 in 4/4,
   12 in 3/4 (three beats of 4, e.g. "C5:4 E5:4 G5:4" or "A4:8 B4:4"; never count a 3/4 beat as 3 steps).
-- bars: the song bar by bar (8 to 16 bars). Each bar has "chords" and "melody"; inside a bar the lengths must add up
-  to exactly one bar (16 steps in 4/4, 12 in 3/4). Write every length explicitly as ":LEN" in steps.
+- Song form: write the song in sections, each once, and list the order in form, like real songs (verse, chorus,
+  bridge) instead of one short loop that repeats for the whole drive. A = verse (4-8 bars), B = chorus (4-8 bars, the
+  high point: a higher, more memorable melody, often a stronger rhythm), optional C = bridge (2-8 bars, a contrast:
+  other chords, calmer or tenser), optional I = intro and E = ending (1-4 bars each). form is 4 to 9 entries,
+  24 to 48 bars in all, e.g. ["I","A","B","A","B","C","B","E"] or for a short calm piece ["A","A","B","A"]. B must
+  sound clearly different from A. The song loops after the last entry, so end at home and lead back to the start.
+- Each bar has "chords", "melody" and "bass"; inside a bar each must add up to exactly one bar (16 steps in 4/4,
+  12 in 3/4). Write every length explicitly as ":LEN" in steps.
   - chords: tokens "SYMBOL:LEN" separated by spaces. Symbols: root A-G with optional # or b, then one of
     "" (major), m, 7, maj7, m7, m6, 6, dim, dim7, aug, sus4, and an optional slash bass like F/C.
     Examples in 4/4: "C:16", "F:8 G7:8". In 3/4: "Am:12", "Dm:6 E7:6".
@@ -73,10 +93,11 @@ Write the score in this text notation exactly (it is parsed by a program):
 - Choose what fits the request instead of defaults: the key (any of the 12, minor for sad, dark or tense moods,
   major for bright ones; do not fall back on C major or A minor unless asked), 3/4 for waltzes and lullabies, the tempo, the chord colours (7ths and 9th-like chords for
   jazz, simple triads for children's songs), 8 to 16 bars, and the band.
-- bass: HALVES (chord root every half bar: calm, ballads, film), ROOT_FIFTH (root and fifth by beats: marches,
-  waltzes, country, bossa nova), VOICING (follows the chord's lowest note: hymn-like, smooth), or best for jazz, funk,
-  pop and fast pieces an explicit line in the melody notation (octave 2 or 3, whole bars) such as a walking bass
-  "C3:4 E3:4 G3:4 A3:4 | F2:4 A2:4 C3:4 D3:4 |" or a syncopated "C2:6 C3:2 r:4 G2:4 |".
+- bass: a style, HALVES (chord root every half bar: calm, ballads, film), ROOT_FIFTH (root and fifth by beats:
+  marches, waltzes, country, bossa nova) or VOICING (hymn-like, smooth), with every bar's bass left empty; or LINE,
+  best for jazz, funk, pop and fast pieces, with a bass line written in every bar (octave 2 or 3) that starts each
+  chord on one of its notes, e.g. a walking "C3:4 E3:4 G3:4 A3:4" or a syncopated "C2:6 C3:2 r:4 G2:4". A chorus may
+  move more than a verse.
 - arp: exactly one bar of space-separated tokens (16 in 4/4, 12 in 3/4): a digit 0-4 picks a chord note from low to
   high, "." rests. Shape it to the style, not always "0 1 2 3": e.g. "0 . 2 . 4 . 2 ." flowing, "0 2 4 2 3 2 4 2"
   piano-like, ". . 2 . . 3 . ." sparse plucks, "0 . . 3 . . 2 . . 4 . . 1 . 2 ." bossa/latin.
@@ -190,6 +211,8 @@ export function critique(score, C) {
     remarks.push('These held melody notes clash a semitone against the chord under them: ' +
       rubs.slice(0, 4).map(r => `bar ${r.bar} ${C.noteName(r.note.midi)} over ${r.chord.name}`).join(', ') +
       '. Make the melody and the chord agree (e.g. a major chord under a major third).');
+  const total = Math.round((ch.at(-1).start + ch.at(-1).length) / spb);
+  if (total < 16) remarks.push(`The whole song is only ${total} bars. Give the verse (A) and the chorus (B) 4 to 8 bars each (one item in bars per bar), so the form adds up to 24 to 48 bars.`);
   const bm = bassMisses(score, C);
   if (bm.misses.length > Math.max(1, 0.2 * bm.total))
     remarks.push(`The bass line doesn't fit the chords at: ${bm.misses.slice(0, 4).join(', ')}. Start each chord with one of its notes in the bass.`);
@@ -276,12 +299,23 @@ export function toScore(out, prompt = '') {
   out = { ...out, title: scrub(out.title, names), character: scrub(out.character, names) };
   const band = out.band || {};
   const beats = out.beatsPerBar === 3 ? 3 : 4, spb = beats * 4;
-  const bars = (Array.isArray(out.bars) ? out.bars : []).slice(0, 32);
+  const bars = expandForm(out).slice(0, 64);
   // A tie can't open the song; elsewhere it carries a note across the bar line.
-  const melodyBars = bars.map(b => fitBar(b.melody, spb, 'rest'));
+  let melodyBars = bars.map(b => fitBar(b.melody, spb, 'rest'));
   if (melodyBars.length) melodyBars[0] = melodyBars[0].replace(/^-:/, 'r:');
+  // A melody that keeps climbing past C6 is shrill in a car: down an octave when it still stays above F#3.
+  const pitches = melodyBars.flatMap(t => tokensOf(t).map(x => x.split(':')[0])).map(noteNumber).filter(n => n != null);
+  if (pitches.length && pitches.filter(n => n > 86).length > 0.1 * pitches.length && Math.min(...pitches) - 12 >= 54)
+    melodyBars = melodyBars.map(t => tokensOf(t).map(x => { const [w, l] = x.split(':'); const n = noteNumber(w); return n == null ? x : `${w.replace(/-?\d+$/, String(Number(w.match(/-?\d+$/)[0]) - 1))}:${l}`; }).join(' '));
+  // The bass: the bars' own lines when every bar has one, else the style (a missing or broken line falls back to roots).
+  const styles = ['HALVES', 'ROOT_FIFTH', 'VOICING'];
+  let bass = String(out.bass || '').trim();
+  if (!styles.includes(bass)) {
+    bass = bars.length && bars.every(b => String(b.bass || '').trim())
+      ? bars.map(b => fitBar(b.bass, spb, 'rest')).join(' | ').replace(/^-:/, 'r:') : 'HALVES';
+  }
   out = { ...out, beatsPerBar: beats, chords: bars.map(b => fitBar(b.chords, spb, 'hold')).join(' | '), melody: melodyBars.join(' | '),
-    arp: fitPattern(out.arp, spb, '.'), comp: fitPattern(out.comp, spb, '.') };
+    bass, arp: fitPattern(out.arp, spb, '.'), comp: fitPattern(out.comp, spb, '.') };
   return {
     id: 'ai-song', title: String(out.title || 'AI 작곡').slice(0, 40), character: String(out.character || 'AI 작곡').slice(0, 60),
     composer: '카에스트로 AI 작곡', creator: '', license: '직접 작곡 · CC BY 4.0',
@@ -290,6 +324,71 @@ export function toScore(out, prompt = '') {
     melody: out.melody, bass: out.bass, arp: out.arp, comp: out.comp, high: out.high, canonBars: out.high === 'CANON' ? out.canonBars : 0,
     defaults: STAGE_KEYS.map(k => band[k]),
   };
+}
+
+/**
+ * The song bar by bar: the sections in the order of form (verse, chorus, bridge...). An older answer with a plain
+ * list of bars still works. Unknown names in form are skipped; no usable form plays the sections once in order.
+ */
+export function expandForm(out) {
+  if (Array.isArray(out.bars)) return out.bars;
+  const spb = (out.beatsPerBar === 3 ? 3 : 4) * 4;
+  const sections = new Map((Array.isArray(out.sections) ? out.sections : [])
+    .filter(x => Array.isArray(x?.bars) && x.bars.length).map(x => [x.name, x.bars.flatMap(b => splitBar(b, spb))]));
+  let order = (Array.isArray(out.form) ? out.form : []).filter(name => sections.has(name));
+  if (!order.length) order = [...sections.keys()];
+  return order.flatMap(name => sections.get(name));
+}
+
+/** MIDI number of a note name like "F#5", or null for rests, ties and anything else. */
+function noteNumber(name) {
+  const m = /^([A-G])([#b]?)(-?\d+)$/.exec(name);
+  if (!m) return null;
+  return 12 * (Number(m[3]) + 1) + { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+}
+const tokensOf = text => String(text || '').trim().split(/\s+/).filter(t => t && t !== '|');
+const stepsOf = text => tokensOf(text).reduce((a, t) => a + (Number(t.split(':')[1]) || 4), 0);
+/** Cuts a run of "WHAT:LEN" tokens into bars of spb steps, splitting a token that crosses a bar line. */
+function cutBars(text, spb, bars, tie) {
+  const out = Array.from({ length: bars }, () => []);
+  let pos = 0;
+  for (const t of tokensOf(text)) {
+    let [what, len] = t.split(':'); let n = Number(len) || 4;
+    while (n > 0 && pos < bars * spb) {
+      const bar = Math.floor(pos / spb), room = spb - (pos % spb), take = Math.min(n, room);
+      out[bar].push(`${what}:${take}`);
+      pos += take; n -= take;
+      if (n > 0 && tie && what !== 'r') what = '-';
+    }
+  }
+  return out.map(b => b.join(' '));
+}
+/**
+ * One "bar" that holds exactly 2-4 bars of melody while its chords and bass add up to one bar: the model wrote
+ * a short phrase with the harmony at half (or a third) the length. Split it into real bars, harmony stretched.
+ */
+function splitBar(b, spb) {
+  const m = stepsOf(b.melody), c = stepsOf(b.chords);
+  if (!(m > spb && m <= 4 * spb && c === spb)) return [b];
+  const k = Math.ceil(m / spb), ratio = m / spb;
+  // Lengths times the ratio (whole steps; the last token takes the rounding), then held or rested to whole bars.
+  const stretch = (text, fill) => {
+    const t = tokensOf(text).map(x => x.split(':')).map(([w, l]) => [w, Math.round((Number(l) || 4) * ratio)]);
+    if (!t.length) return '';
+    t[t.length - 1][1] += m - t.reduce((a, [, l]) => a + l, 0);
+    if (fill === 'hold') t[t.length - 1][1] += k * spb - m; else if (k * spb > m) t.push(['r', k * spb - m]);
+    return t.filter(([, l]) => l > 0).map(([w, l]) => `${w}:${l}`).join(' ');
+  };
+  const chords = cutBars(stretch(b.chords, 'hold'), spb, k, false);
+  const melody = cutBars(k * spb > m ? `${b.melody} r:${k * spb - m}` : b.melody, spb, k, true);
+  const bass = String(b.bass || '').trim() && stepsOf(b.bass) === spb ? cutBars(stretch(b.bass, 'hold'), spb, k, true) : Array(k).fill(b.bass || '');
+  return chords.map((ch, i) => ({ chords: ch, melody: melody[i], bass: bass[i] }));
+}
+
+/** The song's form as text for the studio, e.g. "A A B A B C B (36마디)". */
+export function formText(out) {
+  const known = new Set((out.sections || []).map(x => x.name));
+  return (out.form || []).filter(n => known.has(n)).join(' ');
 }
 
 /** The first message: the request plus a key picked at random, so songs don't all land in the model's favourite key. */
