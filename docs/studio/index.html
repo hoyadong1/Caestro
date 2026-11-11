@@ -79,6 +79,9 @@
     .stage select { margin-top:6px; padding:5px; font-size:12px; }
     .stage { cursor:pointer; } .stage .when { display:block; font-size:11px; line-height:1.4; margin-top:2px; }
     .stage:not(.on) .when { color:#9fb6c4; }
+    .ai-box { margin-top:16px; padding-top:14px; border-top:1px dashed #2f5166; }
+    .ai-box textarea { font-family:inherit; font-size:15px; min-height:58px; }
+    .ai-ideas { margin-top:8px; } .ai-ideas .chip { min-height:32px; font-size:12px; padding:0 10px; }
     .speed-label { display:block; margin-bottom:6px; font-size:13px; font-weight:700; color:#bfe7f8; }
     .speed-label em { font-style:normal; font-weight:400; color:var(--muted); }
     .speedchips { margin-top:10px; } .speedchips .chip { min-height:34px; font-size:13px; padding:0 12px; }
@@ -185,6 +188,17 @@
             <div class="btns">
               <button class="btn primary big" id="compose">🎵 곡 만들기</button>
               <span class="info" id="compose-info"></span>
+            </div>
+            <div class="ai-box">
+              <h3>✍️ 문장으로 만들기 <span class="info">원하는 곡을 적으면 AI가 작곡해요 · 로그인 필요 · 하루 10곡</span></h3>
+              <textarea id="ai-prompt" rows="2" maxlength="500" placeholder="예: 비 오는 밤 퇴근길, 잔잔한 피아노와 첼로, 살짝 재즈 느낌"></textarea>
+              <div class="chips ai-ideas" id="ai-ideas">
+                <button class="chip">비 오는 밤 퇴근길, 살짝 재즈 느낌</button>
+                <button class="chip">바닷가 해안도로, 보사노바처럼 가볍게</button>
+                <button class="chip">새벽 고속도로, 영화 음악처럼 웅장하게</button>
+                <button class="chip">아이와 함께 듣는 동요 같은 왈츠</button>
+              </div>
+              <div class="btns"><button class="btn primary" id="ai-make">✨ AI로 만들기</button><span class="info" id="ai-info"></span></div>
             </div>
           </div>
 

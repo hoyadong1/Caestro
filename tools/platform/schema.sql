@@ -185,3 +185,16 @@ create policy packs_delete on storage.objects for delete to authenticated
 -- After signing in to the studio once, make your account the admin (replace the e-mail):
 --   update public.profiles set is_admin = true
 --   where id = (select id from auth.users where email = 'you@example.com');
+
+-- ------------------------------------------------------------------ AI composing (functions/compose)
+-- One row per request, for the daily limit; only the function (service role) reads and writes it.
+create table if not exists public.ai_requests (
+  id bigserial primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  prompt text not null default '',
+  ok boolean not null default false,
+  tokens int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists ai_requests_user_time on public.ai_requests (user_id, created_at desc);
+alter table public.ai_requests enable row level security;

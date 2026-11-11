@@ -1138,6 +1138,38 @@ for (const box of ['gallery', 'mine', 'review-pending', 'review-approved']) $(bo
   } catch (err) { toast('하지 못했어요: ' + (err.message || err)); }
 });
 
+// ------------------------------------------------------------------ compose from a sentence (Claude, through the platform)
+
+$('ai-ideas').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) $('ai-prompt').value = b.textContent; });
+$('ai-make').addEventListener('click', async () => {
+  const info = $('ai-info'), button = $('ai-make');
+  if (!PLATFORM) { toast('AI 작곡은 플랫폼 서버가 있어야 해요'); return; }
+  const c = await platform();
+  if (!user) { openLogin('AI 작곡은 로그인해야 쓸 수 있어요. 이메일로 받은 링크를 누르면 돼요.'); return; }
+  const prompt = $('ai-prompt').value.trim();
+  if (prompt.length < 2) { toast('어떤 곡을 원하는지 적어 주세요'); $('ai-prompt').focus(); return; }
+  button.disabled = true; info.innerHTML = '🎼 작곡하고 있어요… 30초~1분쯤 걸려요';
+  try {
+    const { data, error } = await c.functions.invoke('compose', { body: { prompt } });
+    if (error) {
+      let message = error.message;
+      try { message = (await error.context.json()).error || message; } catch { /* not JSON */ }
+      info.innerHTML = `<span class="bad">${esc(message)}</span>`;
+      return;
+    }
+    const score = data.score;
+    forkedFrom = null; stash = null; idTouched = false; $('s-id').value = '';
+    $('e-title').value = score.title;
+    writeScore(withNames({ ...score, creator: $('e-creator').value.trim() }));
+    $('compose-info').textContent = `AI 작곡 · ${score.tonic} · ${score.beatsPerBar}/4 · ${score.bpm} BPM`;
+    info.innerHTML = `<span class="ok">✓ ${esc(data.note || '만들었어요. 오른쪽에서 들어 보세요.')}</span>` +
+      (data.remaining != null ? ` <span class="info">오늘 ${data.remaining}곡 더 만들 수 있어요</span>` : '');
+    if (!playing) $('play').click(); else restartPlayback();
+    if (innerWidth < 900) $('roll').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) { info.innerHTML = `<span class="bad">AI 작곡에 실패했어요: ${esc(e.message || e)}</span>`; }
+  finally { button.disabled = false; }
+});
+
 /**
  * Admin: the example cloud (Largo, trombone, handpan) and the starter works (seed/: public-domain melodies,
  * songs from the studio's composer, a designed instrument) go up as approved works. Ones already there are kept.
