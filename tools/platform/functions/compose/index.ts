@@ -3,7 +3,7 @@
 // this with the signed-in user's token. Each result is checked with the same rules as the car (docs/studio/core.js,
 // CloudLibrary) and sent back to the model with the problems until it passes.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import * as C from "https://hoyadong1.github.io/Caestro/studio/core.js";
+import * as C from "./core.js"; // copied from docs/studio/core.js at deploy time
 import { SYSTEM, schema, toScore } from "./shared.js";
 
 const DAILY_LIMIT = 10;
