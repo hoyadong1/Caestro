@@ -235,7 +235,11 @@ object CloudLibrary {
         }
         val piece = Piece(o.getString("title"), o.optString("composer"), beats, Score.pitchClass(o.getString("tonic")),
             chords, melody, bassStyle, bass, Score.pattern(o.getString("arp")), Score.hits(o.getString("comp")),
-            HighLine.valueOf(o.optString("high", "BELLS")), o.optInt("canonBars"), usable)
+            HighLine.valueOf(o.optString("high", "BELLS")), o.optInt("canonBars"), usable,
+            // Optional since 0.14: older apps ignore them and keep the one-bar arp and comp.
+            drumLine = o.optString("drums").ifBlank { null }?.let { Score.drums(it, spb) },
+            arpLine = o.optString("arpLine").ifBlank { null }?.let { Score.patternLine(it, spb) },
+            compLine = o.optString("compLine").ifBlank { null }?.let { Score.hitsLine(it, spb) })
         return ScorePack(piece, o.getString("character"), color(o.optString("color")),
             o.getDouble("bpm").coerceIn(40.0, 160.0), o.optDouble("tempoRange", 6.0).coerceIn(0.0, 40.0))
     }

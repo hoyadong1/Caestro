@@ -9,7 +9,7 @@ export function schema(C) {
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['title', 'character', 'tonic', 'beatsPerBar', 'bpm', 'tempoRange', 'sections', 'form', 'bass', 'arp', 'comp',
+    required: ['title', 'character', 'tonic', 'beatsPerBar', 'bpm', 'tempoRange', 'sections', 'form', 'bass',
       'high', 'canonBars', 'band', 'color', 'note'],
     properties: {
       title: { type: 'string', description: 'Short song title (Korean or English), at most 40 characters' },
@@ -24,9 +24,12 @@ export function schema(C) {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['name', 'bars'],
+          required: ['name', 'drums', 'arp', 'comp', 'bars'],
           properties: {
             name: { type: 'string', enum: ['I', 'A', 'B', 'C', 'E'] },
+            drums: { type: 'string', description: 'One bar of drum tokens for this section (K S H A combinations or "."), all "." for none' },
+            arp: { type: 'string', description: 'One bar of arpeggio tokens for this section (0-4 or ".")' },
+            comp: { type: 'string', description: 'One bar of accompaniment tokens for this section ("x" or ".")' },
             bars: {
               type: 'array',
               description: '2 to 8 bars in order; in each bar chords, melody and bass each add up to exactly one bar of steps',
@@ -46,8 +49,6 @@ export function schema(C) {
       },
       form: { type: 'array', description: 'The order the sections play, e.g. ["I","A","A","B","A","B","C","B","E"]; 24 to 48 bars in all', items: { type: 'string', enum: ['I', 'A', 'B', 'C', 'E'] } },
       bass: { type: 'string', description: 'LINE (the bars\' own bass lines) or a style: HALVES, ROOT_FIFTH, VOICING' },
-      arp: { type: 'string' },
-      comp: { type: 'string' },
       high: { type: 'string', enum: ['BELLS', 'OCTAVE', 'CANON'] },
       canonBars: { type: 'integer', description: 'Bars the high stage follows behind with CANON, else 0' },
       band: {
@@ -98,16 +99,26 @@ Write the score in this text notation exactly (it is parsed by a program):
   best for jazz, funk, pop and fast pieces, with a bass line written in every bar (octave 2 or 3) that starts each
   chord on one of its notes, e.g. a walking "C3:4 E3:4 G3:4 A3:4" or a syncopated "C2:6 C3:2 r:4 G2:4". A chorus may
   move more than a verse.
+- Each section has its own drums, arp and comp, one bar each, repeated through that section's bars: that is how a
+  verse, a chorus and a bridge sound different. Typically the intro and ending are light (few or no drums), the verse
+  is moderate and the chorus fullest (more drum hits, a busier comp or arpeggio); a bridge can drop to something new.
+- drums: exactly one bar of space-separated tokens (16 in 4/4, 12 in 3/4). Each token is "." (nothing) or letters
+  played together: K = low drum (kick, bass drum, low conga, timpani tonic), S = backbeat (rim, snare, conga,
+  timpani fifth), H = small high percussion (shaker, hi-hat, sleigh bells, tambourine), A = accent (open hat,
+  triangle, claves; only heard at higher speeds). The listener's chosen rhythm instrument plays them in its own
+  sound. Examples in 4/4: ballad "K . . . . . H . S . . . . . H ."; pop "K . H . S . H . K . H . S . H ."; bossa
+  "K . H S . H K . K . H S . H K ."; march "K . S . K . S . K . S S K . S A"; EDM "KH . H . KSH . H . KH . H . KSH . H A";
+  waltz (3/4) "K . . . S . . . S . . ."; all "." for calm intros, lullabies and solo piano.
 - arp: exactly one bar of space-separated tokens (16 in 4/4, 12 in 3/4): a digit 0-4 picks a chord note from low to
   high, "." rests. Shape it to the style, not always "0 1 2 3": e.g. "0 . 2 . 4 . 2 ." flowing, "0 2 4 2 3 2 4 2"
   piano-like, ". . 2 . . 3 . ." sparse plucks, "0 . . 3 . . 2 . . 4 . . 1 . 2 ." bossa/latin.
-- comp: exactly one bar of space-separated tokens: "x" strikes the chord, "." rests. Match the style: "x . . . . . . .
+- comp: exactly one bar of space-separated tokens (16 in 4/4, 12 in 3/4): "x" strikes the chord, "." rests. Match the style: "x . . . . . . .
   x . . . . . . ." calm; ". . . . x . . . . . . . x . . ." backbeat pop; ". . x . . . x . . x . . . x . ." bossa;
   "x . . . x . x . . . x . x . . ." funky; in 3/4 "x . . . x . . . x . . ." or "x . . . . . x . . . x .".
 - high: BELLS (top chord note as bells), OCTAVE (the melody an octave up) or CANON (the melody again canonBars bars
   later; only sounds good when the harmony repeats every canonBars bars or stays on one chord).
-- band: one instrument per stage from the allowed ids, chosen for this song. The rhythm stage plays a fixed groove
-  per instrument, so it decides much of the feel: orchperc = classical, marches, film; timpani = epic, dramatic,
+- band: one instrument per stage from the allowed ids, chosen for this song. The rhythm instrument plays your drums
+  in its own sound (a section whose drums are all "." is silent there), so it decides much of the feel: orchperc = classical, marches, film; timpani = epic, dramatic,
   slow and grand; latin = bossa nova, latin, beach, summer; shaker = acoustic, folk, light morning pop; softkit =
   ballads, slow jazz, soft pop; electro = EDM, synth-pop, night city, chases; none = lullabies, solo piano, very calm.
   Likewise the high stage: glock = bright, children; musicbox = lullaby, nostalgic; glasspad = dreamy, night, space;
@@ -314,14 +325,17 @@ export function toScore(out, prompt = '') {
     bass = bars.length && bars.every(b => String(b.bass || '').trim())
       ? bars.map(b => fitBar(b.bass, spb, 'rest')).join(' | ').replace(/^-:/, 'r:') : 'HALVES';
   }
+  const lines = Array.isArray(out.bars) ? { arp: fitPattern(out.arp, spb, '.'), comp: fitPattern(out.comp, spb, '.'), arpLine: '', compLine: '', drums: '' }
+    : sectionLines({ ...out, beatsPerBar: beats });
   out = { ...out, beatsPerBar: beats, chords: bars.map(b => fitBar(b.chords, spb, 'hold')).join(' | '), melody: melodyBars.join(' | '),
-    bass, arp: fitPattern(out.arp, spb, '.'), comp: fitPattern(out.comp, spb, '.') };
+    bass, ...lines };
   return {
     id: 'ai-song', title: String(out.title || 'AI 작곡').slice(0, 40), character: String(out.character || 'AI 작곡').slice(0, 60),
     composer: '카에스트로 AI 작곡', creator: '', license: '직접 작곡 · CC BY 4.0',
     color: /^#[0-9a-fA-F]{6}$/.test(out.color) ? out.color : '#9AD7FF',
     bpm: out.bpm, tempoRange: out.tempoRange, beatsPerBar: out.beatsPerBar, tonic: out.tonic, chords: out.chords, voicings: '',
-    melody: out.melody, bass: out.bass, arp: out.arp, comp: out.comp, high: out.high, canonBars: out.high === 'CANON' ? out.canonBars : 0,
+    melody: out.melody, bass: out.bass, arp: out.arp, comp: out.comp, arpLine: out.arpLine, compLine: out.compLine, drums: out.drums,
+    high: out.high, canonBars: out.high === 'CANON' ? out.canonBars : 0,
     defaults: STAGE_KEYS.map(k => band[k]),
   };
 }
@@ -385,6 +399,39 @@ function splitBar(b, spb) {
   return chords.map((ch, i) => ({ chords: ch, melody: melody[i], bass: bass[i] }));
 }
 
+/** One bar of drum tokens: K S H A combinations or ".", padded or cut to the bar. */
+function fitDrums(text, spb) {
+  const t = String(text || '').trim().split(/\s+/).filter(x => x && x !== '|').map(x => /^[KSHA]+$/.test(x) ? x : '.');
+  return Array.from({ length: spb }, (_, i) => t[i] ?? '.').join(' ');
+}
+
+/**
+ * The parts that change by section (drums, arpeggio, accompaniment), one bar per bar of the song in the order of
+ * form. A line that is the same in every bar becomes the plain one-bar pattern; drums that are silent throughout
+ * are left out (the rhythm section then plays its own groove).
+ */
+export function sectionLines(out) {
+  const spb = (out.beatsPerBar === 3 ? 3 : 4) * 4;
+  const sections = new Map((Array.isArray(out.sections) ? out.sections : []).filter(x => Array.isArray(x?.bars) && x.bars.length).map(x => [x.name, x]));
+  let order = (Array.isArray(out.form) ? out.form : []).filter(n => sections.has(n));
+  if (!order.length) order = [...sections.keys()];
+  const per = { drums: [], arp: [], comp: [] };
+  for (const name of order) {
+    const sec = sections.get(name), bars = sec.bars.flatMap(b => splitBar(b, spb)).length;
+    const drums = fitDrums(sec.drums, spb), arp = fitPattern(sec.arp ?? out.arp, spb, '.'), comp = fitPattern(sec.comp ?? out.comp, spb, '.');
+    for (let i = 0; i < bars; i++) { per.drums.push(drums); per.arp.push(arp); per.comp.push(comp); }
+  }
+  const same = list => list.every(x => x === list[0]);
+  const common = list => { const n = new Map(); for (const x of list) n.set(x, (n.get(x) || 0) + 1); return [...n].sort((a, b) => b[1] - a[1])[0]?.[0]; };
+  return {
+    // Older apps play one bar throughout: the pattern most bars use.
+    arp: common(per.arp) ?? fitPattern(out.arp, spb, '.'), comp: common(per.comp) ?? fitPattern(out.comp, spb, '.'),
+    arpLine: per.arp.length && !same(per.arp) ? per.arp.join(' | ') : '',
+    compLine: per.comp.length && !same(per.comp) ? per.comp.join(' | ') : '',
+    drums: per.drums.some(d => /[KSHA]/.test(d)) ? per.drums.join(' | ') : '',
+  };
+}
+
 /** The song's form as text for the studio, e.g. "A A B A B C B (36마디)". */
 export function formText(out) {
   const known = new Set((out.sections || []).map(x => x.name));
@@ -412,7 +459,9 @@ export function fixThreeCount(score, C) {
   if (offBeat < 0.25) return score;
   const scale = text => text.split(' ').map(t => t === '|' ? t : `${t.split(':')[0]}:${Number(t.split(':')[1]) * 4 / 3}`).join(' ');
   const widen = text => { const t = text.split(' '); return [...t, ...t.slice(0, 4)].join(' '); };
-  return { ...score, beatsPerBar: 4, melody: scale(score.melody), chords: scale(score.chords), arp: widen(score.arp), comp: widen(score.comp) };
+  const widenLine = text => text ? text.split(' | ').map(widen).join(' | ') : text;
+  return { ...score, beatsPerBar: 4, melody: scale(score.melody), chords: scale(score.chords), arp: widen(score.arp), comp: widen(score.comp),
+    arpLine: widenLine(score.arpLine), compLine: widenLine(score.compLine), drums: widenLine(score.drums) };
 }
 
 /** Chords whose start the bass line doesn't support (the bass note is not in the chord). */

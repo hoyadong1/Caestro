@@ -48,6 +48,14 @@ class Piece internal constructor(
     internal val canonBars: Int,
     /** Default instrument id per stage. */
     val defaults: List<String>,
+    /**
+     * Optional lines that may change bar by bar (verse and chorus played differently), tiled over the piece:
+     * the drums as a bit mask per step ([Score.DRUM_LOW] ...), and the arpeggio and accompaniment patterns.
+     * Without them the rhythm section plays its own groove and [arp] / [comp] repeat every bar.
+     */
+    drumLine: IntArray? = null,
+    arpLine: IntArray? = null,
+    compLine: BooleanArray? = null,
 ) {
     val stepsPerBar = beatsPerBar * 4
     val lengthSteps = chords.last().start + chords.last().length
@@ -56,6 +64,16 @@ class Piece internal constructor(
     private val melodyAt = arrayOfNulls<Note>(lengthSteps)
     private val bassAt = arrayOfNulls<Note>(lengthSteps)
     internal val melody: List<Note> = melodyLine
+    private val drums = drumLine?.let { tile(it) }
+    private val arps = arpLine?.let { tile(it) }
+    private val comps = compLine?.let { line -> tile(IntArray(line.size) { if (line[it]) 1 else 0 }) }
+
+    private fun tile(line: IntArray): IntArray {
+        require(line.isNotEmpty() && line.size % stepsPerBar == 0 && lengthSteps % line.size == 0) {
+            "$title: a line of ${line.size} steps does not fit $lengthSteps"
+        }
+        return IntArray(lengthSteps) { line[it % line.size] }
+    }
 
     init {
         require(lengthSteps % stepsPerBar == 0) { "$title does not end on a bar line" }
@@ -97,6 +115,10 @@ class Piece internal constructor(
     }
 
     internal fun chordAt(step: Int): Chord = chords[chordIndex[step]]
+    /** Drum hits at [step] ([Score.DRUM_LOW] | ...), or null when the piece leaves the groove to the rhythm section. */
+    internal fun drumsAt(step: Int): Int? = drums?.get(step)
+    internal fun arpAt(step: Int): Int = arps?.get(step) ?: arp[step % stepsPerBar]
+    internal fun compAt(step: Int): Boolean = comps?.let { it[step] != 0 } ?: comp[step % stepsPerBar]
     internal fun melodyAt(step: Int): Note? = melodyAt[step]
     internal fun bassAt(step: Int): Note? = bassAt[step]
 
@@ -178,6 +200,36 @@ internal object Score {
             out.map { Chord(it.start + k * position, it.length, it.root, it.intervals, it.bassClass, it.voicing) }
         }
     }
+
+    const val DRUM_LOW = 1
+    const val DRUM_BACK = 2
+    const val DRUM_HIGH = 4
+    const val DRUM_ACCENT = 8
+
+    /** Tokens of a line of whole bars ("|" between bars, checked). */
+    private fun barTokens(text: String, stepsPerBar: Int): List<String> {
+        val out = mutableListOf<String>()
+        for (token in text.trim().split(Regex("\\s+"))) {
+            if (token == "|") { require(out.size % stepsPerBar == 0) { "bar line at step ${out.size}" }; continue }
+            out += token
+        }
+        require(out.isNotEmpty() && out.size % stepsPerBar == 0) { "line of ${out.size} steps is not whole bars" }
+        return out
+    }
+
+    /** "K . H . S . H . | K K H . S . H A": per step any of K (low drum), S (backbeat), H (high), A (accent), or ".". */
+    fun drums(text: String, stepsPerBar: Int): IntArray = barTokens(text, stepsPerBar).map { token ->
+        if (token == ".") 0 else token.fold(0) { mask, ch ->
+            mask or when (ch) { 'K' -> DRUM_LOW; 'S' -> DRUM_BACK; 'H' -> DRUM_HIGH; 'A' -> DRUM_ACCENT; else -> error("bad drum $ch") }
+        }
+    }.toIntArray()
+
+    /** Arpeggio pattern over one or more bars ("0 . 2 . | 1 . 3 ."). */
+    fun patternLine(text: String, stepsPerBar: Int): IntArray =
+        barTokens(text, stepsPerBar).map { if (it == ".") -1 else it.toInt() }.toIntArray()
+
+    /** Accompaniment pattern over one or more bars ("x . . . | x . x ."). */
+    fun hitsLine(text: String, stepsPerBar: Int): BooleanArray = barTokens(text, stepsPerBar).map { it == "x" }.toBooleanArray()
 
     /** One bar of indices ("0 . 2 . 1 ."): a number plays that note, "." rests. */
     fun pattern(text: String): IntArray = text.trim().split(Regex("\\s+")).map { if (it == ".") -1 else it.toInt() }.toIntArray()

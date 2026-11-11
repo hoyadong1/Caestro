@@ -277,8 +277,12 @@
               </div>
               <textarea id="s-bass" spellcheck="false" placeholder="베이스 선율: C3:8 G2:8 | ..." style="margin-top:8px" hidden></textarea>
               <div class="row" style="margin-top:10px">
-                <label class="f"><span>분산음 패턴 <em>한 마디, 0~4 또는 .</em></span><input type="text" id="s-arp" spellcheck="false"></label>
-                <label class="f"><span>반주 리듬 <em>한 마디, x 또는 .</em></span><input type="text" id="s-comp" spellcheck="false"></label>
+                <label class="f"><span>분산음 패턴 <em>0~4 또는 . · 마디마다 다르게: ‘|’로 구분</em></span><input type="text" id="s-arp" spellcheck="false"></label>
+                <label class="f"><span>반주 리듬 <em>x 또는 . · 마디마다 다르게: ‘|’로 구분</em></span><input type="text" id="s-comp" spellcheck="false"></label>
+              </div>
+              <div class="row" style="margin-top:10px">
+                <label class="f" style="flex:1 1 100%"><span>드럼 줄 <em>선택 · K 낮은 북 · S 뒷박 · H 잔 타악기 · A 강세(고속에서) · . 쉼 · ‘|’로 마디 구분 · 비우면 타악기 기본 리듬</em></span>
+                  <textarea id="s-drums" spellcheck="false" rows="2" placeholder="예: K . H . S . H . K . H . S . H . | K . H . S . H . K K H . S A H ."></textarea></label>
               </div>
               <details class="help"><summary>보이싱 직접 쓰기</summary>
                 <p>코드마다 실제로 누를 음을 낮은 음부터 적습니다. 코드 수와 같아야 합니다. 예: <code>C3 E3 G3 C4 E4 | C3 D3 A3 D4 F4</code></p>

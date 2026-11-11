@@ -263,6 +263,38 @@ internal class SampleKit(private val style: Int) : Part {
         if (wiper && inBar % 4 == 0) hit("tambshake", 0.25, -0.3)
     }
 
+    /** One step of a written drum line ([Score.DRUM_LOW] ...), voiced by this section's recordings. */
+    fun hits(mask: Int, inBar: Int, stepsPerBar: Int, level: Int, wiper: Boolean, tonicHz: Double) {
+        val low = mask and Score.DRUM_LOW != 0
+        val back = mask and Score.DRUM_BACK != 0
+        val high = mask and Score.DRUM_HIGH != 0
+        val accent = mask and Score.DRUM_ACCENT != 0 && level >= 2
+        val downbeat = inBar == 0
+        when (style) {
+            TIMPANI -> {
+                val tonic = if (tonicHz < 90.0) tonicHz * 2.0 else tonicHz
+                val fifth = if (tonic > 120.0) tonic * 0.75 else tonic * 1.5
+                if (low) timp(tonic, if (downbeat) 1.0 else 0.8)
+                if (back) timp(fifth, 0.7)
+                if (high) timp(tonic, 0.3)
+                if (accent) timp(fifth, 0.9)
+            }
+            ORCHESTRA -> {
+                if (low) hit("bassdrum", if (downbeat) 0.6 else 0.45)
+                if (back) hit("snaretap", 0.34, -0.25)
+                if (high) hit("sleigh", 0.22, 0.35)
+                if (accent) hit("triangle", 0.35, 0.4)
+            }
+            LATIN -> {
+                if (low) hit("tumba", 0.85, -0.2)
+                if (back) hit("conga", 0.6, 0.25)
+                if (high) hit("tambshake", 0.32, 0.3)
+                if (accent) hit("claves", 0.28, -0.35)
+            }
+        }
+        if (wiper && inBar % 4 == 0) hit("tambshake", 0.25, -0.3)
+    }
+
     override fun render(c: Controls) {
         var l = 0.0
         var r = 0.0

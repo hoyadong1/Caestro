@@ -120,6 +120,40 @@ export function hits(text, spb) {
   return t.map(x => { if (x !== 'x' && x !== '.') throw new Error(`반주 리듬에는 x나 ‘.’만 씁니다: ${x}`); return x === 'x'; });
 }
 
+// ---- lines that may change bar by bar (0.14): the drums and the arpeggio / accompaniment patterns.
+// Older apps ignore them and play the one-bar arp and comp.
+export const DRUM = { K: 1, S: 2, H: 4, A: 8 };
+export const DRUM_NAMES = { K: '낮은 북', S: '뒷박', H: '잔 타악기', A: '강세' };
+
+function barTokens(text, spb, what) {
+  const out = [];
+  for (const t of tokens(text)) {
+    if (t === '|') { if (out.length % spb) throw new Error(`${what}: 마디선 위치가 맞지 않습니다 (${out.length}칸)`); continue; }
+    out.push(t);
+  }
+  if (!out.length || out.length % spb) throw new Error(`${what}은 마디 단위(${spb}칸씩)여야 합니다. 지금 ${out.length}칸`);
+  return out;
+}
+function tile(line, length, what) {
+  if (length % line.length) throw new Error(`${what} ${line.length / (line.length / Math.max(1, line.length))}칸으로는 곡 길이 ${length}칸을 반복해 채울 수 없습니다`);
+  return Array.from({ length }, (_, i) => line[i % line.length]);
+}
+/** "K . H . S . H . | ...": per step any of K (low drum), S (backbeat), H (high), A (accent), or ".". */
+export function drumLine(text, spb) {
+  return barTokens(text, spb, '드럼 줄').map(t => {
+    if (t === '.') return 0;
+    let mask = 0;
+    for (const ch of t) { if (!(ch in DRUM)) throw new Error(`드럼 줄에는 K S H A와 ‘.’만 씁니다: ${t}`); mask |= DRUM[ch]; }
+    return mask;
+  });
+}
+export function patternLine(text, spb) {
+  return barTokens(text, spb, '분산음 패턴').map(x => { if (x === '.') return -1; if (!/^\d+$/.test(x)) throw new Error(`분산음 패턴에는 숫자나 ‘.’만 씁니다: ${x}`); return Number(x); });
+}
+export function hitsLine(text, spb) {
+  return barTokens(text, spb, '반주 리듬').map(x => { if (x !== 'x' && x !== '.') throw new Error(`반주 리듬에는 x나 ‘.’만 씁니다: ${x}`); return x === 'x'; });
+}
+
 function lowest(pc, floor) { return floor + (((pc - floor) % 12) + 12) % 12; }
 
 /**
@@ -166,6 +200,18 @@ export function checkScore(s) {
   let arp = null, comp = null;
   try { arp = pattern(String(s.arp || ''), spb, '분산음 패턴'); } catch (e) { fail('arp', e); }
   try { comp = hits(String(s.comp || ''), spb); } catch (e) { fail('comp', e); }
+  let drums = null, arpLine = null, compLine = null;
+  const optional = (field, parse, what) => {
+    const text = String(s[field] || '').trim();
+    if (!text) return null;
+    try { const line = parse(text, spb); if (length % line.length) throw new Error(`${what} ${line.length / spb}마디로는 곡 ${length / spb}마디를 반복해 채울 수 없습니다`); return tile(line, length, what); }
+    catch (e) { fail(field, e); return null; }
+  };
+  if (length) {
+    drums = optional('drums', drumLine, '드럼 줄');
+    arpLine = optional('arpLine', patternLine, '분산음 패턴');
+    compLine = optional('compLine', hitsLine, '반주 리듬');
+  }
   if (!['BELLS', 'OCTAVE', 'CANON'].includes(s.high)) errors.push({ field: 'high', message: '고음 단계는 BELLS, OCTAVE, CANON 중 하나' });
   const canonBars = Number(s.canonBars || 0);
   if (s.high === 'CANON' && !(canonBars >= 1 && Number.isInteger(canonBars))) errors.push({ field: 'canonBars', message: '캐논은 몇 마디 뒤에 따라올지(1 이상) 정해 주세요' });
@@ -184,7 +230,7 @@ export function checkScore(s) {
     if (c.voicing) { c.arp = c.voicing; c.harmony = c.voicing.slice(1); }
     else { const low = lowest(c.root, 53); c.harmony = iv.map(i => low + i); const ar = lowest(c.root, 55); c.arp = c.tones.map(t => ar + t); }
   }
-  const piece = { spb, beats, tonic, chords: ch, melody, bass, arp, comp, high: s.high, canonBars, lengthSteps: length,
+  const piece = { spb, beats, tonic, chords: ch, melody, bass, arp, comp, drums, arpLine, compLine, high: s.high, canonBars, lengthSteps: length,
     bpm, tempoRange: range, chordAt: new Array(length), melodyAt: new Array(length), bassAt: new Array(length) };
   ch.forEach((c, i) => { for (let k = c.start; k < c.start + c.length; k++) piece.chordAt[k] = i; });
   for (const n of melody) piece.melodyAt[n.start] = n;
@@ -215,8 +261,9 @@ export function scoreManifest(s) {
     creator: (s.creator || '').trim(), license: (s.license || '').trim(), color: s.color, bpm: Number(s.bpm), tempoRange: Number(s.tempoRange),
     beatsPerBar: Number(s.beatsPerBar), tonic: s.tonic.trim(), chords: oneLine(s.chords) };
   if (String(s.voicings || '').trim()) o.voicings = oneLine(s.voicings);
-  Object.assign(o, { melody: oneLine(s.melody), bass: oneLine(s.bass), arp: oneLine(s.arp), comp: oneLine(s.comp), high: s.high,
-    canonBars: s.high === 'CANON' ? Number(s.canonBars) : 0, defaults: s.defaults.slice() });
+  Object.assign(o, { melody: oneLine(s.melody), bass: oneLine(s.bass), arp: oneLine(s.arp), comp: oneLine(s.comp) });
+  for (const field of ['drums', 'arpLine', 'compLine']) if (String(s[field] || '').trim()) o[field] = oneLine(s[field]);
+  Object.assign(o, { high: s.high, canonBars: s.high === 'CANON' ? Number(s.canonBars) : 0, defaults: s.defaults.slice() });
   return o;
 }
 function oneLine(t) { return String(t).trim().split(/\s+/).join(' '); }

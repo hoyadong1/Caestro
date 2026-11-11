@@ -589,6 +589,45 @@ internal class Kit(private val style: Int) : Part {
         if (wiper && inBar % 2 == 1) { shakerAge = 0.0; shakerLevel = 0.5 }
     }
 
+    /**
+     * One step of a written drum line ([Score.DRUM_LOW] ...). Each kit voices the four parts its own way;
+     * accents join at the busiest drum level (higher speeds), as the kit's own groove grows with speed.
+     */
+    fun hits(mask: Int, inBar: Int, level: Int, wiper: Boolean, stepSamples: Int) {
+        val low = mask and Score.DRUM_LOW != 0
+        val back = mask and Score.DRUM_BACK != 0
+        val high = mask and Score.DRUM_HIGH != 0
+        val accent = mask and Score.DRUM_ACCENT != 0 && level >= 2
+        val offbeat = inBar % 4 == 2
+        when (style) {
+            SOFT -> {
+                if (low) kick(if (inBar == 0) 0.9 else 0.75)
+                if (back) rimAge = 0.0
+                if (high) shake(offbeat, stepSamples)
+                if (accent) { hatAge = 0.0; hatLevel = 0.9 }
+            }
+            ELECTRO -> {
+                if (low) kick(1.0)
+                if (back) { snareAge = 0.0; snareLevel = 0.8 }
+                if (high) { hatAge = 0.0; hatLevel = if (offbeat) 1.0 else 0.5 }
+                if (accent) { snareAge = 0.0; snareLevel = 1.0; hatAge = 0.0; hatLevel = 1.2 }
+            }
+            SHAKER -> {
+                if (low) kick(0.6)
+                if (back) { hatAge = 0.0; hatLevel = 0.8 }
+                if (high) shake(offbeat, stepSamples)
+                if (accent) rimAge = 0.0
+            }
+        }
+        if (wiper && inBar % 2 == 1) { shakerAge = 0.0; shakerLevel = 0.5 }
+    }
+
+    /** A shaker stroke; the off-beat one lands a little late, the swing of the kit's own groove. */
+    private fun shake(offbeat: Boolean, stepSamples: Int) {
+        if (offbeat) { shakerDelay = (stepSamples * 0.35).toInt().coerceAtLeast(1); shakerLevel = 1.0 }
+        else { shakerAge = 0.0; shakerLevel = 0.55 }
+    }
+
     private fun shakerGroove(inBar: Int, stepSamples: Int) {
         if (inBar % 4 == 0) { shakerAge = 0.0; shakerLevel = 0.55 }
         if (inBar % 4 == 2) { shakerDelay = (stepSamples * 0.35).toInt().coerceAtLeast(1); shakerLevel = 1.0 }

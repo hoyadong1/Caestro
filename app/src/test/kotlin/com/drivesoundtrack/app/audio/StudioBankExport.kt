@@ -45,8 +45,21 @@ class StudioBankExport {
                     loops += "\"$beats\": [${"%.4f".format(bars.size.toDouble() / rate)}, ${"%.4f".format(take.size.toDouble() / rate)}]"
                     bars += take
                 }
+                // Single hits of a written drum line (K low, S backbeat, H high, A accent), each in its own slot;
+                // the timpani's are tuned to C and the studio retunes them to the song.
+                val hits = mutableListOf<String>()
+                for ((letter, mask) in listOf("K" to Score.DRUM_LOW, "S" to Score.DRUM_BACK, "H" to Score.DRUM_HIGH, "A" to Score.DRUM_ACCENT)) {
+                    val part = Instruments.build(index, 1)!!
+                    val start = bars.size
+                    repeat((lead * rate).toInt()) { bars += 0.0 }
+                    val stepSamples = (60.0 / 90.0 / 4.0 * rate).toInt()
+                    (part as? Kit)?.hits(mask, if (mask == Score.DRUM_LOW) 0 else 4, 2, false, stepSamples)
+                    (part as? SampleKit)?.hits(mask, if (mask == Score.DRUM_LOW) 0 else 4, 16, 2, false, midiHz(36))
+                    repeat((0.9 * rate).toInt()) { part.render(controls); bars += (part.left + part.right) * 0.5 * kind.gain }
+                    hits += "\"$letter\": ${"%.4f".format(start.toDouble() / rate + lead)}"
+                }
                 rendered[kind.id] = bars.toDoubleArray()
-                metas[kind.id] = "\"kind\": \"rhythm\", \"bpm\": 90, \"loops\": {${loops.joinToString(", ")}}"
+                metas[kind.id] = "\"kind\": \"rhythm\", \"bpm\": 90, \"loops\": {${loops.joinToString(", ")}}, \"hits\": {${hits.joinToString(", ")}}"
             } else {
                 val sustained = kind.sustained
                 val slot = if (sustained) 4.2 else 2.6

@@ -74,6 +74,22 @@ function playKit(id, beats, when, bpm, dest) {
   return true;
 }
 
+/** One step of a score's drum line: the bank's single hits of the chosen rhythm section (timpani tuned to the song). */
+function playHits(id, mask, when, tonic, dest, busy) {
+  const info = bank?.instruments[id], buffer = bankBuffer(id);
+  if (!info?.hits || !buffer) return false;
+  for (const [letter, bit] of Object.entries(C.DRUM)) {
+    if (!(mask & bit) || (letter === 'A' && !busy)) continue;
+    const a = audio(), src = a.createBufferSource(), g = a.createGain();
+    src.buffer = buffer;
+    if (id === 'timpani') { const t = C.hz(36 + tonic); src.playbackRate.value = (t < 90 ? t * 2 : t) / (C.hz(36) * 2); }
+    g.gain.value = STAGE_GAIN[1] * OUTPUT / bank.scale;
+    src.connect(g).connect(dest);
+    src.start(when, info.hits[letter], 0.85);
+  }
+  return true;
+}
+
 function save(name, bytes, type = 'application/octet-stream') {
   const url = URL.createObjectURL(new Blob([bytes], { type }));
   const a = Object.assign(document.createElement('a'), { href: url, download: name });
@@ -318,6 +334,11 @@ function readScore() {
   const o = {};
   for (const f of SCORE_FIELDS) o[f] = $('s-' + f).value;
   for (const f of ['bpm', 'tempoRange', 'beatsPerBar', 'canonBars']) o[f] = Number(o[f]);
+  for (const [f, line] of [['arp', 'arpLine'], ['comp', 'compLine']]) {
+    const text = o[f].trim();
+    if (text.includes('|')) { o[line] = text; o[f] = text.split('|')[0].trim(); } else o[line] = '';
+  }
+  o.drums = $('s-drums').value;
   const style = $('s-bassStyle').value;
   o.bass = style === 'EXPLICIT' ? $('s-bass').value : style;
   o.defaults = readDefaults() ?? C.BAND_DEFAULT.slice();
@@ -331,6 +352,9 @@ function writeScore(s) {
     if (f === 'color') v = /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : '#8fd0b8';
     el.value = v;
   }
+  if (s.arpLine) $('s-arp').value = s.arpLine;
+  if (s.compLine) $('s-comp').value = s.compLine;
+  $('s-drums').value = s.drums || '';
   const styles = ['HALVES', 'ROOT_FIFTH', 'VOICING'];
   $('s-bassStyle').value = styles.includes(s.bass) ? s.bass : 'EXPLICIT';
   $('s-bass').value = styles.includes(s.bass) ? '' : s.bass;
@@ -341,7 +365,7 @@ function writeScore(s) {
 }
 
 let piece = null, lastCheck = null;
-const FIELD_INPUT = { bass: 's-bass', defaults: 'stages' };
+const FIELD_INPUT = { bass: 's-bass', defaults: 'stages', arpLine: 's-arp', compLine: 's-comp' };
 function onScoreInput() {
   $('s-bass').hidden = $('s-bassStyle').value !== 'EXPLICIT';
   $('s-canonBars').disabled = $('s-high').value !== 'CANON';
@@ -373,7 +397,7 @@ function onScoreInput() {
   drawRoll();
 }
 const onScoreInputSoon = debounce(onScoreInput, 180);
-for (const f of [...SCORE_FIELDS, 'bassStyle', 'bass']) $('s-' + f).addEventListener('input', onScoreInputSoon);
+for (const f of [...SCORE_FIELDS, 'bassStyle', 'bass', 'drums']) $('s-' + f).addEventListener('input', onScoreInputSoon);
 
 $('ex-largo').addEventListener('click', async () => {
   try { idTouched = true; writeScore(await (await fetch(CLOUD + 'scores/largo.json')).json()); $('compose-info').textContent = '예시 · 드보르자크 「라르고」'; }
@@ -529,11 +553,16 @@ function scheduleStep(p, s, when, stepDur) {
   const accent = position === 0 ? 1 : position % 4 === 0 ? 0.86 : 0.74;
   const b = p.bassAt[s]; if (b) playStage(0, b.midi, b.length, 0.95, when, stepDur);
   const kit = readDefaults()?.[1];
-  if (kit !== 'none' && !(bank?.instruments[kit] && bankBuffer(kit))) drum(position, spb, when, stageGains[1]);
+  if (kit !== 'none' && p.drums) {
+    // The score's own drum line; accents join from 52 km/h, as in the car.
+    const mask = p.drums[s];
+    if (mask && !playHits(kit, mask, when, p.tonic, stageGains[1], speed() >= 52) && mask & (C.DRUM.K | C.DRUM.S)) drum(position, spb, when, stageGains[1]);
+  }
+  else if (kit !== 'none' && !(bank?.instruments[kit] && bankBuffer(kit))) drum(position, spb, when, stageGains[1]);
   else if (kit !== 'none' && position === 0) playKit(kit, p.beats, when, 60 / stepDur / 4, stageGains[1]);
   if (sustainedAt(2)) { if (span.start === s) for (const m of span.harmony) playStage(2, m, span.length, 0.8, when, stepDur); }
-  else if (p.comp[position]) { let until = 1; while (position + until < spb && !p.comp[position + until]) until++; for (const m of span.harmony) playStage(2, m, until, accent * 0.85, when, stepDur); }
-  const index = p.arp[position];
+  else if ((p.compLine ? p.compLine[s] : p.comp[position])) { let until = 1; while (position + until < spb && !(p.compLine ? p.compLine[s + until] : p.comp[position + until])) until++; for (const m of span.harmony) playStage(2, m, until, accent * 0.85, when, stepDur); }
+  const index = p.arpLine ? p.arpLine[s] : p.arp[position];
   if (index >= 0) playStage(3, span.arp[index % span.arp.length], 3, accent * 0.9, when, stepDur);
   const mel = p.melodyAt[s]; if (mel) playStage(4, mel.midi, mel.length, 0.9, when, stepDur);
   if (p.high === 'BELLS') {

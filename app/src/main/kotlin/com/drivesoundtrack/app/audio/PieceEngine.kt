@@ -58,8 +58,15 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
         val accent = when { position == 0 -> 1.0; position % 4 == 0 -> 0.86; else -> 0.74 }
 
         piece.bassAt(s)?.let { play(Instruments.BASS, it.midi, it.length, 0.95) }
-        (parts[Instruments.RHYTHM] as? Kit)?.step(position, spb, bar, rhythmLevel, wiper, tonicHz, stepSamples)
-        (parts[Instruments.RHYTHM] as? SampleKit)?.step(position, spb, bar, rhythmLevel, wiper, tonicHz)
+        val drums = piece.drumsAt(s)
+        if (drums == null) {
+            (parts[Instruments.RHYTHM] as? Kit)?.step(position, spb, bar, rhythmLevel, wiper, tonicHz, stepSamples)
+            (parts[Instruments.RHYTHM] as? SampleKit)?.step(position, spb, bar, rhythmLevel, wiper, tonicHz)
+        } else {
+            // The score's own drum line, played by whichever rhythm section the listener picked.
+            (parts[Instruments.RHYTHM] as? Kit)?.hits(drums, position, rhythmLevel, wiper, stepSamples)
+            (parts[Instruments.RHYTHM] as? SampleKit)?.hits(drums, position, spb, rhythmLevel, wiper, tonicHz)
+        }
 
         chordClasses = 0
         for (iv in span.intervals) chordClasses = chordClasses or (1 shl Math.floorMod(span.root + iv, 12))
@@ -71,13 +78,13 @@ internal class PieceEngine(private val piece: Piece) : ScoreEngine {
 
         if (Instruments.all[kinds[Instruments.HARMONY]].sustained) {
             if (span.start == s) for (m in span.harmony) if (!clashes(m, tune)) play(Instruments.HARMONY, m, span.length, 0.8)
-        } else if (piece.comp[position]) {
+        } else if (piece.compAt(s)) {
             var until = 1
-            while (position + until < spb && !piece.comp[position + until]) until++
+            while (position + until < spb && !piece.compAt(s + until)) until++
             for (m in span.harmony) if (!clashes(m, tune)) play(Instruments.HARMONY, m, until, accent * 0.85)
         }
 
-        val index = piece.arp[position]
+        val index = piece.arpAt(s)
         if (index >= 0) {
             arpSide = -arpSide
             play(Instruments.ARP, span.arp[index % span.arp.size], 3, accent * 0.9, arpSide * 0.32)
