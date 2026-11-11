@@ -241,6 +241,20 @@ class CloudLibraryTest {
         check(platform.files == "https://abc.supabase.co/storage/v1/object/public/packs/" && platform.apiKey == "key")
     }
 
+    /** The live platform the build points at (network; run with LIVE_PLATFORM set). */
+    @Test
+    fun theLivePlatformListAndFilesInstall() {
+        org.junit.Assume.assumeTrue("set LIVE_PLATFORM to reach the real project", System.getenv("LIVE_PLATFORM") != null)
+        val source = CloudLibrary.DEFAULT
+        check(source.apiKey != null) { "this build has no platform" }
+        val items = CloudLibrary.fetchCatalog(source)
+        println("platform list: ${items.map { "${it.id}(${it.type})" }}")
+        check(items.isNotEmpty())
+        val root = Files.createTempDirectory("library").toFile()
+        for (item in items) CloudLibrary.download(item, root, source)
+        check(CloudLibrary.installed(root) == items.map { it.id }.toSet())
+    }
+
     @Test
     fun aBrokenPackIsNotInstalled() {
         val root = Files.createTempDirectory("library").toFile()
