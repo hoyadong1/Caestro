@@ -11,7 +11,7 @@
 ## 실행
 
 1. [`apk/홍원택_Caestro_release.apk`](apk/홍원택_Caestro_release.apk)를 Pleos Connect나 Android Automotive 기기에 설치하고 차량 속도 권한을 허용합니다.
-2. 곡을 재생하고 달리면 속도에 따라 악기가 더해집니다. **악단** 탭에서 단계마다 악기를 고르고, **클라우드** 탭에서 악보와 악기를 내려받습니다(정차 중).
+2. 곡을 재생하고 달리면 속도에 따라 악기가 더해집니다. **악단** 탭에서 단계마다 악기를 고르고(멈춘 상태에서도 고르면 몇 초 들려줍니다), **클라우드** 탭에서 악보와 악기를 내려받습니다(정차 중).
 3. Pleos 에뮬레이터에서는 `.\demo\start-interactive.ps1`로 실행하고, 앱의 **시연 주행** 버튼이나 Virtual Console D단 주행으로 확인합니다. → [자세히](https://github.com/hoyadong1/Caestro/wiki/Development#실행)
 
 ## 테스트 환경
