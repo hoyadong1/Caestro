@@ -1,4 +1,5 @@
 import * as C from './core.js';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 const $ = id => document.getElementById(id);
 const CLOUD = '../cloud/';
@@ -91,7 +92,9 @@ for (const b of document.querySelectorAll('nav.tabs button')) b.addEventListener
 function showTab(name) {
   for (const b of document.querySelectorAll('nav.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === name));
   for (const s of document.querySelectorAll('main section')) s.hidden = s.id !== 'tab-' + name;
-  if (name === 'pack') renderPack();
+  if (name === 'gallery') renderGallery();
+  if (name === 'mine') refreshMine();
+  if (name === 'review') refreshReview();
   if (name !== 'score' && playing) stop();
   try { history.replaceState(null, '', '#' + name); } catch { }
 }
@@ -194,6 +197,9 @@ $('lengths').addEventListener('click', e => { const b = e.target.closest('[data-
 $('compose').addEventListener('click', () => compose());
 
 function compose() {
+  // A new song: not an arrangement of someone else's, nothing to go back to.
+  forkedFrom = null; stash = null;
+  if (idTouched) { idTouched = false; $('s-id').value = ''; }
   seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
   const { score, info } = C.compose(mood, { bars, seed });
   writeScore(withNames(score));
@@ -351,7 +357,7 @@ function onScoreInput() {
   } else if (r.errors.length) {
     const p = C.checkScore({ ...s, id: s.id || 'x', title: s.title || 'x', character: s.character || 'x' }).piece;
     piece = p ?? piece;
-    st.innerHTML = `<span class="ok">✓ 차에서 연주할 수 있는 곡이에요.</span> <span class="warn">곡 제목을 적으면 담을 수 있어요.</span>`;
+    st.innerHTML = `<span class="ok">✓ 차에서 연주할 수 있는 곡이에요.</span> <span class="warn">곡 제목을 적으면 올릴 수 있어요.</span>`;
   } else {
     const p = r.piece;
     piece = p;
@@ -382,11 +388,30 @@ function scoreFiles() {
   return { manifest, files: { [`scores/${manifest.id}.json`]: C.utf8(JSON.stringify(manifest, null, 1)) } };
 }
 $('score-download').addEventListener('click', () => { const { manifest, files } = scoreFiles(); save(manifest.id + '.json', Object.values(files)[0], 'application/json'); });
-$('score-add').addEventListener('click', () => {
-  const { manifest, files } = scoreFiles();
-  session.set(manifest.id, { kind: 'score', manifest, files });
-  toast(`「${manifest.title}」을 담았어요 · ☁️ 차로 보내기 탭`);
-  updatePackButton();
+$('score-add').addEventListener('click', async () => {
+  if (!PLATFORM) {
+    const { manifest, files } = scoreFiles();
+    session.set(manifest.id, { kind: 'score', manifest, files });
+    toast(`「${manifest.title}」을 담았어요 · 📁 내 작품 탭의 오프라인 묶음`);
+    updatePackButton();
+    return;
+  }
+  await platform();
+  if (!user) { openLogin('올리려면 로그인해 주세요. 이메일로 받은 링크를 누르면 돼요.'); return; }
+  const button = $('score-add'); button.disabled = true;
+  try {
+    if (!$('e-creator').value.trim()) { $('e-creator').value = nickname(); syncNames(); }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { manifest, files } = scoreFiles();
+      const result = await upload('score', manifest, { [`${manifest.id}.json`]: Object.values(files)[0] }, {
+        title: manifest.title, subtitle: manifest.character, creator: manifest.creator || nickname(), license: manifest.license,
+        color: manifest.color, look: '', stages: [], forkedFrom });
+      if (result === 'taken') { idTouched = true; $('s-id').value = freshId(manifest.id); onScoreInput(); continue; }
+      if (result) { toast(`「${manifest.title}」을 올렸어요 · 운영자 확인 뒤 차에 공개돼요`); refreshMineCount(); }
+      return;
+    }
+  } catch (e) { toast('올리지 못했어요: ' + (e.message || e)); }
+  finally { button.disabled = !!lastCheck?.result.errors.length; }
 });
 
 // ------------------------------------------------------------------ piano roll
@@ -703,7 +728,7 @@ function onInstInput() {
     if (!r.errors.length) built = probe;
     const loops = notes.filter(n => n.loop).length;
     st.innerHTML = `<span class="ok">✓ 차의 악단에 넣을 수 있는 악기예요.</span> ${notes.length}음${meta.sustained ? ` · 이어지는 소리 ${loops}/${notes.length}` : ''} · ${meta.stages.map(s => C.STAGES[s]).join('·')} 단계` +
-      (r.errors.length ? ` <span class="warn">악기 이름을 적으면 담을 수 있어요.</span>` : '') +
+      (r.errors.length ? ` <span class="warn">악기 이름을 적으면 올릴 수 있어요.</span>` : '') +
       (r.warnings.length ? `<ul>${r.warnings.map(w => `<li class="warn">${esc(w.message)}</li>`).join('')}</ul>` : '');
   }
   $('i-label').classList.toggle('invalid', notes.length > 0 && !meta.label);
@@ -731,15 +756,39 @@ $('keys').addEventListener('pointerdown', async e => {
   playSample(preview, m, ctx.currentTime + 0.01, preview.manifest.sustained ? 0.9 : 0.4, 1, master, 4);
 });
 $('inst-download').addEventListener('click', () => { if (!built) return; save(built.manifest.id + '.json', C.utf8(built.json), 'application/json'); setTimeout(() => save(built.manifest.pcm, built.pcm), 400); });
-$('inst-add').addEventListener('click', () => {
+$('inst-add').addEventListener('click', async () => {
   if (!built) return;
+  if (PLATFORM) { await uploadInstrument(); return; }
   const m = built.manifest;
   session.set(m.id, { kind: 'instrument', manifest: m, files: { [`instruments/${m.id}.json`]: C.utf8(built.json), [`instruments/${m.pcm}`]: built.pcm } });
   registerSampled(m, pcmToFloat(built.pcm), '내가 만듦');
   renderStages(readDefaults());
-  toast(`「${m.label}」을 담았어요 · 곡 만들기의 악단에서 골라 들어 볼 수 있어요`);
+  toast(`「${m.label}」을 담았어요 · 📁 내 작품 탭의 오프라인 묶음`);
   updatePackButton();
 });
+async function uploadInstrument() {
+  await platform();
+  if (!user) { openLogin('올리려면 로그인해 주세요. 이메일로 받은 링크를 누르면 돼요.'); return; }
+  const button = $('inst-add'); button.disabled = true;
+  try {
+    if (!$('i-creator').value.trim()) { $('i-creator').value = nickname(); onInstInput(); }
+    for (let attempt = 0; attempt < 3 && built; attempt++) {
+      const m = built.manifest;
+      const result = await upload('instrument', m, { [`${m.id}.json`]: C.utf8(built.json), [m.pcm]: built.pcm }, {
+        title: m.label, subtitle: m.sound === 'recorded' ? '녹음한 악기' : '디자인한 음색', creator: m.creator || nickname(),
+        license: m.license, color: m.color, look: m.look, stages: m.stages, forkedFrom: null });
+      if (result === 'taken') { instIdTouched = true; $('i-id').value = freshId(m.id); onInstInput(); continue; }
+      if (result) {
+        registerSampled(m, pcmToFloat(built.pcm), '내가 만듦');
+        renderStages(readDefaults());
+        toast(`「${m.label}」을 올렸어요 · 운영자 확인 뒤 차에 공개돼요`);
+        refreshMineCount();
+      }
+      return;
+    }
+  } catch (e) { toast('올리지 못했어요: ' + (e.message || e)); }
+  finally { button.disabled = !built; }
+}
 
 // ------------------------------------------------------------------ send to the car
 
@@ -785,6 +834,286 @@ async function loadCloud() {
   renderPack();
 }
 
+// ------------------------------------------------------------------ platform (Supabase): accounts, uploads, gallery, review
+
+const PLATFORM = !!(SUPABASE_URL && SUPABASE_KEY);
+const FILES = PLATFORM ? SUPABASE_URL.replace(/\/$/, '') + '/storage/v1/object/public/packs/' : '';
+const STATUS = { pending: '검토 대기', approved: '공개 중', rejected: '반려' };
+let sb = null, user = null, profile = null, forkedFrom = null, stash = null;
+let gKind = '', gSort = 'likes', myLikes = new Set();
+const shown = new Map();
+
+async function platform() {
+  if (!PLATFORM) return null;
+  if (sb) return sb;
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm');
+  sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { data } = await sb.auth.getSession();
+  user = data.session?.user ?? null;
+  sb.auth.onAuthStateChange((_event, session) => {
+    const before = user?.id;
+    user = session?.user ?? null;
+    if (before !== user?.id) loadProfile();
+  });
+  await loadProfile();
+  return sb;
+}
+async function loadProfile() {
+  profile = null;
+  if (user) {
+    const { data } = await sb.from('profiles').select('nickname,is_admin').eq('id', user.id).maybeSingle();
+    profile = data ?? { nickname: '', is_admin: false };
+    if (!profile.nickname) setTimeout(() => openLogin(), 300); // first sign-in: pick a nickname
+  }
+  renderAccount();
+  refreshMineCount();
+}
+function nickname() { return profile?.nickname?.trim() || '익명'; }
+function freshId(id) { return id.replace(/-[a-z0-9]{4}$/, '').slice(0, 34) + '-' + Math.random().toString(36).slice(2, 6); }
+function renderAccount() {
+  $('account').hidden = !PLATFORM;
+  $('account').textContent = user ? `👤 ${nickname()}` : '로그인';
+  $('review-tab').hidden = !profile?.is_admin;
+}
+function openLogin(why) {
+  $('login-out').hidden = !!user; $('login-in').hidden = !user;
+  $('login-title').textContent = user ? '내 계정' : '로그인';
+  if (why) $('login-why').textContent = why;
+  $('login-nick').value = profile?.nickname ?? '';
+  $('login-status').hidden = true;
+  if (!$('login').open) $('login').showModal();
+}
+$('account').addEventListener('click', async () => { await platform(); openLogin(); });
+$('login-form').addEventListener('submit', async e => {
+  const action = e.submitter?.value;
+  if (action === 'cancel') return;
+  e.preventDefault();
+  const st = $('login-status'); st.hidden = false; st.textContent = '…';
+  const c = await platform();
+  if (action === 'send') {
+    const email = $('login-email').value.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) { st.innerHTML = '<span class="bad">이메일 주소를 확인해 주세요</span>'; return; }
+    const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+    st.innerHTML = error ? `<span class="bad">보내지 못했어요: ${esc(error.message)}</span>`
+      : '<span class="ok">✓ 메일을 보냈어요. 메일의 링크를 누르면 이 페이지로 돌아와 로그인돼요.</span>';
+  } else if (action === 'save') {
+    const nick = $('login-nick').value.trim().slice(0, 30);
+    if (!nick) { st.innerHTML = '<span class="bad">닉네임을 적어 주세요</span>'; return; }
+    const { error } = await c.from('profiles').update({ nickname: nick }).eq('id', user.id);
+    if (error) { st.innerHTML = `<span class="bad">${esc(error.message)}</span>`; return; }
+    profile = { ...profile, nickname: nick };
+    renderAccount(); $('login').close(); toast('닉네임을 저장했어요');
+  } else if (action === 'logout') {
+    await c.auth.signOut(); user = null; profile = null;
+    renderAccount(); $('login').close(); toast('로그아웃했어요'); refreshMineCount();
+  }
+});
+
+/** Uploads a work (its files to the bucket, its row to works). 'taken' when another account owns the id. */
+async function upload(kind, manifest, files, info) {
+  const c = await platform();
+  const { data: same } = await c.from('works').select('id,owner').eq('id', manifest.id).maybeSingle();
+  if (same && same.owner !== user.id) return 'taken';
+  const paths = [];
+  for (const [name, bytes] of Object.entries(files)) {
+    const path = `${user.id}/${manifest.id}/${name}`;
+    const type = name.endsWith('.json') ? 'application/json' : 'application/octet-stream';
+    const { error } = await c.storage.from('packs').upload(path, new Blob([bytes], { type }), { upsert: true, cacheControl: '60', contentType: type });
+    if (error) throw error;
+    paths.push(path);
+  }
+  const row = { id: manifest.id, kind, title: info.title.slice(0, 60), subtitle: (info.subtitle || '').slice(0, 120), creator: (info.creator || '').slice(0, 30),
+    license: (info.license || '').slice(0, 60), color: /^#[0-9a-f]{6}$/i.test(info.color) ? info.color : '#9FB4C2', look: info.look || '', stages: info.stages || [],
+    manifest, files: paths, bytes: Object.values(files).reduce((sum, b) => sum + b.length, 0), forked_from: info.forkedFrom || null };
+  const { error } = same ? await c.from('works').update(row).eq('id', manifest.id) : await c.from('works').insert(row);
+  if (error) { if (error.code === '23505') return 'taken'; throw error; }
+  return true;
+}
+
+function card(w, where) {
+  shown.set(w.id, w);
+  const acts = [`<button class="btn mini" data-act="listen" data-id="${esc(w.id)}">▶ 들어 보기</button>`];
+  if (where === 'gallery') {
+    acts.push(`<button class="btn mini like" aria-pressed="${myLikes.has(w.id)}" data-act="like" data-id="${esc(w.id)}">♥ ${w.likes}</button>`);
+    if (w.kind === 'score') acts.push(`<button class="btn mini" data-act="fork" data-id="${esc(w.id)}">가져와 고치기</button>`);
+  }
+  if (where === 'mine') {
+    if (w.kind === 'score') acts.push(`<button class="btn mini" data-act="edit" data-id="${esc(w.id)}">고치기</button>`);
+    acts.push(`<button class="btn mini" data-act="delete" data-id="${esc(w.id)}">삭제</button>`);
+  }
+  if (where === 'review') {
+    if (w.status !== 'approved') acts.push(`<button class="btn mini primary" data-act="approve" data-id="${esc(w.id)}">승인</button>`);
+    acts.push(`<button class="btn mini" data-act="reject" data-id="${esc(w.id)}">${w.status === 'approved' ? '내리기' : '반려'}</button>`);
+  }
+  const tag = where === 'gallery' ? '' : `<span class="tag ${w.status}">${STATUS[w.status]}</span> `;
+  const stages = w.stages?.length ? ' · ' + w.stages.map(s => C.STAGES[s]).join('·') : '';
+  return `<div class="item" style="--c:${esc(w.color)}">${tag}<b>${esc(w.title)}</b> <span class="meta">${w.kind === 'score' ? '곡' : '악기'}</span><br>${esc(w.subtitle)}<br>
+    <span class="meta">${esc(w.creator || '익명')}${w.forked_from ? ` · 원작 ${esc(w.forked_from)}` : ''} · ${esc(w.license)}${stages}${where === 'gallery' ? '' : ` · ♥ ${w.likes}`}</span>
+    ${w.review_note ? `<br><span class="warn">${esc(w.review_note)}</span>` : ''}<div class="acts">${acts.join('')}</div></div>`;
+}
+const COLUMNS = 'id,owner,kind,title,subtitle,creator,license,color,look,stages,manifest,files,bytes,forked_from,status,review_note,likes,created_at,updated_at';
+
+async function renderGallery() {
+  const box = $('gallery'), st = $('gallery-status');
+  if (!PLATFORM) {
+    st.hidden = false; st.textContent = '플랫폼 서버를 준비하고 있어요. 지금은 예시 클라우드만 보여요.';
+    box.innerHTML = cloudCatalog.items.map(i => `<div class="item" style="--c:${esc(i.color)}"><b>${esc(i.title)}</b> <span class="meta">${i.type === 'score' ? '곡' : '악기'}</span><br>${esc(i.subtitle)}<br><span class="meta">${esc(i.creator)} · ${esc(i.license)}</span></div>`).join('');
+    return;
+  }
+  st.hidden = true;
+  box.innerHTML = '<p class="hint">불러오는 중…</p>';
+  try {
+    const c = await platform();
+    let q = c.from('works').select(COLUMNS).eq('status', 'approved');
+    if (gKind) q = q.eq('kind', gKind);
+    q = gSort === 'likes' ? q.order('likes', { ascending: false }).order('updated_at', { ascending: false }) : q.order('created_at', { ascending: false });
+    const { data, error } = await q.limit(60);
+    if (error) throw error;
+    myLikes = new Set();
+    if (user) {
+      const { data: liked } = await c.from('likes').select('work_id').eq('user_id', user.id);
+      myLikes = new Set((liked ?? []).map(l => l.work_id));
+    }
+    box.innerHTML = data.map(w => card(w, 'gallery')).join('') || '<p class="hint">아직 공개된 작품이 없어요. 첫 작품을 올려 보세요!</p>';
+  } catch (e) { box.innerHTML = ''; st.hidden = false; st.innerHTML = `<span class="bad">불러오지 못했어요: ${esc(e.message || e)}</span>`; }
+}
+$('g-filter').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.kind != null) { gKind = b.dataset.kind; for (const x of $('g-filter').querySelectorAll('[data-kind]')) x.setAttribute('aria-pressed', String(x === b)); }
+  if (b.dataset.sort) { gSort = b.dataset.sort; for (const x of $('g-filter').querySelectorAll('[data-sort]')) x.setAttribute('aria-pressed', String(x === b)); }
+  renderGallery();
+});
+
+async function refreshMine() {
+  renderPack();
+  const box = $('mine'), st = $('mine-status');
+  if (!PLATFORM) { box.innerHTML = '<p class="hint">플랫폼 서버를 준비하고 있어요. 지금은 아래 오프라인 묶음으로 담을 수 있어요.</p>'; return; }
+  await platform();
+  if (!user) { box.innerHTML = '<p class="hint">로그인하면 내가 올린 작품이 여기 모여요.</p>'; return; }
+  try {
+    const { data, error } = await sb.from('works').select(COLUMNS).eq('owner', user.id).order('updated_at', { ascending: false });
+    if (error) throw error;
+    st.hidden = true;
+    box.innerHTML = data.map(w => card(w, 'mine')).join('') || '<p class="hint">아직 올린 작품이 없어요. 곡이나 악기를 만들어 “올리기”를 눌러 보세요.</p>';
+    showCount(data.length);
+  } catch (e) { st.hidden = false; st.innerHTML = `<span class="bad">불러오지 못했어요: ${esc(e.message || e)}</span>`; }
+}
+async function refreshMineCount() {
+  if (!PLATFORM || !sb) return;
+  if (!user) { showCount(session.size); return; }
+  const { count } = await sb.from('works').select('id', { count: 'exact', head: true }).eq('owner', user.id);
+  showCount(count ?? 0);
+}
+function showCount(n) { $('pack-count').hidden = !n; $('pack-count').textContent = n; }
+
+async function refreshReview() {
+  if (!profile?.is_admin) return;
+  const st = $('review-status');
+  try {
+    const { data, error } = await sb.from('works').select(COLUMNS).order('created_at', { ascending: true });
+    if (error) throw error;
+    $('review-pending').innerHTML = data.filter(w => w.status !== 'approved').map(w => card(w, 'review')).join('') || '<p class="hint">검토할 작품이 없어요.</p>';
+    $('review-approved').innerHTML = data.filter(w => w.status === 'approved').map(w => card(w, 'review')).join('') || '<p class="hint">공개 중인 작품이 없어요.</p>';
+    st.hidden = true;
+  } catch (e) { st.hidden = false; st.innerHTML = `<span class="bad">${esc(e.message || e)}</span>`; }
+}
+
+/** Opens a work from the gallery, my works or review: a score in the editor, an instrument in the band. */
+async function listen(w, mode) {
+  if (w.kind === 'instrument') {
+    try {
+      const pcmPath = w.files.find(f => f.endsWith('.pcm'));
+      const bytes = new Uint8Array(await (await fetch(FILES + pcmPath)).arrayBuffer());
+      const manifest = { ...w.manifest, id: w.id };
+      registerSampled(manifest, pcmToFloat(bytes), w.creator || '둘러보기');
+      renderStages(readDefaults());
+      // A few notes so it is heard at once.
+      await audio().resume(); ensureGraph();
+      const s = sampled.get(w.id), t = ctx.currentTime + 0.05, low = Math.max(manifest.minMidi, 55);
+      [0, 4, 7, 12].forEach((d, k) => playSample(s, low + d, t + k * 0.35, manifest.sustained ? 0.5 : 0.3, 1, master, 4));
+      toast(`「${w.title}」을 악단에 넣었어요 · 곡 만들기의 악단 칸에서 골라 들어 보세요`);
+    } catch (e) { toast('악기를 불러오지 못했어요: ' + (e.message || e)); }
+    return;
+  }
+  if (!stash && mode !== 'edit') stash = { score: readScore(), info: $('compose-info').textContent, forkedFrom };
+  let score = { ...w.manifest };
+  if (mode === 'fork') {
+    const title = (w.title + ' (편곡)').slice(0, 40);
+    score = { ...score, id: freshId(C.idFrom(w.title, 'song')), title, creator: nickname(),
+      character: `원작 ${w.creator || '익명'} · ${w.subtitle}`.slice(0, 120) };
+    forkedFrom = w.id;
+  } else forkedFrom = mode === 'edit' ? w.forked_from : null;
+  idTouched = true;
+  writeScore(score);
+  showTab('score');
+  const label = { fork: '가져와 고치는 중', edit: '내 작품 고치는 중', listen: '둘러보기' }[mode];
+  $('compose-info').innerHTML = `${label} · 「${esc(w.title)}」 · ${esc(w.creator || '익명')}` + (stash ? ' <button class="btn mini" id="restore">↩ 내 곡으로</button>' : '');
+  if (mode === 'fork') toast('가져왔어요 · 고친 뒤 올리면 원작자가 함께 표시돼요');
+  if (!playing) $('play').click(); else restartPlayback();
+}
+document.addEventListener('click', e => {
+  if (e.target.id === 'restore' && stash) {
+    writeScore(stash.score); forkedFrom = stash.forkedFrom; $('compose-info').textContent = stash.info; stash = null;
+  }
+});
+
+for (const box of ['gallery', 'mine', 'review-pending', 'review-approved']) $(box).addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const w = shown.get(b.dataset.id); if (!w) return;
+  const act = b.dataset.act;
+  if (act === 'listen') return listen(w, 'listen');
+  if (act === 'fork') return listen(w, 'fork');
+  if (act === 'edit') return listen(w, 'edit');
+  const c = await platform();
+  try {
+    if (act === 'like') {
+      if (!user) { openLogin('좋아요를 누르려면 로그인해 주세요.'); return; }
+      const liked = myLikes.has(w.id);
+      const { error } = liked ? await c.from('likes').delete().eq('user_id', user.id).eq('work_id', w.id)
+        : await c.from('likes').insert({ work_id: w.id });
+      if (error) throw error;
+      liked ? myLikes.delete(w.id) : myLikes.add(w.id);
+      w.likes += liked ? -1 : 1;
+      b.setAttribute('aria-pressed', String(!liked)); b.textContent = `♥ ${w.likes}`;
+    } else if (act === 'delete') {
+      if (!confirm(`「${w.title}」을 지울까요? 차의 목록에서도 사라져요.`)) return;
+      await c.storage.from('packs').remove(w.files);
+      const { error } = await c.from('works').delete().eq('id', w.id);
+      if (error) throw error;
+      toast('지웠어요'); refreshMine();
+    } else if (act === 'approve') {
+      const problems = w.kind === 'score' ? C.checkScore({ ...w.manifest }).errors : [];
+      if (problems.length) { toast('차가 받지 않는 악보예요: ' + problems[0].message); return; }
+      const { error } = await c.from('works').update({ status: 'approved', review_note: '' }).eq('id', w.id);
+      if (error) throw error;
+      toast(`「${w.title}」을 공개했어요`); refreshReview();
+    } else if (act === 'reject') {
+      const note = prompt(w.status === 'approved' ? '내리는 이유 (만든 사람에게 보여요)' : '반려 이유 (만든 사람에게 보여요)', '');
+      if (note == null) return;
+      const { error } = await c.from('works').update({ status: 'rejected', review_note: note.slice(0, 200) }).eq('id', w.id);
+      if (error) throw error;
+      toast('반려했어요'); refreshReview();
+    }
+  } catch (err) { toast('하지 못했어요: ' + (err.message || err)); }
+});
+
+/** Admin: the example cloud (Largo, trombone, handpan) goes up as approved works. */
+$('seed').addEventListener('click', async () => {
+  const st = $('review-status'); st.hidden = false; st.textContent = '올리는 중…';
+  try {
+    for (const item of cloudCatalog.items) {
+      const files = {}, manifest = await (await fetch(CLOUD + item.files[0])).json();
+      for (const f of item.files) files[f.split('/').pop()] = new Uint8Array(await (await fetch(CLOUD + f)).arrayBuffer());
+      const result = await upload(item.type, manifest, files, { title: item.title, subtitle: item.subtitle, creator: item.creator,
+        license: item.license, color: item.color, look: item.look, stages: item.stages, forkedFrom: null });
+      if (result === 'taken') continue;
+      await sb.from('works').update({ status: 'approved' }).eq('id', item.id);
+    }
+    st.innerHTML = '<span class="ok">✓ 예시를 올렸어요.</span>';
+    refreshReview();
+  } catch (e) { st.innerHTML = `<span class="bad">${esc(e.message || e)}</span>`; }
+});
+
 renderMelodyKeys(); renderTyped();
 compose();
 applyKind('long');
@@ -794,4 +1123,6 @@ const DEBUG = new URLSearchParams(location.search).has('debug') ? (window.__stud
 loadBank();
 loadCloud();
 const start = location.hash.slice(1);
-if (['score', 'instrument', 'pack'].includes(start)) showTab(start);
+if (['score', 'instrument', 'gallery', 'mine', 'review'].includes(start)) showTab(start);
+renderAccount();
+if (PLATFORM) platform().catch(() => {}); // restores the session (also right after a sign-in link)

@@ -210,6 +210,37 @@ class CloudLibraryTest {
         }
     }
 
+    /**
+     * The studio platform's layout: the list comes from one address (a database function) and the files
+     * from a bucket, each work under <owner>/<id>/. Here both are local copies of the example cloud.
+     */
+    @Test
+    fun aPlatformListAndBucketWork() {
+        val bucket = Files.createTempDirectory("bucket").toFile()
+        val example = File("../docs/cloud")
+        val items = CloudLibrary.fetchCatalog(base)
+        val rows = items.joinToString(",") { item ->
+            val files = item.files.map { path ->
+                val name = path.substringAfterLast('/')
+                File(example, path).copyTo(File(bucket, "owner-1/${item.id}/$name"))
+                "\"owner-1/${item.id}/$name\""
+            }
+            """{"id":"${item.id}","type":"${item.type}","title":"${item.title}","subtitle":"","creator":"","license":"",""" +
+                """"look":"${item.look}","color":"#8FD0B8","stages":${item.stages},"files":[${files.joinToString(",")}],"bytes":${item.bytes},"likes":3}"""
+        }
+        val list = File(Files.createTempDirectory("rpc").toFile(), "car_catalog").apply { writeText("""{"format":1,"name":"x","items":[$rows]}""") }
+        val source = CloudLibrary.Source(list.toURI().toString(), bucket.toURI().toString())
+        val listed = CloudLibrary.fetchCatalog(source)
+        check(listed.map { it.id } == items.map { it.id })
+        val root = Files.createTempDirectory("library").toFile()
+        for (item in listed) CloudLibrary.download(item, root, source)
+        check(CloudLibrary.installed(root) == items.map { it.id }.toSet())
+        // The platform address takes the project's public key; a folder does not.
+        val platform = CloudLibrary.Source.platform("https://abc.supabase.co/", "key")
+        check(platform.catalog == "https://abc.supabase.co/rest/v1/rpc/car_catalog")
+        check(platform.files == "https://abc.supabase.co/storage/v1/object/public/packs/" && platform.apiKey == "key")
+    }
+
     @Test
     fun aBrokenPackIsNotInstalled() {
         val root = Files.createTempDirectory("library").toFile()

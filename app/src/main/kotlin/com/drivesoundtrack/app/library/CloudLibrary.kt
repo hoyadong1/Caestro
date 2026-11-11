@@ -30,6 +30,29 @@ import java.nio.ByteOrder
 object CloudLibrary {
     /** The example cloud: GitHub Pages of the project repository. */
     const val BASE = "https://hoyadong1.github.io/Caestro/cloud/"
+
+    /**
+     * Where the list and the files come from. The example cloud keeps both under one folder; the studio
+     * platform (Supabase) serves the list from a database function and the files from a public bucket,
+     * and wants its public key with every request to the project.
+     */
+    class Source(val catalog: String, val files: String, val apiKey: String? = null) {
+        companion object {
+            /** A folder holding catalog.json and the packs (GitHub Pages, a local copy in tests). */
+            fun folder(base: String) = Source(URL(URL(base), "catalog.json").toString(), base)
+            /** The studio platform on Supabase: approved works, most liked first (tools/platform/schema.sql). */
+            fun platform(project: String, key: String): Source {
+                val root = project.trimEnd('/')
+                return Source("$root/rest/v1/rpc/car_catalog", "$root/storage/v1/object/public/packs/", key)
+            }
+        }
+    }
+
+    /** The platform when the build names one (gradle.properties caestro.supabase*), else the example cloud. */
+    val DEFAULT: Source get() =
+        if (com.drivesoundtrack.app.BuildConfig.SUPABASE_URL.isNotBlank() && com.drivesoundtrack.app.BuildConfig.SUPABASE_KEY.isNotBlank())
+            Source.platform(com.drivesoundtrack.app.BuildConfig.SUPABASE_URL, com.drivesoundtrack.app.BuildConfig.SUPABASE_KEY)
+        else Source.folder(BASE)
     /** Folder under the app's files that holds downloaded packs. */
     const val FOLDER = "library"
     private const val MAX_FILE_BYTES = 16L shl 20
@@ -71,17 +94,20 @@ object CloudLibrary {
         }
     }
 
-    fun fetchCatalog(base: String = BASE): List<Item> = parseCatalog(fetch(URL(URL(base), "catalog.json")).decodeToString())
+    fun fetchCatalog(base: String): List<Item> = fetchCatalog(Source.folder(base))
+    fun fetchCatalog(source: Source = DEFAULT): List<Item> = parseCatalog(fetch(URL(source.catalog), source).decodeToString())
+
+    fun download(item: Item, root: File, base: String) = download(item, root, Source.folder(base))
 
     /** Downloads [item] into [root]/<id>, replacing an older copy only once the new one is complete and valid. */
-    fun download(item: Item, root: File, base: String = BASE) {
+    fun download(item: Item, root: File, source: Source = DEFAULT) {
         require(ID.matches(item.id))
         root.mkdirs()
         val part = File(root, "${item.id}.part").apply { deleteRecursively(); mkdirs() }
         try {
             for (path in item.files) {
                 require(!path.startsWith("/") && ".." !in path.split('/')) { "bad path $path" }
-                File(part, path.substringAfterLast('/')).writeBytes(fetch(URL(URL(base), path)))
+                File(part, path.substringAfterLast('/')).writeBytes(fetch(URL(URL(source.files), path), source))
             }
             // Refuse a pack the app could not play.
             if (item.isScore) parseScore(read(part, item.id)) else parseInstrument(read(part, item.id), part)
@@ -98,8 +124,14 @@ object CloudLibrary {
         root.listFiles()?.filter { it.isDirectory && ID.matches(it.name) && File(it, "${it.name}.json").isFile }
             ?.map { it.name }?.toSet() ?: emptySet()
 
-    private fun fetch(url: URL): ByteArray {
+    private fun fetch(url: URL, source: Source): ByteArray {
         val connection = url.openConnection()
+        // The platform's public key goes only to the platform's own host.
+        val key = source.apiKey
+        if (key != null && url.host == URL(source.catalog).host) {
+            connection.setRequestProperty("apikey", key)
+            connection.setRequestProperty("Authorization", "Bearer $key")
+        }
         connection.connectTimeout = 8000
         connection.readTimeout = 15000
         if (connection is HttpURLConnection && connection.responseCode != 200)

@@ -119,6 +119,13 @@
     .col, .card, details.more { min-width:0; max-width:100%; }
     details.more { overflow:hidden; } .keys { width:100%; }
     nav.tabs .count[hidden] { display:none; }
+    header .account { margin-left:4px; white-space:nowrap; }
+    dialog#login { padding:0; border:0; background:transparent; color:inherit; width:min(440px, calc(100% - 32px)); }
+    dialog#login::backdrop { background:#000a; }
+    .item .acts { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+    .item .tag { display:inline-block; padding:1px 7px; border-radius:6px; font-size:11px; font-weight:800; background:#1f4a63; color:#d8f5ff; }
+    .item .tag.pending { background:#5a4a1a; color:#ffe2a0; } .item .tag.rejected { background:#5a1f26; color:#ffc4cb; } .item .tag.approved { background:#1d4a39; color:#bff5da; }
+    .like[aria-pressed="true"] { color:#ff8fb0; border-color:#ff8fb0; }
     @media (max-width:900px) { .grid { display:flex; flex-direction:column; gap:14px; } .col { display:contents; } .sticky { position:static; } .stages { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (max-width:560px) { header { position:static; } .tiles { grid-template-columns:repeat(2,minmax(0,1fr)); } .sources { grid-template-columns:1fr; } .player { grid-template-columns:1fr; } .speed { text-align:left; } .note { grid-template-columns:1fr 84px auto; } .note .len, .note .del { display:none; } }
   </style>
@@ -130,8 +137,11 @@
       <nav class="tabs" role="tablist">
         <button role="tab" aria-selected="true" data-tab="score">🎼 곡 만들기</button>
         <button role="tab" aria-selected="false" data-tab="instrument">🎻 악기 만들기</button>
-        <button role="tab" aria-selected="false" data-tab="pack">☁️ 차로 보내기<span class="count" id="pack-count" hidden>0</span></button>
+        <button role="tab" aria-selected="false" data-tab="gallery">🌐 둘러보기</button>
+        <button role="tab" aria-selected="false" data-tab="mine">📁 내 작품<span class="count" id="pack-count" hidden>0</span></button>
+        <button role="tab" aria-selected="false" data-tab="review" id="review-tab" hidden>🛡 검토</button>
       </nav>
+      <button class="btn mini account" id="account">로그인</button>
     </div>
   </header>
 
@@ -195,7 +205,7 @@
               <label class="f"><span>곡 제목</span><input type="text" id="e-title" placeholder="예: 퇴근길 노을" maxlength="40"></label>
               <label class="f"><span>만든 사람 <em>차 화면에 표시</em></span><input type="text" id="e-creator" placeholder="닉네임" maxlength="30"></label>
             </div>
-            <div class="btns"><button class="btn primary big" id="score-add" disabled>☁️ 차로 보낼 목록에 담기</button></div>
+            <div class="btns"><button class="btn primary big" id="score-add" disabled>☁️ 올리기</button><span class="info">운영자가 확인한 뒤 차의 클라우드 목록에 나와요</span></div>
             <div class="status" id="score-status">곡을 만들면 여기에서 차가 연주할 수 있는지 확인합니다.</div>
           </div>
 
@@ -308,7 +318,7 @@
               <label class="f"><span>악기 이름</span><input type="text" id="i-label" placeholder="예: 우리 집 우쿨렐레" maxlength="30"></label>
               <label class="f"><span>만든 사람</span><input type="text" id="i-creator" placeholder="닉네임" maxlength="30"></label>
             </div>
-            <div class="btns"><button class="btn primary big" id="inst-add" disabled>☁️ 차로 보낼 목록에 담기</button></div>
+            <div class="btns"><button class="btn primary big" id="inst-add" disabled>☁️ 올리기</button><span class="info">운영자가 확인한 뒤 차의 클라우드 목록에 나와요</span></div>
             <div class="status" id="inst-status">소리를 넣으면 차의 악단에 넣을 수 있는지 확인합니다.</div>
           </div>
           <details class="more" style="order:5">
@@ -347,25 +357,73 @@
       </div>
     </section>
 
-    <!-- ============================================================ pack -->
-    <section id="tab-pack" role="tabpanel" hidden>
+    <!-- ============================================================ gallery -->
+    <section id="tab-gallery" role="tabpanel" hidden>
       <div class="card">
-        <h2>☁️ 차로 보내기</h2>
-        <p class="hint">지금 클라우드에 있는 곡·악기와, 이번에 담은 것입니다. 보내면 차의 <b>클라우드</b> 탭에 나타나고, 정차 중에 내려받아 악단에 넣을 수 있습니다.</p>
-        <div class="pack" id="pack"></div>
-        <div class="btns">
-          <button class="btn primary big" id="pack-zip" disabled>올릴 묶음 받기 (.zip)</button>
+        <h2>🌐 둘러보기</h2>
+        <p class="hint">다른 사람들이 만든 곡과 악기예요. 들어 보고 마음에 들면 ♥를 눌러 주세요. 좋아요가 많을수록 차의 클라우드 목록에서도 위에 나와요. 곡은 가져와서 내 버전으로 고칠 수 있어요(원작자가 함께 표시돼요).</p>
+        <div class="chips" id="g-filter" role="group" aria-label="종류">
+          <button class="chip" aria-pressed="true" data-kind="">전체</button>
+          <button class="chip" aria-pressed="false" data-kind="score">곡</button>
+          <button class="chip" aria-pressed="false" data-kind="instrument">악기</button>
+          <span style="width:12px"></span>
+          <button class="chip" aria-pressed="true" data-sort="likes">인기순</button>
+          <button class="chip" aria-pressed="false" data-sort="new">최신순</button>
         </div>
-        <div class="status" id="pack-status">곡이나 악기 탭에서 “차로 보낼 목록에 담기”를 누르세요.</div>
-        <details class="help"><summary>시연판에서 올리는 방법</summary>
-          <p>이 시연용 클라우드는 GitHub Pages(<code>docs/cloud</code>)라서, 받은 zip을 저장소의 <code>docs/cloud</code>에 풀고 올리면 차가 새 목록을 받습니다. 정식 서비스에서는 이 단계가 업로드 버튼 하나이고, 저작권을 확인한 뒤 공개합니다. 차가 재생할 수 없는 묶음은 설치하지 않고 이전 것을 지킵니다.</p>
+        <div class="pack" id="gallery"></div>
+        <div class="status" id="gallery-status" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ mine -->
+    <section id="tab-mine" role="tabpanel" hidden>
+      <div class="card">
+        <h2>📁 내 작품</h2>
+        <p class="hint">올린 곡과 악기, 그리고 검토 상태예요. 고쳐서 다시 올리면 새 버전으로 바뀌고 다시 검토를 받아요.</p>
+        <div class="pack" id="mine"></div>
+        <div class="status" id="mine-status" hidden></div>
+        <details class="help"><summary>오프라인 묶음 (운영자용)</summary>
+          <p>서버 없이 시연할 때 쓰던 방식이에요. 아래 목록에 담은 것을 zip으로 받아 저장소의 <code>docs/cloud</code>에 풀면 예시 클라우드에 들어가요.</p>
+          <div class="pack" id="pack"></div>
+          <div class="btns"><button class="btn" id="pack-zip" disabled>담은 것 묶음 받기 (.zip)</button></div>
+          <div class="status" id="pack-status">올리기 대신 이 목록에 담으려면 로그인하지 않은 채 “올리기”를 누르세요.</div>
         </details>
+      </div>
+    </section>
+
+    <!-- ============================================================ review (admin) -->
+    <section id="tab-review" role="tabpanel" hidden>
+      <div class="card">
+        <h2>🛡 검토</h2>
+        <p class="hint">올라온 곡과 악기를 들어 보고 승인하면 차의 클라우드 목록에 나와요. 저작권이 의심되거나 부적절하면 이유를 적어 반려하세요.</p>
+        <h3>검토 대기</h3>
+        <div class="pack" id="review-pending"></div>
+        <h3>공개 중</h3>
+        <div class="pack" id="review-approved"></div>
+        <div class="btns"><button class="btn mini" id="seed">예시 곡·악기 올리기 (라르고·트롬본·핸드팬)</button></div>
+        <div class="status" id="review-status" hidden></div>
       </div>
     </section>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <footer class="wrap">카에스트로 스튜디오 · 곡은 분위기별 화성·리듬 규칙으로 브라우저에서 바로 만들어지며(서버 없음), 검사는 차 앱과 같은 규칙입니다. 녹음과 만든 곡은 이 기기 밖으로 나가지 않습니다: 직접 받은 묶음을 올릴 때만 공유됩니다.</footer>
+  <dialog id="login">
+    <form method="dialog" class="card" id="login-form">
+      <h2 id="login-title">로그인</h2>
+      <div id="login-out">
+        <p class="hint" id="login-why">이메일로 받은 링크를 누르면 로그인돼요. 비밀번호는 없어요.</p>
+        <label class="f"><span>이메일</span><input type="email" id="login-email" autocomplete="email" placeholder="you@example.com"></label>
+        <div class="btns"><button class="btn primary" id="login-send" value="send">로그인 링크 받기</button><button class="btn" value="cancel">닫기</button></div>
+      </div>
+      <div id="login-in" hidden>
+        <p class="hint">다른 사람에게는 닉네임만 보여요.</p>
+        <label class="f"><span>닉네임</span><input type="text" id="login-nick" maxlength="30" placeholder="예: 퇴근길 지휘자"></label>
+        <div class="btns"><button class="btn primary" id="login-save" value="save">저장</button><button class="btn" id="logout" value="logout">로그아웃</button><button class="btn" value="cancel">닫기</button></div>
+      </div>
+      <div class="status" id="login-status" hidden></div>
+    </form>
+  </dialog>
+  <footer class="wrap">카에스트로 스튜디오 · 곡은 분위기별 화성·리듬 규칙으로 브라우저에서 바로 만들어지고, 검사는 차 앱과 같은 규칙입니다. 녹음과 만든 곡은 “올리기”를 누를 때만 서버로 보내집니다. 올린 작품은 운영자 확인 뒤 공개되며, 공개된 작품에는 닉네임이 함께 표시됩니다.</footer>
   <script type="module" src="app.js"></script>
 </body>
 </html>

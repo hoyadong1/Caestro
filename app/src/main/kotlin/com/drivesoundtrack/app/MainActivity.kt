@@ -124,7 +124,10 @@ class MainActivity : ComponentActivity(), PlayerActions {
         permissionRequest.launch(requested.toTypedArray())
     }
 
-    private fun cloudBase() = getSharedPreferences("soundtrack", MODE_PRIVATE).getString("cloudBase", null) ?: CloudLibrary.BASE
+    /** The platform (or the example cloud); a debug build may point at another copy of a cloud folder. */
+    private fun cloudBase(): CloudLibrary.Source =
+        getSharedPreferences("soundtrack", MODE_PRIVATE).getString("cloudBase", null)?.let { CloudLibrary.Source.folder(it) }
+            ?: CloudLibrary.DEFAULT
 
     override fun refreshCloud() {
         if (cloud.loading) return
