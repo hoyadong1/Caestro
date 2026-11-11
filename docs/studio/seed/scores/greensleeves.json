@@ -1,0 +1,30 @@
+{
+ "format": 1,
+ "type": "score",
+ "id": "greensleeves",
+ "title": "Greensleeves",
+ "character": "잉글랜드 민요 · 그린슬리브스",
+ "composer": "잉글랜드 민요",
+ "creator": "카에스트로 큐레이션",
+ "license": "퍼블릭 도메인 (전래 민요)",
+ "color": "#8FD0B8",
+ "bpm": 80,
+ "tempoRange": 10,
+ "beatsPerBar": 3,
+ "tonic": "A",
+ "chords": "Am:12 | Am | C | G | Em | Am | E | E | Am | Am | C | G | Em | Am | E | Am | Am",
+ "melody": "r:8 A4:4 | C5:8 D5:4 | E5:6 F5:2 E5:4 | D5:8 B4:4 | G4:6 A4:2 B4:4 | C5:8 A4:4 | A4:6 G#4:2 A4:4 | B4:8 G#4:4 | E4:8 A4:4 | C5:8 D5:4 | E5:6 F5:2 E5:4 | D5:8 B4:4 | G4:6 A4:2 B4:4 | C5:6 B4:2 A4:4 | G#4:6 F#4:2 G#4:4 | A4:12 | -:12",
+ "bass": "HALVES",
+ "arp": "0 . 1 . 2 . 1 . 2 . 1 .",
+ "comp": ". . . . x . . . x . . .",
+ "high": "BELLS",
+ "canonBars": 0,
+ "defaults": [
+  "cello",
+  "orchperc",
+  "viola",
+  "harp",
+  "flute",
+  "glasspad"
+ ]
+}

@@ -1101,15 +1101,32 @@ for (const box of ['gallery', 'mine', 'review-pending', 'review-approved']) $(bo
   } catch (err) { toast('하지 못했어요: ' + (err.message || err)); }
 });
 
-/** Admin: the example cloud (Largo, trombone, handpan) goes up as approved works. */
+/**
+ * Admin: the example cloud (Largo, trombone, handpan) and the starter works (seed/: public-domain melodies,
+ * songs from the studio's composer, a designed instrument) go up as approved works. Ones already there are kept.
+ */
 $('seed').addEventListener('click', async () => {
   const st = $('review-status'); st.hidden = false; st.textContent = '올리는 중…';
   try {
-    for (const item of cloudCatalog.items) {
-      const files = {}, manifest = await (await fetch(CLOUD + item.files[0])).json();
-      for (const f of item.files) files[f.split('/').pop()] = new Uint8Array(await (await fetch(CLOUD + f)).arrayBuffer());
+    const sources = [[CLOUD, cloudCatalog], ['seed/', await (await fetch('seed/catalog.json')).json()]];
+    const { data: present } = await sb.from('works').select('id');
+    const have = new Set((present ?? []).map(w => w.id));
+    let added = 0;
+    for (const [base, catalog] of sources) for (const item of catalog.items) {
+      if (have.has(item.id)) continue;
+      st.textContent = `올리는 중… 「${item.title}」`;
+      const files = {}, manifest = await (await fetch(base + item.files[0])).json();
+      for (const f of item.files) files[f.split('/').pop()] = new Uint8Array(await (await fetch(base + f)).arrayBuffer());
       const result = await upload(item.type, manifest, files, { title: item.title, subtitle: item.subtitle, creator: item.creator,
         license: item.license, color: item.color, look: item.look, stages: item.stages, forkedFrom: null });
+      if (result === 'taken') continue;
+      await sb.from('works').update({ status: 'approved' }).eq('id', item.id);
+      added++;
+    }
+    st.innerHTML = `<span class="ok">✓ ${added}개를 올려 공개했어요.</span>`;
+    refreshReview();
+  } catch (e) { st.innerHTML = `<span class="bad">${esc(e.message || e)}</span>`; }
+});
       if (result === 'taken') continue;
       await sb.from('works').update({ status: 'approved' }).eq('id', item.id);
     }

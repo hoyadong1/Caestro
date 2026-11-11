@@ -1,0 +1,97 @@
+{
+ "format": 1,
+ "type": "instrument",
+ "id": "glass-bell",
+ "label": "글라스 벨",
+ "sound": "designed",
+ "creator": "카에스트로 큐레이션",
+ "license": "CC0 (퍼블릭 도메인)",
+ "stages": [
+  3,
+  5
+ ],
+ "sustained": false,
+ "voices": 6,
+ "mono": false,
+ "minMidi": 60,
+ "maxMidi": 96,
+ "gain": 1.8,
+ "attack": 0.002,
+ "release": 1,
+ "look": "GLASS",
+ "color": "#B4E4FF",
+ "rate": 24000,
+ "pcm": "glass-bell.pcm",
+ "notes": [
+  {
+   "root": 261.626,
+   "offset": 0,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 329.628,
+   "offset": 81600,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 415.305,
+   "offset": 163200,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 523.251,
+   "offset": 244800,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 659.255,
+   "offset": 326400,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 830.609,
+   "offset": 408000,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 1046.502,
+   "offset": 489600,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 1318.51,
+   "offset": 571200,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 1661.219,
+   "offset": 652800,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  },
+  {
+   "root": 2093.005,
+   "offset": 734400,
+   "length": 81600,
+   "loopStart": -1,
+   "loopEnd": -1
+  }
+ ]
+}

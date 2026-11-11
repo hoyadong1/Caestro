@@ -1,0 +1,115 @@
+{
+ "format": 1,
+ "name": "카에스트로 스튜디오 시작 작품",
+ "items": [
+  {
+   "id": "frere-jacques",
+   "type": "score",
+   "title": "Frère Jacques",
+   "subtitle": "프랑스 민요 · 자크 형제 (돌림노래)",
+   "creator": "카에스트로 큐레이션",
+   "license": "퍼블릭 도메인 (전래 민요)",
+   "look": "",
+   "color": "#9AD7FF",
+   "stages": [],
+   "files": [
+    "scores/frere-jacques.json"
+   ],
+   "bytes": 796
+  },
+  {
+   "id": "jingle-bells",
+   "type": "score",
+   "title": "Jingle Bells",
+   "subtitle": "J. 피어폰트 · 징글벨 (1857)",
+   "creator": "카에스트로 큐레이션",
+   "license": "퍼블릭 도메인 (1857)",
+   "look": "",
+   "color": "#FF8F8F",
+   "stages": [],
+   "files": [
+    "scores/jingle-bells.json"
+   ],
+   "bytes": 910
+  },
+  {
+   "id": "greensleeves",
+   "type": "score",
+   "title": "Greensleeves",
+   "subtitle": "잉글랜드 민요 · 그린슬리브스",
+   "creator": "카에스트로 큐레이션",
+   "license": "퍼블릭 도메인 (전래 민요)",
+   "look": "",
+   "color": "#8FD0B8",
+   "stages": [],
+   "files": [
+    "scores/greensleeves.json"
+   ],
+   "bytes": 912
+  },
+  {
+   "id": "fur-elise",
+   "type": "score",
+   "title": "Für Elise",
+   "subtitle": "베토벤 · 엘리제를 위하여 (1810)",
+   "creator": "카에스트로 큐레이션",
+   "license": "퍼블릭 도메인 (1810)",
+   "look": "",
+   "color": "#C9B8F2",
+   "stages": [],
+   "files": [
+    "scores/fur-elise.json"
+   ],
+   "bytes": 798
+  },
+  {
+   "id": "dawn-road",
+   "type": "score",
+   "title": "새벽 국도",
+   "subtitle": "아련한 회상 · 스튜디오 자동 작곡",
+   "creator": "카에스트로 큐레이션",
+   "license": "CC0 (스튜디오 자동 작곡)",
+   "look": "",
+   "color": "#8fd0b8",
+   "stages": [],
+   "files": [
+    "scores/dawn-road.json"
+   ],
+   "bytes": 949
+  },
+  {
+   "id": "highway-run",
+   "type": "score",
+   "title": "고속도로 질주",
+   "subtitle": "신나는 드라이브 · 스튜디오 자동 작곡",
+   "creator": "카에스트로 큐레이션",
+   "license": "CC0 (스튜디오 자동 작곡)",
+   "look": "",
+   "color": "#ffb35c",
+   "stages": [],
+   "files": [
+    "scores/highway-run.json"
+   ],
+   "bytes": 1085
+  },
+  {
+   "id": "glass-bell",
+   "type": "instrument",
+   "title": "글라스 벨",
+   "subtitle": "디자인한 음색",
+   "creator": "카에스트로 큐레이션",
+   "license": "CC0 (퍼블릭 도메인)",
+   "look": "GLASS",
+   "color": "#B4E4FF",
+   "stages": [
+    3,
+    5
+   ],
+   "files": [
+    "instruments/glass-bell.json",
+    "instruments/glass-bell.pcm"
+   ],
+   "bytes": 1633513
+  }
+ ]
+}

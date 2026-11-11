@@ -1,0 +1,30 @@
+{
+ "format": 1,
+ "type": "score",
+ "id": "jingle-bells",
+ "title": "Jingle Bells",
+ "character": "J. 피어폰트 · 징글벨 (1857)",
+ "composer": "J. Pierpont",
+ "creator": "카에스트로 큐레이션",
+ "license": "퍼블릭 도메인 (1857)",
+ "color": "#FF8F8F",
+ "bpm": 108,
+ "tempoRange": 16,
+ "beatsPerBar": 4,
+ "tonic": "C",
+ "chords": "C:16 | C | C | C | F | C | D7 | G7 | C | C | C | C | F | C | G7 | C",
+ "melody": "E5:4 E5 E5:8 | E5:4 E5 E5:8 | E5:4 G5 C5:6 D5:2 | E5:16 | F5:4 F5 F5:6 F5:2 | F5:4 E5 E5 E5:2 E5 | E5:4 D5 D5 E5 | D5:8 G5:8 | E5:4 E5 E5:8 | E5:4 E5 E5:8 | E5:4 G5 C5:6 D5:2 | E5:16 | F5:4 F5 F5 F5 | F5:4 E5 E5 E5:2 E5 | G5:4 G5 F5 D5 | C5:16",
+ "bass": "ROOT_FIFTH",
+ "arp": "0 1 2 1 0 1 2 1 0 1 2 1 0 1 2 1",
+ "comp": "x . . . x . . . x . . . x . . .",
+ "high": "OCTAVE",
+ "canonBars": 0,
+ "defaults": [
+  "pizz",
+  "latin",
+  "piano",
+  "marimba",
+  "trumpet",
+  "glock"
+ ]
+}

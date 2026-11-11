@@ -1,0 +1,30 @@
+{
+ "format": 1,
+ "type": "score",
+ "id": "dawn-road",
+ "title": "새벽 국도",
+ "character": "아련한 회상 · 스튜디오 자동 작곡",
+ "composer": "카에스트로 스튜디오",
+ "creator": "카에스트로 큐레이션",
+ "license": "CC0 (스튜디오 자동 작곡)",
+ "color": "#8fd0b8",
+ "bpm": 62,
+ "tempoRange": 6,
+ "beatsPerBar": 4,
+ "tonic": "E",
+ "chords": "Em:16 | Am:16 | D:16 | G:16 | Em:16 | Am:16 | B:16 | Em:16 | Em:16 | Am:16 | D:16 | G:16 | C:16 | B7:16 | Em:16 | Em:16",
+ "melody": "B5:4 G5:4 E5:8 | E5:16 | D5:4 F#5:4 F#5:8 | G5:12 r:4 | G5:4 G5:4 B5:8 | C6:16 | B5:4 D#6:4 B5:8 | E6:16 | B5:4 G5:4 E5:8 | E5:16 | D5:4 F#5:4 F#5:8 | G5:12 r:4 | G5:4 E5:4 G5:8 | F#5:16 | E5:16 | E5:16",
+ "bass": "HALVES",
+ "arp": "0 . 2 . 4 . 2 . 1 . 2 . 4 . 2 .",
+ "comp": "x . . . . . . . . . . . . . . .",
+ "high": "BELLS",
+ "canonBars": 0,
+ "defaults": [
+  "cello",
+  "orchperc",
+  "strings",
+  "piano",
+  "violin",
+  "flute"
+ ]
+}
