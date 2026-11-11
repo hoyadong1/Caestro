@@ -1,8 +1,6 @@
 <img src="docs/icon.png" alt="카에스트로 앱 아이콘" width="96" align="right">
 
-# 카에스트로 Caestro
-
-**Car + Maestro = Caestro.** 차(Car)와 지휘자(Maestro)를 합친 이름입니다. 내 차가 곧 지휘자.
+# 카에스트로 Caestro · Car + Maestro, 내 차가 곧 지휘자
 
 [![카에스트로 시연 페이지 열기: 130 km/h에서 여섯 악기가 연주되는 앱 화면](docs/readme-thumbnail.png)](https://hoyadong1.github.io/Caestro/)
 
