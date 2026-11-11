@@ -134,7 +134,7 @@ Never put the name of a real artist, song, film or game in title or character (t
 mention what inspired you in the note. Write title (Korean or a short English title), character and note in Korean.`;
 
 // ---- small repairs, so a nearly right answer still plays: every bar is made to add up to exactly one bar.
-function fitBar(text, spb, fill) {
+export function fitBar(text, spb, fill) {
   const out = [];
   let used = 0;
   for (const token of String(text || '').trim().split(/\s+/).filter(t => t && t !== '|')) {
@@ -163,7 +163,7 @@ function nearestChord(symbol) {
   for (const [re, to] of map) if (re.test(q)) { q = to; break; }
   return m[1] + q + (m[3] || '');
 }
-function fitPattern(text, spb, rest) {
+export function fitPattern(text, spb, rest) {
   const t = String(text || '').trim().split(/\s+/).filter(Boolean);
   return Array.from({ length: spb }, (_, i) => t[i] ?? rest).join(' ');
 }
@@ -360,10 +360,10 @@ function noteNumber(name) {
   if (!m) return null;
   return 12 * (Number(m[3]) + 1) + { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
 }
-const tokensOf = text => String(text || '').trim().split(/\s+/).filter(t => t && t !== '|');
-const stepsOf = text => tokensOf(text).reduce((a, t) => a + (Number(t.split(':')[1]) || 4), 0);
+export const tokensOf = text => String(text || '').trim().split(/\s+/).filter(t => t && t !== '|');
+export const stepsOf = text => tokensOf(text).reduce((a, t) => a + (Number(t.split(':')[1]) || 4), 0);
 /** Cuts a run of "WHAT:LEN" tokens into bars of spb steps, splitting a token that crosses a bar line. */
-function cutBars(text, spb, bars, tie) {
+export function cutBars(text, spb, bars, tie) {
   const out = Array.from({ length: bars }, () => []);
   let pos = 0;
   for (const t of tokensOf(text)) {
@@ -400,7 +400,7 @@ function splitBar(b, spb) {
 }
 
 /** One bar of drum tokens: K S H A combinations or ".", padded or cut to the bar. */
-function fitDrums(text, spb) {
+export function fitDrums(text, spb) {
   const t = String(text || '').trim().split(/\s+/).filter(x => x && x !== '|').map(x => /^[KSHA]+$/.test(x) ? x : '.');
   return Array.from({ length: spb }, (_, i) => t[i] ?? '.').join(' ');
 }
@@ -480,5 +480,5 @@ function bassMisses(score, C) {
 export function safeBass(score, C) {
   if (['HALVES', 'ROOT_FIFTH', 'VOICING'].includes(String(score.bass).trim())) return score;
   const { misses, total } = bassMisses(score, C);
-  return misses.length > Math.max(2, 0.3 * total) ? { ...score, bass: 'HALVES' } : score;
+  return misses.length > Math.max(2, 0.2 * total) ? { ...score, bass: 'HALVES' } : score;
 }
