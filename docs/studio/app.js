@@ -1189,7 +1189,7 @@ $('ai-make').addEventListener('click', async () => {
     const score = data.score;
     forkedFrom = null; stash = null; idTouched = false; $('s-id').value = '';
     $('e-title').value = score.title;
-    writeScore(withNames({ ...score, creator: $('e-creator').value.trim() }));
+    writeScore(withNames({ ...score, license: 'AI 작곡 · CC BY 4.0', creator: $('e-creator').value.trim() }));
     const barsCount = score.chords.split('|').length, secs = Math.round(barsCount * score.beatsPerBar * 60 / score.bpm);
     $('compose-info').textContent = `AI 작곡 · ${score.tonic} · ${score.beatsPerBar}/4 · ${score.bpm} BPM · ${barsCount}마디(약 ${secs}초)` + (data.form ? ` · 구성 ${data.form.split(' ').map(n => ({ I: '전주', A: '1절', B: '후렴', C: '브리지', E: '마무리' })[n] || n).join('→')}` : '');
     info.innerHTML = `<span class="ok">✓ ${esc(data.note || '만들었어요. 오른쪽에서 들어 보세요.')}</span>` +

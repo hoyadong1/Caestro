@@ -331,7 +331,7 @@ export function toScore(out, prompt = '') {
     bass, ...lines };
   return {
     id: 'ai-song', title: String(out.title || 'AI 작곡').slice(0, 40), character: String(out.character || 'AI 작곡').slice(0, 60),
-    composer: '카에스트로 AI 작곡', creator: '', license: '직접 작곡 · CC BY 4.0',
+    composer: '카에스트로 AI 작곡', creator: '', license: 'AI 작곡 · CC BY 4.0',
     color: /^#[0-9a-fA-F]{6}$/.test(out.color) ? out.color : '#9AD7FF',
     bpm: out.bpm, tempoRange: out.tempoRange, beatsPerBar: out.beatsPerBar, tonic: out.tonic, chords: out.chords, voicings: '',
     melody: out.melody, bass: out.bass, arp: out.arp, comp: out.comp, arpLine: out.arpLine, compLine: out.compLine, drums: out.drums,

@@ -431,7 +431,10 @@ class SoundtrackService : MediaBrowserService() {
 
     private fun play() {
         if (playing) return
-        if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return
+        if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            Log.i("Caestro", "Audio focus not granted")
+            return
+        }
         playing = true
         try {
             startForeground(1, playbackNotification())
@@ -453,34 +456,49 @@ class SoundtrackService : MediaBrowserService() {
     }
 
     private fun pause() {
-        if (!playing) return
-        playing = false
-        handler.removeCallbacks(statusTicker)
-        engine.stop()
-        audioManager.abandonAudioFocusRequest(focusRequest)
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        updateSession()
+        if (playing) {
+            playing = false
+            handler.removeCallbacks(statusTicker)
+            engine.stop()
+            audioManager.abandonAudioFocusRequest(focusRequest)
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            updateSession()
+            broadcastStatus()
+        }
+        endScenario()
+    }
+
+    /**
+     * Pausing (the stop button, media controls, losing audio focus) also ends the parked demo drive. Otherwise the
+     * screen stayed on the frozen demo speed and the next press of the demo button only ended it.
+     */
+    private fun endScenario() {
+        if (!scenarioEnabled) return
+        scenarioEnabled = false
+        engine.setDebugSpeedJourney(false)
+        model.setSpeed(if (carAvailable) vehicleKmh else 0.0)
         broadcastStatus()
     }
 
     private fun startScenario() {
-        if (!pleosEmulator || restricted || vehicleKmh >= 5.0) return
+        if (!pleosEmulator || restricted || vehicleKmh >= 5.0) {
+            Log.i("Caestro", "Demo drive refused: emulator=$pleosEmulator restricted=$restricted vehicleKmh=$vehicleKmh")
+            return
+        }
         if (playing) pause()
         debugJourneyEnabled = false
         scenarioEnabled = true
         model.setSpeed(0.0)
         engine.setDebugSpeedJourney(true)
         play()
-        if (!playing) stopScenario()
+        if (!playing) {
+            Log.i("Caestro", "Demo drive could not start playback")
+            stopScenario()
+        }
     }
 
     private fun stopScenario() {
-        if (!scenarioEnabled) return
-        pause()
-        scenarioEnabled = false
-        engine.setDebugSpeedJourney(false)
-        model.setSpeed(if (carAvailable) vehicleKmh else 0.0)
-        broadcastStatus()
+        if (scenarioEnabled) pause()
     }
 
     /** The car started moving during the parked demo: keep the music and follow the real speed. */
