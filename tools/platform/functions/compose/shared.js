@@ -73,14 +73,25 @@ Write the score in this text notation exactly (it is parsed by a program):
 - Choose what fits the request instead of defaults: the key (any of the 12, minor for sad, dark or tense moods,
   major for bright ones; do not fall back on C major or A minor unless asked), 3/4 for waltzes and lullabies, the tempo, the chord colours (7ths and 9th-like chords for
   jazz, simple triads for children's songs), 8 to 16 bars, and the band.
-- bass: HALVES (chord root every half bar), ROOT_FIFTH (root and fifth by beats) or VOICING, or an explicit line in
-  the melody notation (octave 2 or 3) that fills whole bars.
+- bass: HALVES (chord root every half bar: calm, ballads, film), ROOT_FIFTH (root and fifth by beats: marches,
+  waltzes, country, bossa nova), VOICING (follows the chord's lowest note: hymn-like, smooth), or best for jazz, funk,
+  pop and fast pieces an explicit line in the melody notation (octave 2 or 3, whole bars) such as a walking bass
+  "C3:4 E3:4 G3:4 A3:4 | F2:4 A2:4 C3:4 D3:4 |" or a syncopated "C2:6 C3:2 r:4 G2:4 |".
 - arp: exactly one bar of space-separated tokens (16 in 4/4, 12 in 3/4): a digit 0-4 picks a chord note from low to
-  high, "." rests.
-- comp: exactly one bar of space-separated tokens: "x" strikes the chord, "." rests.
+  high, "." rests. Shape it to the style, not always "0 1 2 3": e.g. "0 . 2 . 4 . 2 ." flowing, "0 2 4 2 3 2 4 2"
+  piano-like, ". . 2 . . 3 . ." sparse plucks, "0 . . 3 . . 2 . . 4 . . 1 . 2 ." bossa/latin.
+- comp: exactly one bar of space-separated tokens: "x" strikes the chord, "." rests. Match the style: "x . . . . . . .
+  x . . . . . . ." calm; ". . . . x . . . . . . . x . . ." backbeat pop; ". . x . . . x . . x . . . x . ." bossa;
+  "x . . . x . x . . . x . x . . ." funky; in 3/4 "x . . . x . . . x . . ." or "x . . . . . x . . . x .".
 - high: BELLS (top chord note as bells), OCTAVE (the melody an octave up) or CANON (the melody again canonBars bars
   later; only sounds good when the harmony repeats every canonBars bars or stays on one chord).
-- band: one suggested instrument per stage from the allowed ids.
+- band: one instrument per stage from the allowed ids, chosen for this song. The rhythm stage plays a fixed groove
+  per instrument, so it decides much of the feel: orchperc = classical, marches, film; timpani = epic, dramatic,
+  slow and grand; latin = bossa nova, latin, beach, summer; shaker = acoustic, folk, light morning pop; softkit =
+  ballads, slow jazz, soft pop; electro = EDM, synth-pop, night city, chases; none = lullabies, solo piano, very calm.
+  Likewise the high stage: glock = bright, children; musicbox = lullaby, nostalgic; glasspad = dreamy, night, space;
+  xylophone = playful; flute/violin/strings = lyrical, classical; none = when the melody should stand alone.
+  Make two different requests sound different: avoid choosing the same band out of habit.
 
 Originality and copyright: write original music. If the request names a song that is still under copyright (modern
 pop, K-pop, film or game music, anything recent), do not reproduce or closely imitate its melody: write an original
@@ -179,6 +190,9 @@ export function critique(score, C) {
     remarks.push('These held melody notes clash a semitone against the chord under them: ' +
       rubs.slice(0, 4).map(r => `bar ${r.bar} ${C.noteName(r.note.midi)} over ${r.chord.name}`).join(', ') +
       '. Make the melody and the chord agree (e.g. a major chord under a major third).');
+  const bm = bassMisses(score, C);
+  if (bm.misses.length > Math.max(1, 0.2 * bm.total))
+    remarks.push(`The bass line doesn't fit the chords at: ${bm.misses.slice(0, 4).join(', ')}. Start each chord with one of its notes in the bass.`);
   const bars = Math.round(ch.at(-1).start + ch.at(-1).length) / spb;
   let breathing = 0;
   for (let b = 3; b < bars; b += 4) {
@@ -300,4 +314,23 @@ export function fixThreeCount(score, C) {
   const scale = text => text.split(' ').map(t => t === '|' ? t : `${t.split(':')[0]}:${Number(t.split(':')[1]) * 4 / 3}`).join(' ');
   const widen = text => { const t = text.split(' '); return [...t, ...t.slice(0, 4)].join(' '); };
   return { ...score, beatsPerBar: 4, melody: scale(score.melody), chords: scale(score.chords), arp: widen(score.arp), comp: widen(score.comp) };
+}
+
+/** Chords whose start the bass line doesn't support (the bass note is not in the chord). */
+function bassMisses(score, C) {
+  const p = C.checkScore({ ...score, title: 'x', character: 'x' }).piece;
+  if (!p) return { misses: [], total: 0 };
+  const at = t => p.bass.find(n => t >= n.start && t < n.start + n.length);
+  const misses = p.chords.filter(c => {
+    const b = at(c.start);
+    return b && !c.intervals.some(i => (c.root + i) % 12 === b.midi % 12) && b.midi % 12 !== c.bassClass;
+  }).map(c => `${c.name} over ${C.noteName(at(c.start).midi)}`);
+  return { misses, total: p.chords.length };
+}
+
+/** A written bass line that mostly fights the chords is replaced by the plain root bass. */
+export function safeBass(score, C) {
+  if (['HALVES', 'ROOT_FIFTH', 'VOICING'].includes(String(score.bass).trim())) return score;
+  const { misses, total } = bassMisses(score, C);
+  return misses.length > Math.max(2, 0.3 * total) ? { ...score, bass: 'HALVES' } : score;
 }

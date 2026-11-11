@@ -4,7 +4,7 @@
 // CloudLibrary) and sent back to the model with the problems until it passes.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import * as C from "./core.js"; // copied from docs/studio/core.js at deploy time
-import { SYSTEM, agreeChords, critique, fixThreeCount, homeEnding, requestText, schema, toScore } from "./shared.js";
+import { SYSTEM, agreeChords, critique, fixThreeCount, homeEnding, requestText, safeBass, schema, toScore } from "./shared.js";
 
 const DAILY_LIMIT = 10;
 // Tried in order: the next one is used when a model is busy or not available to this key.
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     }
   }
   if (best) {
-    const home = homeEnding(agreeChords(fixThreeCount(best.score, C), C), C);
+    const home = safeBass(homeEnding(agreeChords(fixThreeCount(best.score, C), C), C), C);
     result = { score: passes(home) ? home : best.score, note: best.note };
   }
   await admin.from("ai_requests").insert({ user_id: user.id, prompt, ok: !!result, tokens });
