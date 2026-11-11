@@ -842,7 +842,7 @@ const PLATFORM = !!(SUPABASE_URL && SUPABASE_KEY);
 const FILES = PLATFORM ? SUPABASE_URL.replace(/\/$/, '') + '/storage/v1/object/public/packs/' : '';
 const STATUS = { pending: '검토 대기', approved: '공개 중', rejected: '반려' };
 let sb = null, user = null, profile = null, forkedFrom = null, stash = null;
-let gKind = '', gSort = 'likes', myLikes = new Set();
+let gKind = 'score', gSort = 'likes', myLikes = new Set();
 const shown = new Map();
 
 async function platform() {
@@ -959,7 +959,7 @@ async function renderGallery() {
   const box = $('gallery'), st = $('gallery-status');
   if (!PLATFORM) {
     st.hidden = false; st.textContent = '플랫폼 서버를 준비하고 있어요. 지금은 예시 클라우드만 보여요.';
-    box.innerHTML = cloudCatalog.items.map(i => `<div class="item" style="--c:${esc(i.color)}"><b>${esc(i.title)}</b> <span class="meta">${i.type === 'score' ? '곡' : '악기'}</span><br>${esc(i.subtitle)}<br><span class="meta">${esc(i.creator)} · ${esc(i.license)}</span></div>`).join('');
+    box.innerHTML = cloudCatalog.items.filter(i => i.type === gKind).map(i => `<div class="item" style="--c:${esc(i.color)}"><b>${esc(i.title)}</b> <span class="meta">${i.type === 'score' ? '곡' : '악기'}</span><br>${esc(i.subtitle)}<br><span class="meta">${esc(i.creator)} · ${esc(i.license)}</span></div>`).join('');
     return;
   }
   st.hidden = true;
@@ -967,7 +967,7 @@ async function renderGallery() {
   try {
     const c = await platform();
     let q = c.from('works').select(COLUMNS).eq('status', 'approved');
-    if (gKind) q = q.eq('kind', gKind);
+    q = q.eq('kind', gKind);
     q = gSort === 'likes' ? q.order('likes', { ascending: false }).order('updated_at', { ascending: false }) : q.order('created_at', { ascending: false });
     const { data, error } = await q.limit(60);
     if (error) throw error;
@@ -976,7 +976,7 @@ async function renderGallery() {
       const { data: liked } = await c.from('likes').select('work_id').eq('user_id', user.id);
       myLikes = new Set((liked ?? []).map(l => l.work_id));
     }
-    box.innerHTML = data.map(w => card(w, 'gallery')).join('') || '<p class="hint">아직 공개된 작품이 없어요. 첫 작품을 올려 보세요!</p>';
+    box.innerHTML = data.map(w => card(w, 'gallery')).join('') || `<p class="hint">아직 공개된 ${gKind === 'score' ? '곡이' : '악기가'} 없어요. 첫 작품을 올려 보세요!</p>`;
   } catch (e) { box.innerHTML = ''; st.hidden = false; st.innerHTML = `<span class="bad">불러오지 못했어요: ${esc(e.message || e)}</span>`; }
 }
 $('g-filter').addEventListener('click', e => {
