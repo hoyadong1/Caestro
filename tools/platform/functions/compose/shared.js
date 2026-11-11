@@ -54,7 +54,8 @@ ONE score; every stage plays its share of it, and the listener picks the instrum
 so keep it musical, singable and not busy; let the music grow as stages join.
 
 Write the score in this text notation exactly (it is parsed by a program):
-- A step is a sixteenth note. A bar has beatsPerBar*4 steps: 16 in 4/4, 12 in 3/4.
+- A step is a sixteenth note and a beat (quarter note) is always 4 steps. A bar has beatsPerBar*4 steps: 16 in 4/4,
+  12 in 3/4 (three beats of 4, e.g. "C5:4 E5:4 G5:4" or "A4:8 B4:4"; never count a 3/4 beat as 3 steps).
 - bars: the song bar by bar (8 to 16 bars). Each bar has "chords" and "melody"; inside a bar the lengths must add up
   to exactly one bar (16 steps in 4/4, 12 in 3/4). Write every length explicitly as ":LEN" in steps.
   - chords: tokens "SYMBOL:LEN" separated by spaces. Symbols: root A-G with optional # or b, then one of
@@ -65,9 +66,12 @@ Write the score in this text notation exactly (it is parsed by a program):
   Keep the melody between G4 and C6 and make it a real tune: motifs that come back, phrases of 2 or 4 bars that
   breathe, chord tones on the strong beats, steps more than leaps, end on the tonic in the last bar.
   Make the rhythm alive, not a row of equal notes: mix lengths (2, 4, 6, 8, 12 steps; dotted figures like 6+2 or 3+1;
-  syncopation for jazz, bossa nova or pop; long held notes at phrase ends; a rest now and then).
+  syncopation for jazz, bossa nova or pop; long held notes at phrase ends; a rest now and then). At most half of
+  the notes may be quarter notes (length 4); every 2nd or 4th bar ends a phrase with a long note (8+) or a rest.
+- tonic is the home note of the key (A for A minor). The song starts and ends at home: the first and last chords are
+  the tonic chord, and the melody's last note is the tonic, held long.
 - Choose what fits the request instead of defaults: the key (any of the 12, minor for sad, dark or tense moods,
-  major for bright ones), 3/4 for waltzes and lullabies, the tempo, the chord colours (7ths and 9th-like chords for
+  major for bright ones; do not fall back on C major or A minor unless asked), 3/4 for waltzes and lullabies, the tempo, the chord colours (7ths and 9th-like chords for
   jazz, simple triads for children's songs), 8 to 16 bars, and the band.
 - bass: HALVES (chord root every half bar), ROOT_FIFTH (root and fifth by beats) or VOICING, or an explicit line in
   the melody notation (octave 2 or 3) that fills whole bars.
@@ -144,6 +148,114 @@ function scrub(text, names) {
   return t.replace(/^[\s의,·'"]+/, '').replace(/\s{2,}/g, ' ').trim();
 }
 
+/**
+ * A musician's quick read of a score that already passes the car's checker: what would make it sound better.
+ * Returns English remarks for the model (empty when the score is fine).
+ */
+export function critique(score, C) {
+  const spb = score.beatsPerBar * 4;
+  const ch = C.chords(score.chords, spb), mel = C.notes(score.melody, spb);
+  const remarks = [];
+  if (!mel.length) return ['The melody is empty.'];
+  const lengths = new Set(mel.map(n => n.length));
+  const quarters = mel.filter(n => n.length === 4).length / mel.length;
+  if (lengths.size < 3 || quarters > 0.75)
+    remarks.push(`The melody rhythm is too even (${lengths.size} different note lengths, ${Math.round(quarters * 100)}% quarter notes). ` +
+      'Mix in eighths, dotted figures (6+2), syncopation and long notes so it sounds like a real tune.');
+  // Lengths of 3, 6, 9 steps everywhere usually mean the beat was counted as 3 steps; in 3/4 a beat is still 4.
+  const threes = mel.filter(n => n.length % 3 === 0 && n.length % 4).length / mel.length;
+  const onBeat = mel.filter(n => n.start % 4 === 0).length / mel.length;
+  if (threes > 0.3 && onBeat < 0.6)
+    remarks.push(`Most notes are ${[...new Set(mel.filter(n => n.length % 3 === 0 && n.length % 4).map(n => n.length))].join('/')} steps long and fall between the beats. ` +
+      'A beat is 4 steps (a quarter note) in every meter, so a 3/4 bar is three notes of 4, or 8+4, or 4+2+2+4.');
+  const chordAt = t => ch.find(c => t >= c.start && t < c.start + c.length);
+  const strong = mel.filter(n => n.start % spb === 0 || (spb === 16 && n.start % spb === 8));
+  const fit = strong.filter(n => chordAt(n.start).intervals.some(i => (chordAt(n.start).root + i) % 12 === n.midi % 12)).length;
+  if (strong.length && fit / strong.length < 0.75)
+    remarks.push(`Only ${fit} of ${strong.length} melody notes on strong beats are notes of the chord under them; put chord tones on beats 1 and 3.`);
+  // Held melody notes on a beat that rub a semitone against the chord (F over Dbm7): the ear hears these as wrong.
+  const rubs = heldClashes(score, C);
+  if (rubs.length > 3 && rubs.length > 0.12 * mel.filter(n => !(n.start % 4) && n.length >= 4).length)
+    remarks.push('These held melody notes clash a semitone against the chord under them: ' +
+      rubs.slice(0, 4).map(r => `bar ${r.bar} ${C.noteName(r.note.midi)} over ${r.chord.name}`).join(', ') +
+      '. Make the melody and the chord agree (e.g. a major chord under a major third).');
+  const bars = Math.round(ch.at(-1).start + ch.at(-1).length) / spb;
+  let breathing = 0;
+  for (let b = 3; b < bars; b += 4) {
+    const end = (b + 1) * spb, inBar = mel.filter(n => n.start >= b * spb && n.start < end);
+    const last = inBar.at(-1);
+    if (!last || inBar.some(n => n.length >= 8) || last.start + last.length < end) breathing++;
+  }
+  if (bars >= 8 && breathing < Math.floor(bars / 4) / 2)
+    remarks.push('The phrases never breathe: end each 4-bar phrase with a long note or a short rest.');
+  return remarks;
+}
+
+function heldClashes(score, C) {
+  const spb = score.beatsPerBar * 4;
+  const ch = C.chords(score.chords, spb), mel = C.notes(score.melody, spb);
+  const out = [];
+  for (const note of mel) {
+    if (note.start % 4 || note.length < 4) continue;
+    const chord = ch.find(c => note.start >= c.start && note.start < c.start + c.length);
+    const set = chord.intervals.map(i => (chord.root + i) % 12), p = note.midi % 12;
+    if (!set.includes(p) && set.some(q => (p - q + 12) % 12 === 1)) out.push({ bar: Math.floor(note.start / spb) + 1, note, chord });
+  }
+  return out;
+}
+
+/**
+ * When the melody holds the major third over a minor chord (or the minor third over a major one), the melody
+ * wins: the chord switches to the matching quality (Dbm7 -> Db7/Dbmaj7, C -> Cm).
+ */
+export function agreeChords(score, C) {
+  const spb = score.beatsPerBar * 4;
+  const ch = C.chords(score.chords, spb), mel = C.notes(score.melody, spb);
+  const tonic = C.pitchClass(score.tonic);
+  const toMajor = { m: '', m7: '7', m6: '6' }, toMinor = { '': 'm', 7: 'm7', maj7: 'm7', 6: 'm6' };
+  let i = 0;
+  const chords = score.chords.split(' ').map(token => {
+    if (token === '|') return token;
+    const c = ch[i++];
+    const [name, len] = token.split(':');
+    const m = /^([A-G][#b]?)(maj7|m7|m6|dim7|dim|aug|sus4|m|7|6)?(\/[A-G][#b]?)?$/.exec(name);
+    if (!m) return token;
+    const quality = m[2] || '';
+    const held = third => mel.filter(n => !(n.start % 4) && n.length >= 4 && n.start >= c.start && n.start < c.start + c.length &&
+      n.midi % 12 === (c.root + third) % 12).length;
+    if (quality in toMajor && held(4) > 0 && held(3) === 0) {
+      const q = quality === 'm7' ? (c.root === tonic ? 'maj7' : '7') : toMajor[quality];
+      return `${m[1]}${q}${m[3] || ''}:${len}`;
+    }
+    if (quality in toMinor && held(3) > 0 && held(4) === 0) return `${m[1]}${toMinor[quality]}${m[3] || ''}:${len}`;
+    return token;
+  });
+  return { ...score, chords: chords.join(' ') };
+}
+
+/** Makes sure the song ends at home: last chord = the first (tonic) chord, last melody note = its root. */
+export function homeEnding(score, C) {
+  const spb = score.beatsPerBar * 4;
+  const first = C.chords(score.chords, spb)[0];
+  const chordBars = score.chords.split(' | '), lastBar = chordBars.at(-1).split(' ');
+  const [lastName, lastLen] = lastBar.at(-1).split(':');
+  const homeName = first.name.split('/')[0];
+  if (C.chords(lastName + ':' + spb, spb)[0].root !== first.root) lastBar[lastBar.length - 1] = `${homeName}:${lastLen}`;
+  chordBars[chordBars.length - 1] = lastBar.join(' ');
+  const melBars = score.melody.split(' | '), tokens = melBars.at(-1).split(' ');
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const [what, len] = tokens[i].split(':');
+    if (what === 'r' || what === '-') continue;
+    const m = C.midi(what);
+    let best = m;
+    for (let d = 0; d <= 6; d++) { if (((m + d) % 12) === first.root) { best = m + d; break; } if ((((m - d) % 12) + 12) % 12 === first.root) { best = m - d; break; } }
+    tokens[i] = `${C.spell ? C.spell(best, /b/.test(homeName)) : C.noteName(best)}:${len}`;
+    break;
+  }
+  melBars[melBars.length - 1] = tokens.join(' ');
+  return { ...score, tonic: homeName.match(/^[A-G][#b]?/)[0], chords: chordBars.join(' | '), melody: melBars.join(' | ') };
+}
+
 /** The model's answer as the studio's score fields. */
 export function toScore(out, prompt = '') {
   const names = referencedNames(prompt);
@@ -164,4 +276,28 @@ export function toScore(out, prompt = '') {
     melody: out.melody, bass: out.bass, arp: out.arp, comp: out.comp, high: out.high, canonBars: out.high === 'CANON' ? out.canonBars : 0,
     defaults: STAGE_KEYS.map(k => band[k]),
   };
+}
+
+/** The first message: the request plus a key picked at random, so songs don't all land in the model's favourite key. */
+export function requestText(prompt, random = Math.random) {
+  const keys = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const key = keys[Math.floor(random() * keys.length)];
+  return `요청: ${prompt}\n(Unless the request names a key, write it in ${key} major or ${key} minor, whichever suits the mood.)`;
+}
+
+/**
+ * A 3/4 song written with the beat counted as 3 steps (lengths 3, 6, 9: four "beats" per bar) is really in four.
+ * When every length is a multiple of 3 and the notes keep missing the beat, play it as written: 4/4, lengths x4/3.
+ */
+export function fixThreeCount(score, C) {
+  if (score.beatsPerBar !== 3) return score;
+  const lengths = text => text.split(' ').filter(t => t !== '|').map(t => Number(t.split(':')[1]));
+  const all = [...lengths(score.melody), ...lengths(score.chords)];
+  if (all.some(n => !n || n % 3)) return score;
+  const mel = C.notes(score.melody, 12);
+  const offBeat = mel.filter(n => n.start % 4).length / mel.length;
+  if (offBeat < 0.25) return score;
+  const scale = text => text.split(' ').map(t => t === '|' ? t : `${t.split(':')[0]}:${Number(t.split(':')[1]) * 4 / 3}`).join(' ');
+  const widen = text => { const t = text.split(' '); return [...t, ...t.slice(0, 4)].join(' '); };
+  return { ...score, beatsPerBar: 4, melody: scale(score.melody), chords: scale(score.chords), arp: widen(score.arp), comp: widen(score.comp) };
 }

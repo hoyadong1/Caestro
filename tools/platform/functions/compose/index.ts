@@ -4,7 +4,7 @@
 // CloudLibrary) and sent back to the model with the problems until it passes.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import * as C from "./core.js"; // copied from docs/studio/core.js at deploy time
-import { SYSTEM, schema, toScore } from "./shared.js";
+import { SYSTEM, agreeChords, critique, fixThreeCount, homeEnding, requestText, schema, toScore } from "./shared.js";
 
 const DAILY_LIMIT = 10;
 // Tried in order: the next one is used when a model is busy or not available to this key.
@@ -74,12 +74,17 @@ Deno.serve(async (req) => {
   if (prompt.length < 2) return json({ error: "어떤 곡을 원하는지 적어 주세요" }, 400);
 
   const key = Deno.env.get("GEMINI_API_KEY")!;
-  const contents: Turn[] = [{ role: "user", parts: [{ text: `요청: ${prompt}` }] }];
+  const contents: Turn[] = [{ role: "user", parts: [{ text: requestText(prompt) }] }];
   let tokens = 0;
   let result: { score: ReturnType<typeof toScore>; note: string } | null = null;
   let lastProblems = "";
+  // The best score that passed the car's checker so far, with how many musical remarks it still has. A passing score
+  // with remarks (too even a rhythm, few chord tones on strong beats, no breathing) gets one more round.
+  let best: { score: ReturnType<typeof toScore>; note: string; remarks: number } | null = null;
+  let critiqued = false;
+  const passes = (s: ReturnType<typeof toScore>) => !C.checkScore({ ...s, title: s.title || "AI", character: s.character || "AI" }).errors.length;
   try {
-    for (let attempt = 0; attempt < 3 && !result; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const answer = await generate(key, contents);
       tokens += answer.tokens;
       if (answer.blocked) return json({ error: "이 요청으로는 곡을 만들 수 없어요. 다르게 적어 주세요." }, 422);
@@ -92,13 +97,27 @@ Deno.serve(async (req) => {
       }
       const score = toScore(out, prompt);
       const check = C.checkScore({ ...score, title: score.title || "AI", character: score.character || "AI" });
-      if (!check.errors.length) { result = { score, note: String(out.note ?? "") }; break; }
-      lastProblems = check.errors.map((e: { field: string; message: string }) => `${e.field}: ${e.message}`).join("\n");
-      contents.push({ role: "user", parts: [{ text: `The car's checker rejected the score:\n${lastProblems}\nFix these and answer again with the full JSON.` }] });
+      if (check.errors.length) {
+        lastProblems = check.errors.map((e: { field: string; message: string }) => `${e.field}: ${e.message}`).join("\n");
+        contents.push({ role: "user", parts: [{ text: `The car's checker rejected the score:\n${lastProblems}\nFix these and answer again with the full JSON.` }] });
+        continue;
+      }
+      const remarks = critique(score, C);
+      if (!best || remarks.length < best.remarks) best = { score, note: String(out.note ?? ""), remarks: remarks.length };
+      if (!remarks.length || critiqued) break;
+      critiqued = true;
+      contents.push({ role: "user", parts: [{ text: `It plays, but a musician listening says:\n- ${remarks.join("\n- ")}\nRewrite the melody (and chords if needed) to fix this, keeping the mood. Answer again with the full JSON.` }] });
     }
   } catch (err) {
-    const busy = /\b(429|503|504)\b/.test(String((err as Error).message));
-    return json({ error: busy ? "AI가 지금 바빠요. 잠시 뒤에 다시 해 주세요." : "AI 연결 오류" }, busy ? 503 : 502);
+    // A busy model after a usable score: keep what we have.
+    if (!best) {
+      const busy = /\b(429|503|504)\b/.test(String((err as Error).message));
+      return json({ error: busy ? "AI가 지금 바빠요. 잠시 뒤에 다시 해 주세요." : "AI 연결 오류" }, busy ? 503 : 502);
+    }
+  }
+  if (best) {
+    const home = homeEnding(agreeChords(fixThreeCount(best.score, C), C), C);
+    result = { score: passes(home) ? home : best.score, note: best.note };
   }
   await admin.from("ai_requests").insert({ user_id: user.id, prompt, ok: !!result, tokens });
   if (!result) return json({ error: "악보를 차 규칙에 맞추지 못했어요. 다시 해 주세요.", detail: lastProblems }, 422);
