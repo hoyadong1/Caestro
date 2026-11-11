@@ -1138,7 +1138,7 @@ for (const box of ['gallery', 'mine', 'review-pending', 'review-approved']) $(bo
   } catch (err) { toast('하지 못했어요: ' + (err.message || err)); }
 });
 
-// ------------------------------------------------------------------ compose from a sentence (Claude, through the platform)
+// ------------------------------------------------------------------ compose from a sentence (Gemini, through the platform)
 
 $('ai-ideas').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) $('ai-prompt').value = b.textContent; });
 $('ai-make').addEventListener('click', async () => {
@@ -1148,7 +1148,7 @@ $('ai-make').addEventListener('click', async () => {
   if (!user) { openLogin('AI 작곡은 로그인해야 쓸 수 있어요. 이메일로 받은 링크를 누르면 돼요.'); return; }
   const prompt = $('ai-prompt').value.trim();
   if (prompt.length < 2) { toast('어떤 곡을 원하는지 적어 주세요'); $('ai-prompt').focus(); return; }
-  button.disabled = true; info.innerHTML = '🎼 작곡하고 있어요… 30초~1분쯤 걸려요';
+  button.disabled = true; info.innerHTML = '🎼 작곡하고 있어요… 10초쯤 걸려요';
   try {
     const { data, error } = await c.functions.invoke('compose', { body: { prompt } });
     if (error) {
